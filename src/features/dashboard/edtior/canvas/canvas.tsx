@@ -3,7 +3,7 @@ import { useDroppable } from '@dnd-kit/react'
 import { AxisX, AxisY, Gridding } from './coordinate'
 import { useCanvasStore } from '../../store/use-canvas-store'
 import { useRef, useEffect, useState, useCallback, RefObject } from 'react'
-import SelectionBox from '../component/selection-box'
+import SelectionBox from './selection-box'
 import CanvasElement from './canvas-element'
 
 export default function Canvas({ className }: { className?: string }) {
@@ -28,25 +28,21 @@ export default function Canvas({ className }: { className?: string }) {
   }, [setSelectedIds])
 
   return (
-    <div className={cn('flex flex-1 flex-col min-h-0 min-w-0 rounded-md border border-gray-200 bg-white overflow-hidden', className)}>
-      <div className="flex h-5 shrink-0 text-blue-500">
-        <div className="w-5"></div>
-        <AxisX width={viewportSize.width} camera={camera}></AxisX>
-      </div>
-      <div className="flex flex-1 min-h-0 min-w-0 text-blue-500">
-        <AxisY camera={camera} height={viewportSize.height}></AxisY>
-        <div ref={viewportRef} className="flex-1 relative overflow-hidden cursor-move" onMouseDown={onMouseDown} onWheel={onWheelZoom}>
-          <div
-            ref={droppableRef}
-            className="absolute inset-0 origin-top-left cursor-default"
-            style={{ width, height, transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})` }}
-            onMouseDown={e => e.stopPropagation()}
-            onClick={onClick}
-          >
-            <Gridding width={width} height={height}></Gridding>
-            {Object.values(elements).map(element => <CanvasElement key={element.id} element={element}></CanvasElement>)}
-            <SelectionBox></SelectionBox>
-          </div>
+    <div className={cn("grid grid-cols-[20px_1fr] grid-rows-[20px_1fr] border border-gray-200 rounded-md bg-white overflow-hidden text-blue-500", className)}>
+      <div className="w-5"></div>
+      <AxisX width={viewportSize.width} camera={camera}></AxisX>
+      <AxisY height={viewportSize.height} camera={camera}></AxisY>
+      <div ref={viewportRef} className="flex-1 relative overflow-hidden cursor-move" onMouseDown={onMouseDown} onWheel={onWheelZoom}>
+        <div
+          ref={droppableRef}
+          className="absolute inset-0 origin-top-left cursor-default"
+          style={{ width, height, transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})` }}
+          onMouseDown={e => e.stopPropagation()}
+          onClick={onClick}
+        >
+          <Gridding width={width} height={height}></Gridding>
+          {Object.values(elements).map(element => <CanvasElement key={element.id} element={element}></CanvasElement>)}
+          <SelectionBox></SelectionBox>
         </div>
       </div>
     </div>
