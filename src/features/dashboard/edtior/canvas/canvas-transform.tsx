@@ -5,22 +5,29 @@ import { useCanvasStore } from '../../store/use-canvas-store'
 import SelectionBox from './selection-box'
 import CanvasElement from './canvas-element'
 
-export default function Canvas() {
-  const { width, height } = useCanvasStore(state => state.canvas)
-  const { x, y, scale } = useCanvasStore(state => state.camera)
+export default function CanvasTransform() {
   const elements = useCanvasStore(state => state.elements)
-  const { ref: droppableRef } = useDroppable({ id: 'canvas' })
-  const setSelectedIds = useCanvasStore(state => state.setSelectedIds)
+  const width = useCanvasStore(state => state.canvas.width)
+  const height = useCanvasStore(state => state.canvas.height)
+  const { x, y, scale } = useCanvasStore(state => state.camera)
+  const { ref } = useDroppable({ id: 'canvas' })
+
   const onClick = useCallback(() => {
+    const setSelectedIds = useCanvasStore.getState().setSelectedIds
     setSelectedIds([])
-  }, [setSelectedIds])
+  }, [])
+  const onMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    e.preventDefault()
+    
+  }, [])
 
   return (
     <div
-      ref={droppableRef}
+      ref={ref}
       className="absolute inset-0 origin-top-left cursor-default"
       style={{ width, height, transform: `translate(${x}px, ${y}px) scale(${scale})` }}
-      onMouseDown={e => e.stopPropagation()}
+      onMouseDown={onMouseDown}
       onClick={onClick}
     >
       <Gridding width={width} height={height}></Gridding>
