@@ -84,7 +84,15 @@ type CanvasStore = {
 
   // 元素 action
   addElement: (meta: Meta, layout?: Partial<Props['layout']>, runtime?: Partial<Element['runtime']>) => string
-  updateElement: (id: string, updates: Partial<Omit<Element, 'id' | 'runtime'>> & { runtime?: Partial<Element['runtime']> }) => void
+  /** `history: false` 用于拖拽等高频更新，避免每帧 snapshot；交互开始前请先 `pushHistorySnapshot` */
+  updateElement: (
+    id: string,
+    updates: Partial<Omit<Element, 'id' | 'runtime'>> & { runtime?: Partial<Element['runtime']> },
+    options?: { history?: boolean }
+  ) => void
+
+  /** 将当前文档记入撤销栈（拖拽/缩放开始前调用一次即可） */
+  pushHistorySnapshot: () => void
   removeElement: (id: string) => void
   removeElements: (ids: string[]) => void
 
@@ -175,15 +183,20 @@ export const useCanvasStore = create<CanvasStore>()(
         return id
       },
 
-      updateElement: (id, updates) =>
+      updateElement: (id, updates, options) =>
         set((state) => {
           const element = state.elements[id]
           if (!element) return
 
-          pushHistory(state)
+          if (options?.history !== false) pushHistory(state)
           const { runtime, ...rest } = updates
           Object.assign(element, rest)
           if (runtime) element.runtime = { ...element.runtime, ...runtime }
+        }),
+
+      pushHistorySnapshot: () =>
+        set((state) => {
+          pushHistory(state)
         }),
 
       removeElement: (id) =>

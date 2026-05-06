@@ -9,6 +9,7 @@ export default function SelectionBox() {
   const elements = useCanvasStore(state => state.elements)
   const scale = useCanvasStore(state => state.camera.scale)
   const updateElement = useCanvasStore(state => state.updateElement)
+  const pushHistorySnapshot = useCanvasStore(state => state.pushHistorySnapshot)
   const selectedElements = Object.values(elements).filter(el => selectedIds.includes(el.id))
   if (selectedElements.length === 0) return null
   const bounds = getBounds(selectedElements.map(element => element.props.layout))
@@ -25,6 +26,8 @@ export default function SelectionBox() {
       props: el.props,
       layout: { ...el.props.layout }
     }))
+
+    pushHistorySnapshot()
 
     const move = (event: MouseEvent) => {
       const dx = (event.clientX - startX) / scale
@@ -45,15 +48,19 @@ export default function SelectionBox() {
           width: Math.max(MIN_SIZE, Math.round(Math.abs(right - left))),
           height: Math.max(MIN_SIZE, Math.round(Math.abs(bottom - top)))
         }
-        updateElement(id, {
-          props: {
-            ...props,
-            layout: {
-              ...props.layout,
-              ...nextLayout
+        updateElement(
+          id,
+          {
+            props: {
+              ...props,
+              layout: {
+                ...props.layout,
+                ...nextLayout
+              }
             }
-          }
-        })
+          },
+          { history: false }
+        )
       })
     }
 

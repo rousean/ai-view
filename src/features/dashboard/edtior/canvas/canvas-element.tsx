@@ -10,7 +10,7 @@ export default function CanvasElement({ element, className }: { element: Element
   const { x, y, zIndex, rotate } = element.props.layout
   const setSelectedIds = useCanvasStore(state => state.setSelectedIds)
   const updateElement = useCanvasStore(state => state.updateElement)
-
+  const pushHistorySnapshot = useCanvasStore(state => state.pushHistorySnapshot)
 
   const onMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return
@@ -22,27 +22,45 @@ export default function CanvasElement({ element, className }: { element: Element
 
     const startX = e.clientX
     const startY = e.clientY
-    const { camera, canvas, elements } = useCanvasStore.getState()
+    const { elements } = useCanvasStore.getState()
     const current = elements[element.id]
     if (!current) return
 
     const startLayout = { ...current.props.layout }
+    const baseProps = {
+      ...current.props,
+      layout: { ...current.props.layout },
+    }
+
+    pushHistorySnapshot()
+
     const move = (event: MouseEvent) => {
+      const { camera, canvas } = useCanvasStore.getState()
       const dx = (event.clientX - startX) / camera.scale
       const dy = (event.clientY - startY) / camera.scale
-      const latest = useCanvasStore.getState().elements[element.id]
-      if (!latest) return
+      const nextX = Math.min(
+        Math.max(0, Math.round(startLayout.x + dx)),
+        canvas.width - startLayout.width
+      )
+      const nextY = Math.min(
+        Math.max(0, Math.round(startLayout.y + dy)),
+        canvas.height - startLayout.height
+      )
 
-      updateElement(element.id, {
-        props: {
-          ...latest.props,
-          layout: {
-            ...latest.props.layout,
-            x: Math.min(Math.max(0, Math.round(startLayout.x + dx)), canvas.width - startLayout.width),
-            y: Math.min(Math.max(0, Math.round(startLayout.y + dy)), canvas.height - startLayout.height),
-          }
-        }
-      })
+      updateElement(
+        element.id,
+        {
+          props: {
+            ...baseProps,
+            layout: {
+              ...startLayout,
+              x: nextX,
+              y: nextY,
+            },
+          },
+        },
+        { history: false }
+      )
     }
     const up = () => {
       document.removeEventListener('mousemove', move)
@@ -51,7 +69,7 @@ export default function CanvasElement({ element, className }: { element: Element
 
     document.addEventListener('mousemove', move)
     document.addEventListener('mouseup', up)
-  }, [element.id, element.runtime.locked, setSelectedIds, updateElement])
+  }, [element.id, element.runtime.locked, setSelectedIds, updateElement, pushHistorySnapshot])
 
   return (
     <div

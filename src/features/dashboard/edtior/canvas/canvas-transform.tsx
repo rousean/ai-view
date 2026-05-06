@@ -5,6 +5,7 @@ import { useCanvasStore } from '../../store/use-canvas-store'
 import SelectionBox from './selection-box'
 import CanvasElement from './canvas-element'
 import SelectionRect from './selection-rect'
+import { screenToCanvas } from '../../utils/canvas-coordinate'
 
 export default function CanvasTransform() {
   const elements = useCanvasStore(state => state.elements)
@@ -14,18 +15,25 @@ export default function CanvasTransform() {
   const { ref } = useDroppable({ id: 'canvas' })
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return
     e.stopPropagation()
     e.preventDefault()
-    console.log('rousean', e)
-    const { clientX, clientY } = e
+
+    const viewport = e.currentTarget.parentElement
+    if (!viewport) return
+
+    const rect = viewport.getBoundingClientRect()
     const setSelectionRect = useCanvasStore.getState().setSelectionRect
 
-    const move = (e: MouseEvent) => {
-      const dx = (e.clientX - clientX) / scale
-      const dy = (e.clientY - clientY) / scale
-      setSelectionRect({ x: clientX, y: clientY, width: dx, height: dy })
+    const start = screenToCanvas({ x: e.clientX, y: e.clientY }, rect, useCanvasStore.getState().camera)
+
+    const move = (ev: MouseEvent) => {
+      const end = screenToCanvas({ x: ev.clientX, y: ev.clientY }, rect, useCanvasStore.getState().camera)
+      const x = Math.min(start.x, end.x)
+      const y = Math.min(start.y, end.y)
+      setSelectionRect({ x, y, width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y) })
     }
-    
+
     const up = () => {
       setSelectionRect(null)
       document.removeEventListener('mousemove', move)

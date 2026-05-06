@@ -3,17 +3,17 @@ import { useCallback, forwardRef, type ForwardedRef } from 'react'
 
 export default forwardRef(function CanvasViewport ({ children }: { children: React.ReactNode }, ref: ForwardedRef<HTMLDivElement>) {
   const setCamera = useCanvasStore(state => state.setCamera)
-  
+
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
     const { clientX, clientY } = e
-    const { x, y, scale } = useCanvasStore.getState().camera
+    const { x, y } = useCanvasStore.getState().camera
 
     const move = (e: MouseEvent) => {
       const dx = e.clientX - clientX
       const dy = e.clientY - clientY
-      setCamera({ x: x + dx,  y: y + dy, scale })
+      setCamera({ x: x + dx,  y: y + dy })
     }
 
     const up = () => {
