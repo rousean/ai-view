@@ -2,10 +2,11 @@ import { useCallback } from 'react'
 import { Gridding } from './coordinate'
 import { useDroppable } from '@dnd-kit/react'
 import { useCanvasStore } from '../../store/use-canvas-store'
+import { screenToCanvas } from '../../utils/canvas-coordinate'
 import SelectionBox from './selection-box'
 import CanvasElement from './canvas-element'
 import SelectionRect from './selection-rect'
-import { screenToCanvas } from '../../utils/canvas-coordinate'
+
 
 export default function CanvasTransform() {
   const elements = useCanvasStore(state => state.elements)
@@ -16,6 +17,7 @@ export default function CanvasTransform() {
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
+
     e.stopPropagation()
     e.preventDefault()
 
@@ -24,11 +26,12 @@ export default function CanvasTransform() {
 
     const rect = viewport.getBoundingClientRect()
     const setSelectionRect = useCanvasStore.getState().setSelectionRect
+    const camera = useCanvasStore.getState().camera
 
-    const start = screenToCanvas({ x: e.clientX, y: e.clientY }, rect, useCanvasStore.getState().camera)
+    const start = screenToCanvas({ x: e.clientX, y: e.clientY }, rect, camera)
 
     const move = (ev: MouseEvent) => {
-      const end = screenToCanvas({ x: ev.clientX, y: ev.clientY }, rect, useCanvasStore.getState().camera)
+      const end = screenToCanvas({ x: ev.clientX, y: ev.clientY }, rect, camera)
       const x = Math.min(start.x, end.x)
       const y = Math.min(start.y, end.y)
       setSelectionRect({ x, y, width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y) })

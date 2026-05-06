@@ -1,9 +1,8 @@
 import { useCallback } from 'react'
 import { getComponent } from '~/features/component-library/registry'
 import { useCanvasStore, type Element } from '../../store/use-canvas-store'
-import { cn } from '~/lib/utils'
 
-export default function CanvasElement({ element, className }: { element: Element, className?: string }) {
+export default function CanvasElement({ element }: { element: Element }) {
   const Component = getComponent(element.type)
   if (!Component) return null
 
@@ -17,8 +16,6 @@ export default function CanvasElement({ element, className }: { element: Element
     e.stopPropagation()
     e.preventDefault()
     setSelectedIds([element.id])
-
-    if (element.runtime.locked) return
 
     const startX = e.clientX
     const startY = e.clientY
@@ -69,11 +66,11 @@ export default function CanvasElement({ element, className }: { element: Element
 
     document.addEventListener('mousemove', move)
     document.addEventListener('mouseup', up)
-  }, [element.id, element.runtime.locked, setSelectedIds, updateElement, pushHistorySnapshot])
+  }, [element.id, setSelectedIds, updateElement, pushHistorySnapshot])
 
   return (
     <div
-      className={cn('absolute origin-top-left cursor-pointer pointer-events-auto', className)}
+      className="absolute origin-top-left cursor-pointer pointer-events-auto"
       style={{
         zIndex,
         transform: `translate(${x}px, ${y}px) rotate(${rotate}deg)`,

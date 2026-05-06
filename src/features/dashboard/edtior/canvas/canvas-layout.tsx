@@ -6,6 +6,7 @@ import CanvasTransform from "./canvas-transform"
 export default function CanvasLayout() {
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 })
+  
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
       const entry = entries[0]

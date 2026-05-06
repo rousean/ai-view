@@ -5,14 +5,14 @@ export default forwardRef(function CanvasViewport ({ children }: { children: Rea
   const setCamera = useCanvasStore(state => state.setCamera)
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return
     e.stopPropagation()
     e.preventDefault()
-    const { clientX, clientY } = e
     const { x, y } = useCanvasStore.getState().camera
 
-    const move = (e: MouseEvent) => {
-      const dx = e.clientX - clientX
-      const dy = e.clientY - clientY
+    const move = (ev: MouseEvent) => {
+      const dx = ev.clientX - e.clientX
+      const dy = ev.clientY - e.clientY
       setCamera({ x: x + dx,  y: y + dy })
     }
 
