@@ -4,7 +4,7 @@ type ResizeHandle = 'n' | 's' | 'e' | 'w' | 'nw' | 'ne' | 'sw' | 'se'
 
 const MIN_SIZE = 1
 
-export default function SelectionBox() {
+export default function SelectionOverlay() {
   const selectedIds = useCanvasStore(state => state.runtime.selectedIds)
   const elements = useCanvasStore(state => state.elements)
   const scale = useCanvasStore(state => state.camera.scale)

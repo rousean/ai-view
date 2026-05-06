@@ -17,40 +17,25 @@ export default function CanvasElement({ element }: { element: Element }) {
     e.preventDefault()
     setSelectedIds([element.id])
 
-    const startX = e.clientX
-    const startY = e.clientY
-    const { elements } = useCanvasStore.getState()
-    const current = elements[element.id]
-    if (!current) return
-
-    const startLayout = { ...current.props.layout }
-    const baseProps = {
-      ...current.props,
-      layout: { ...current.props.layout },
-    }
+    const layout = { ...element.props.layout }
+    const props = { ...element.props }
 
     pushHistorySnapshot()
 
     const move = (event: MouseEvent) => {
       const { camera, canvas } = useCanvasStore.getState()
-      const dx = (event.clientX - startX) / camera.scale
-      const dy = (event.clientY - startY) / camera.scale
-      const nextX = Math.min(
-        Math.max(0, Math.round(startLayout.x + dx)),
-        canvas.width - startLayout.width
-      )
-      const nextY = Math.min(
-        Math.max(0, Math.round(startLayout.y + dy)),
-        canvas.height - startLayout.height
-      )
+      const dx = (event.clientX - e.clientX) / camera.scale
+      const dy = (event.clientY - e.clientY) / camera.scale
+      const nextX = Math.min(Math.max(0, Math.round(layout.x + dx)), canvas.width - layout.width)
+      const nextY = Math.min(Math.max(0, Math.round(layout.y + dy)), canvas.height - layout.height)
 
       updateElement(
         element.id,
         {
           props: {
-            ...baseProps,
+            ...props,
             layout: {
-              ...startLayout,
+              ...layout,
               x: nextX,
               y: nextY,
             },

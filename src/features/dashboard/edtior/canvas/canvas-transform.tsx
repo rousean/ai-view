@@ -3,10 +3,9 @@ import { Gridding } from './coordinate'
 import { useDroppable } from '@dnd-kit/react'
 import { useCanvasStore } from '../../store/use-canvas-store'
 import { screenToCanvas } from '../../utils/canvas-coordinate'
-import SelectionBox from './selection-box'
+import SelectionOverlay from './selection-overlay'
 import CanvasElement from './canvas-element'
 import SelectionRect from './selection-rect'
-
 
 export default function CanvasTransform() {
   const elements = useCanvasStore(state => state.elements)
@@ -62,7 +61,7 @@ export default function CanvasTransform() {
     >
       <Gridding width={width} height={height}></Gridding>
       {Object.values(elements).map(element => <CanvasElement key={element.id} element={element}></CanvasElement>)}
-      <SelectionBox></SelectionBox>
+      <SelectionOverlay></SelectionOverlay>
       <SelectionRect></SelectionRect>
     </div>
   )
