@@ -1,11 +1,10 @@
-import { useCallback } from 'react'
 import { Gridding } from './coordinate'
 import { useDroppable } from '@dnd-kit/react'
 import { useCanvasStore } from '../../store/use-canvas-store'
-import { screenToCanvas } from '../../utils/canvas-coordinate'
-import SelectionOverlay from './selection-overlay'
+import { useMarqueeSelection } from '../../hooks/use-marquee-selection'
+import SelectionOverlay, { SelectionUnderlay } from './selection-overlay'
 import CanvasElement from './canvas-element'
-import SelectionRect from './selection-rect'
+import MarqueeSelection from './marquee-selection'
 
 export default function CanvasTransform() {
   const elements = useCanvasStore(state => state.elements)
@@ -13,56 +12,22 @@ export default function CanvasTransform() {
   const height = useCanvasStore(state => state.canvas.height)
   const { x, y, scale } = useCanvasStore(state => state.camera)
   const { ref } = useDroppable({ id: 'canvas' })
-
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return
-
-    e.stopPropagation()
-    e.preventDefault()
-
-    const viewport = e.currentTarget.parentElement
-    if (!viewport) return
-
-    const rect = viewport.getBoundingClientRect()
-    const setSelectionRect = useCanvasStore.getState().setSelectionRect
-    const camera = useCanvasStore.getState().camera
-
-    const start = screenToCanvas({ x: e.clientX, y: e.clientY }, rect, camera)
-
-    const move = (ev: MouseEvent) => {
-      const end = screenToCanvas({ x: ev.clientX, y: ev.clientY }, rect, camera)
-      const x = Math.min(start.x, end.x)
-      const y = Math.min(start.y, end.y)
-      setSelectionRect({ x, y, width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y) })
-    }
-
-    const up = () => {
-      setSelectionRect(null)
-      document.removeEventListener('mousemove', move)
-      document.removeEventListener('mouseup', up)
-    }
-
-    document.addEventListener('mousemove', move)
-    document.addEventListener('mouseup', up)
-  }, [])
-
-  const onClick = useCallback(() => {
-    const setSelectedIds = useCanvasStore.getState().setSelectedIds
-    setSelectedIds([])
-  }, [])
+  const { onMouseDown } = useMarqueeSelection()
 
   return (
     <div
       ref={ref}
-      className="absolute inset-0 origin-top-left cursor-default"
+      className="absolute inset-0 origin-top-left isolate cursor-default"
       style={{ width, height, transform: `translate(${x}px, ${y}px) scale(${scale})` }}
       onMouseDown={onMouseDown}
-      onClick={onClick}
     >
       <Gridding width={width} height={height}></Gridding>
-      {Object.values(elements).map(element => <CanvasElement key={element.id} element={element}></CanvasElement>)}
-      <SelectionOverlay></SelectionOverlay>
-      <SelectionRect></SelectionRect>
+      <SelectionUnderlay />
+      {Object.values(elements).map(element => (
+        <CanvasElement key={element.id} element={element}></CanvasElement>
+      ))}
+      <SelectionOverlay />
+      <MarqueeSelection></MarqueeSelection>
     </div>
   )
 }

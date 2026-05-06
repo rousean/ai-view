@@ -37,7 +37,7 @@ type Snapshot = {
   }
 }
 
-type SelectionRect = {
+export type SelectionRect = {
   x: number
   y: number
   width: number
@@ -93,6 +93,17 @@ type CanvasStore = {
 
   /** 将当前文档记入撤销栈（拖拽/缩放开始前调用一次即可） */
   pushHistorySnapshot: () => void
+
+  /**
+   * 平移多个元素（相对 drag 开始时的 layout 快照 + 同一 delta）。
+   * 不写入历史，请在拖拽前已 `pushHistorySnapshot`；会跳过 `runtime.locked`。
+   */
+  translateElementsFromLayouts: (
+    snapshot: Record<string, Element['props']['layout']>,
+    dx: number,
+    dy: number
+  ) => void
+
   removeElement: (id: string) => void
   removeElements: (ids: string[]) => void
 
@@ -197,6 +208,24 @@ export const useCanvasStore = create<CanvasStore>()(
       pushHistorySnapshot: () =>
         set((state) => {
           pushHistory(state)
+        }),
+
+      translateElementsFromLayouts: (snapshot, dx, dy) =>
+        set((state) => {
+          const { width: cw, height: ch } = state.canvas
+          for (const [id, start] of Object.entries(snapshot)) {
+            const el = state.elements[id]
+            if (!el || el.runtime.locked) continue
+            const nextX = Math.min(
+              Math.max(0, Math.round(start.x + dx)),
+              cw - start.width
+            )
+            const nextY = Math.min(
+              Math.max(0, Math.round(start.y + dy)),
+              ch - start.height
+            )
+            el.props.layout = { ...el.props.layout, x: nextX, y: nextY }
+          }
         }),
 
       removeElement: (id) =>

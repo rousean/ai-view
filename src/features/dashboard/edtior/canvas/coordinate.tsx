@@ -7,7 +7,14 @@ export function Gridding({ width, height }: { width: number; height: number }) {
   const yTicks = useMemo(() => getTicks(height), [height])
 
   return (
-    <svg className="absolute left-0 top-0" width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+    <svg
+      data-canvas-background
+      className="absolute inset-0"
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+    >
       <g transform="translate(0, 0)" stroke="currentColor">
         {xTicks.map(tick => {
           const major = isMajorTick(tick)
