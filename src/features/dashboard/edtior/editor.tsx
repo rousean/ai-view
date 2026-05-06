@@ -5,7 +5,7 @@ import { DragDropProvider, DragStartEvent, type DragEndEvent } from '@dnd-kit/re
 import Materials from './materials/materials'
 import Property from './component/property'
 import Toolbar from './component/toolbar'
-import Canvas from './canvas/canvas'
+import CanvasLayout from './canvas/canvas-layout'
 
 export default function Editor() {
   const offset = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -42,7 +42,7 @@ export default function Editor() {
       <div className="flex flex-1 min-h-0 min-w-0 gap-2 w-full">
         <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <Materials></Materials>
-          <Canvas className="flex-1"></Canvas>
+          <CanvasLayout></CanvasLayout>
         </DragDropProvider>
         <Property></Property>
       </div>
