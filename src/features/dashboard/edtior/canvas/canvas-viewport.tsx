@@ -28,10 +28,15 @@ export default forwardRef(function CanvasViewport ({ children }: { children: Rea
   const onWheelZoom = useCallback((e: React.WheelEvent) => {
     e.stopPropagation()
     if (e.ctrlKey || e.metaKey) e.preventDefault()
-    const scale = useCanvasStore.getState().camera.scale
+    const { x, y, scale } = useCanvasStore.getState().camera
     const zoom = e.deltaY > 0 ? 0.9 : 1.1
-    const nextScale = scale * zoom
-    setCamera({ scale: Math.min(10, Math.max(0.2, nextScale)) })
+    const nextScale = Math.min(10, Math.max(0.2, scale * zoom))
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    const nextX = mx - (mx - x) * (nextScale / scale)
+    const nextY = my - (my - y) * (nextScale / scale)
+    setCamera({ x: nextX, y: nextY, scale: nextScale })
   }, [])
 
   return (
