@@ -3,16 +3,19 @@ import { useCallback, forwardRef, type ForwardedRef } from 'react'
 
 export default forwardRef(function CanvasViewport ({ children }: { children: React.ReactNode }, ref: ForwardedRef<HTMLDivElement>) {
   const setCamera = useCanvasStore(state => state.setCamera)
+  
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
     const { clientX, clientY } = e
     const { x, y, scale } = useCanvasStore.getState().camera
+
     const move = (e: MouseEvent) => {
       const dx = e.clientX - clientX
       const dy = e.clientY - clientY
       setCamera({ x: x + dx,  y: y + dy, scale })
     }
+
     const up = () => {
       document.removeEventListener('mousemove', move)
       document.removeEventListener('mouseup', up)
@@ -20,7 +23,7 @@ export default forwardRef(function CanvasViewport ({ children }: { children: Rea
 
     document.addEventListener('mousemove', move)
     document.addEventListener('mouseup', up)
-  }, [setCamera])
+  }, [])
 
   const onWheelZoom = useCallback((e: React.WheelEvent) => {
     e.stopPropagation()
@@ -29,10 +32,10 @@ export default forwardRef(function CanvasViewport ({ children }: { children: Rea
     const zoom = e.deltaY > 0 ? 0.9 : 1.1
     const nextScale = scale * zoom
     setCamera({ scale: Math.min(10, Math.max(0.2, nextScale)) })
-  }, [setCamera])
+  }, [])
 
   return (
-    <div ref={ref} className="flex-1 relative overflow-hidden cursor-move" onMouseDown={onMouseDown} onWheel={onWheelZoom}>
+    <div ref={ref} className="relative overflow-hidden cursor-move" onMouseDown={onMouseDown} onWheel={onWheelZoom}>
       {children}
     </div>
   )
