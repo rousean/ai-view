@@ -1,7 +1,7 @@
 import { useCanvasStore } from '../../store/use-canvas-store'
-import { useCallback, RefObject } from 'react'
+import { useCallback, forwardRef, type ForwardedRef } from 'react'
 
-export default function CanvasViewport ({ ref, children }: { ref: RefObject<HTMLDivElement>, children: React.ReactNode }) {
+export default forwardRef(function CanvasViewport ({ children }: { children: React.ReactNode }, ref: ForwardedRef<HTMLDivElement>) {
   const setCamera = useCanvasStore(state => state.setCamera)
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -21,6 +21,7 @@ export default function CanvasViewport ({ ref, children }: { ref: RefObject<HTML
     document.addEventListener('mousemove', move)
     document.addEventListener('mouseup', up)
   }, [setCamera])
+
   const onWheelZoom = useCallback((e: React.WheelEvent) => {
     e.stopPropagation()
     if (e.ctrlKey || e.metaKey) e.preventDefault()
@@ -35,4 +36,4 @@ export default function CanvasViewport ({ ref, children }: { ref: RefObject<HTML
       {children}
     </div>
   )
-}
+})
