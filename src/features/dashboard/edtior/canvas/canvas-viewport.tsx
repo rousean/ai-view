@@ -4,25 +4,25 @@ import { useCallback, forwardRef, type ForwardedRef } from 'react'
 export default forwardRef(function CanvasViewport ({ children }: { children: React.ReactNode }, ref: ForwardedRef<HTMLDivElement>) {
   const setCamera = useCanvasStore(state => state.setCamera)
 
-  const onPointerDown = useCallback((e: React.MouseEvent) => {
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
     e.stopPropagation()
     e.preventDefault()
     const { x, y } = useCanvasStore.getState().camera
 
-    const move = (ev: MouseEvent) => {
+    const move = (ev: PointerEvent) => {
       const dx = ev.clientX - e.clientX
       const dy = ev.clientY - e.clientY
       setCamera({ x: x + dx,  y: y + dy })
     }
 
     const up = () => {
-      document.removeEventListener('mousemove', move)
-      document.removeEventListener('mouseup', up)
+      document.removeEventListener('pointermove', move)
+      document.removeEventListener('pointerup', up)
     }
 
-    document.addEventListener('mousemove', move)
-    document.addEventListener('mouseup', up)
+    document.addEventListener('pointermove', move)
+    document.addEventListener('pointerup', up)
   }, [])
 
   const onWheelZoom = useCallback((e: React.WheelEvent) => {

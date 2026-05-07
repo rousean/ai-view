@@ -35,7 +35,7 @@ export default function CanvasTransform() {
 const MARQUEE_MIN_PIXELS = 4
 
 export function useMarqueeSelection() {
-  const onPointerDown = useCallback((e: React.MouseEvent) => {
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
     e.stopPropagation()
     e.preventDefault()
@@ -47,14 +47,14 @@ export function useMarqueeSelection() {
     const setSelectionRect = useCanvasStore.getState().setSelectionRect
     const start = screenToCanvas({ x: e.clientX, y: e.clientY }, viewportRect, camera)
 
-    const move = (ev: MouseEvent) => {
+    const move = (ev: PointerEvent) => {
       const end = screenToCanvas({ x: ev.clientX, y: ev.clientY }, viewportRect, camera)
       const x = Math.min(start.x, end.x)
       const y = Math.min(start.y, end.y)
       setSelectionRect({ x, y, width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y) })
     }
 
-    const up = (ev: MouseEvent) => {
+    const up = (ev: PointerEvent) => {
       const state = useCanvasStore.getState()
       const selectionRect = state.runtime.selectionRect
       const didMarquee = !!(
@@ -71,12 +71,12 @@ export function useMarqueeSelection() {
       }
       setSelectionRect(null)
 
-      document.removeEventListener('mousemove', move)
-      document.removeEventListener('mouseup', up)
+      document.removeEventListener('pointermove', move)
+      document.removeEventListener('pointerup', up)
     }
 
-    document.addEventListener('mousemove', move)
-    document.addEventListener('mouseup', up)
+    document.addEventListener('pointermove', move)
+    document.addEventListener('pointerup', up)
   }, [])
 
   return { onPointerDown }
