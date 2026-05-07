@@ -4,7 +4,7 @@ import { useCallback, forwardRef, type ForwardedRef } from 'react'
 export default forwardRef(function CanvasViewport ({ children }: { children: React.ReactNode }, ref: ForwardedRef<HTMLDivElement>) {
   const setCamera = useCanvasStore(state => state.setCamera)
 
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
+  const onPointerDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
     e.stopPropagation()
     e.preventDefault()
@@ -40,7 +40,7 @@ export default forwardRef(function CanvasViewport ({ children }: { children: Rea
   }, [])
 
   return (
-    <div ref={ref} className="relative overflow-hidden cursor-move" onMouseDown={onMouseDown} onWheel={onWheelZoom}>
+    <div ref={ref} className="relative overflow-hidden cursor-move" onPointerDown={onPointerDown} onWheel={onWheelZoom}>
       {children}
     </div>
   )
