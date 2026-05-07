@@ -136,8 +136,8 @@ export const useCanvasStore = create<CanvasStore>()(
       },
 
       camera: {
-        x: 100,
-        y: 100,
+        x: 50,
+        y: 50,
         scale: 1,
       },
 

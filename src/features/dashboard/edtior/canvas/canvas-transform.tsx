@@ -1,11 +1,11 @@
 import { useCallback } from 'react'
 import { Gridding } from './coordinate'
 import { useDroppable } from '@dnd-kit/react'
-import { useCanvasStore, type Element, type SelectionRect } from '../../store/use-canvas-store'
-import SelectionOverlay, { SelectionUnderlay } from './selection-overlay'
-import CanvasElement from './canvas-element'
-import MarqueeSelection from './marquee-selection'
 import { screenToCanvas } from '../../utils/canvas-coordinate'
+import { useCanvasStore, type Element, type SelectionRect } from '../../store/use-canvas-store'
+import CanvasElement from './canvas-element'
+import SelectionBounds from './selection-bounds'
+import MarqueeSelection from './marquee-selection'
 
 export default function CanvasTransform() {
   const elements = useCanvasStore(state => state.elements)
@@ -23,11 +23,10 @@ export default function CanvasTransform() {
       onMouseDown={onMouseDown}
     >
       <Gridding width={width} height={height}></Gridding>
-      <SelectionUnderlay />
       {Object.values(elements).map(element => (
         <CanvasElement key={element.id} element={element}></CanvasElement>
       ))}
-      <SelectionOverlay />
+      <SelectionBounds></SelectionBounds>
       <MarqueeSelection></MarqueeSelection>
     </div>
   )
@@ -66,7 +65,7 @@ export function useMarqueeSelection() {
         state.setSelectedIds(ids)
       } else {
         const under = document.elementFromPoint(ev.clientX, ev.clientY)
-        if (under instanceof HTMLElement && under.closest('[data-canvas-background]')) {
+        if (under instanceof Element && under.closest('[data-canvas-background]')) {
           state.setSelectedIds([])
         }
       }
