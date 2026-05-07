@@ -13,14 +13,14 @@ export default function CanvasTransform() {
   const height = useCanvasStore(state => state.canvas.height)
   const { x, y, scale } = useCanvasStore(state => state.camera)
   const { ref } = useDroppable({ id: 'canvas' })
-  const { onMouseDown } = useMarqueeSelection()
+  const { onPointerDown } = useMarqueeSelection()
 
   return (
     <div
       ref={ref}
       className="absolute inset-0 origin-top-left isolate cursor-default"
       style={{ width, height, transform: `translate(${x}px, ${y}px) scale(${scale})` }}
-      onMouseDown={onMouseDown}
+      onPointerDown={onPointerDown}
     >
       <Gridding width={width} height={height}></Gridding>
       {Object.values(elements).map(element => (
@@ -35,7 +35,7 @@ export default function CanvasTransform() {
 const MARQUEE_MIN_PIXELS = 4
 
 export function useMarqueeSelection() {
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
+  const onPointerDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
     e.stopPropagation()
     e.preventDefault()
@@ -79,7 +79,7 @@ export function useMarqueeSelection() {
     document.addEventListener('mouseup', up)
   }, [])
 
-  return { onMouseDown }
+  return { onPointerDown }
 }
 
 function rectsIntersect(a: SelectionRect, b: SelectionRect): boolean {

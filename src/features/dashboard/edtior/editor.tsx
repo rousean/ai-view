@@ -1,12 +1,12 @@
 import { useRef } from 'react'
 import { useCanvasStore } from '../store/use-canvas-store'
+import { screenToCanvas } from '../utils/canvas-coordinate'
 import type { Meta } from '~/features/component-library/type'
 import { DragDropProvider, DragStartEvent, type DragEndEvent } from '@dnd-kit/react'
 import Materials from './materials/materials'
 import Property from './component/property'
 import Toolbar from './component/toolbar'
 import CanvasLayout from './canvas/canvas-layout'
-import { screenToCanvas } from '../utils/canvas-coordinate'
 
 export default function Editor() {
   const offset = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -23,15 +23,13 @@ export default function Editor() {
     const { source, target, position } = event.operation
     if (!source?.element || !target?.element) return
     if (source.type === 'materials' && target.id === 'canvas') {
-      console.log('rousean', target.element.parentElement)
       const { width, height } = useCanvasStore.getState().canvas
-      const addElement = useCanvasStore.getState().addElement
       const { x, y } = screenToCanvas(
         { x: position.current.x - offset.current.x, y: position.current.y - offset.current.y },
         target.element.parentElement?.getBoundingClientRect() as DOMRect,
         useCanvasStore.getState().camera
       )
-      addElement(source.data as Meta, {
+      useCanvasStore.getState().addElement(source.data as Meta, {
         x: Math.min(Math.max(0, Math.round(x)), width - source.data.props.layout.width),
         y: Math.min(Math.max(0, Math.round(y)), height - source.data.props.layout.height)
       })

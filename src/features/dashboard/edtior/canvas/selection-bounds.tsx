@@ -114,9 +114,9 @@ function useSelectionInteraction(box: ReturnType<typeof useSelectionBox> | null)
     const isAspectRatioLocked = (ev: PointerEvent) => ev.shiftKey
 
     const move = (ev: PointerEvent) => {
-      const s = useCanvasStore.getState().camera.scale
-      const dx = (ev.clientX - startX) / s
-      const dy = (ev.clientY - startY) / s
+      const scale = useCanvasStore.getState().camera.scale
+      const dx = (ev.clientX - startX) / scale
+      const dy = (ev.clientY - startY) / scale
 
       if (type === 'move') {
         const snapshot = Object.fromEntries(startLayouts.map(({ id, layout }) => [id, layout]))
