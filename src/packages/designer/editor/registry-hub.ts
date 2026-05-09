@@ -1,5 +1,6 @@
 import { Registry, type RegistryKeyed } from './registry';
 import { CommandRegistry } from './command-registry';
+import { SetterRegistry } from '../setters/setter-registry';
 
 /**
  * Aggregate of all registries on a DashboardEditor instance. Plugins
@@ -13,7 +14,7 @@ export class RegistryHub {
   readonly widgets = new Registry<RegistryKeyed>('widgets');
 
   /** Setter components for the property panel. */
-  readonly setters = new Registry<RegistryKeyed>('setters');
+  readonly setters = new SetterRegistry();
 
   /** Tool definitions (Select / Place / Pan / ...). */
   readonly tools = new Registry<RegistryKeyed>('tools');
