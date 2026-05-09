@@ -42,6 +42,7 @@ export default function Editor() {
       <div className="flex flex-1 min-h-0 min-w-0 gap-2 w-full">
         <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <Materials></Materials>
+          {/*  */}
           <CanvasLayout></CanvasLayout>
         </DragDropProvider>
         <Property></Property>
