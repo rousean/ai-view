@@ -8,3 +8,6 @@ export {
   PageBackgroundWithAssets,
 } from './page-background';
 export * from './overlay';
+export * from './transformer/geometry';
+export { useResizeGesture } from './interaction/use-resize-gesture';
+export { useRotateGesture } from './interaction/use-rotate-gesture';

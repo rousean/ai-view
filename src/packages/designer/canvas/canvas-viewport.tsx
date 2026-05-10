@@ -189,6 +189,7 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({
     <div
       ref={containerRef}
       className={className}
+      data-canvas-viewport
       style={{
         position: 'relative',
         width: '100%',
