@@ -101,6 +101,7 @@ export const SelectionBounds: React.FC = () => {
           />
           <ResizeHandles
             bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }}
+            rotation={bbox.count === 1 ? bbox.rotate : 0}
           />
         </>
       )}
