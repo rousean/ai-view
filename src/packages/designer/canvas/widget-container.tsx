@@ -33,8 +33,18 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(
       | undefined;
 
     const layout = widget.layout;
-    const transform = `translate(${layout.x}px, ${layout.y}px) rotate(${layout.rotate}deg) scale(${layout.flipX ? -1 : 1}, ${layout.flipY ? -1 : 1})`;
-
+    // Pivot all transforms (rotate, scale/flip) around the widget's visual
+    // centre so that:
+    //   1. rotation gestures (which use bbox-centre as pivot) match what's
+    //      drawn on screen — the widget spins in place, not around its
+    //      top-left;
+    //   2. the selection chrome (also pivoted at centre) stays aligned with
+    //      the widget;
+    //   3. flipX/flipY mirror around the centre line, which is what users
+    //      expect.
+    //
+    // The base position uses `left/top` (NOT translate) so the
+    // centre-pivoted transform composes cleanly without offset bookkeeping.
     return (
       <div
         data-widget-id={widget.id}
@@ -43,12 +53,12 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(
         data-hover={isHovered || undefined}
         style={{
           position: 'absolute',
-          left: 0,
-          top: 0,
+          left: layout.x,
+          top: layout.y,
           width: layout.width,
           height: layout.height,
-          transform,
-          transformOrigin: '0 0',
+          transform: `rotate(${layout.rotate}deg) scale(${layout.flipX ? -1 : 1}, ${layout.flipY ? -1 : 1})`,
+          transformOrigin: 'center',
           opacity: layout.opacity,
           pointerEvents: widget.flags.locked ? 'none' : 'auto',
         }}
