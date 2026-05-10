@@ -75,7 +75,7 @@ export interface WidgetDataSchema {
  * Props passed to a widget's render component. Pure: no editor reference,
  * no store reach-through. The container resolves and provides everything.
  */
-export interface WidgetRenderProps<TProps = Record<string, unknown>> {
+export interface WidgetRenderProps<TProps extends object = Record<string, unknown>> {
   node: WidgetNode;
   props: TProps;
   /** Already mapped + transformed. May be undefined when no binding / loading. */
@@ -91,7 +91,7 @@ export interface WidgetRenderProps<TProps = Record<string, unknown>> {
  *
  * The generic <TProps> is the shape of `WidgetNode.props` for this type.
  */
-export interface WidgetMeta<TProps extends Record<string, unknown> = Record<string, unknown>> {
+export interface WidgetMeta<TProps extends object = Record<string, unknown>> {
   /** Unique registry key (e.g. 'bar-chart'). */
   type: string;
   version: string;

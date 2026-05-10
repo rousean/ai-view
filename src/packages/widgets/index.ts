@@ -7,13 +7,17 @@
  */
 
 export * from './widget-meta';
+export { useEcharts } from './shared/use-echarts';
 
 import type { WidgetMeta } from './widget-meta';
+import barChartMeta from './charts/bar-chart';
 
 /**
  * Built-in widget collection. Each P-phase that adds a widget appends
  * to this array. Designer plugins (BuiltinWidgetsPlugin) iterate it.
  */
 export const builtinWidgets: WidgetMeta[] = [
-  // Populated in P5+
+  barChartMeta as unknown as WidgetMeta,
 ];
+
+export { barChartMeta };
