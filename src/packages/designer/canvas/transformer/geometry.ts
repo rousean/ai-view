@@ -38,7 +38,7 @@ export function rotateAround(p: Point, pivot: Point, degrees: number): Point {
 
 /**
  * Resize handle identifier. We treat 'top'/'bottom'/'left'/'right' as
- * single-axis handles and the 4 corners as two-axis handles.
+ * single-axis edge handles and the 4 corners as two-axis handles.
  */
 export type ResizeHandle =
   | 'top-left'
@@ -50,38 +50,52 @@ export type ResizeHandle =
   | 'bottom'
   | 'left';
 
-/** Returns which sides are anchored (do not move) for a given handle. */
+/** Decode a handle into "which sides move" — the inverse of "anchored". */
+export function handleSides(handle: ResizeHandle): {
+  movesLeft: boolean;
+  movesRight: boolean;
+  movesTop: boolean;
+  movesBottom: boolean;
+} {
+  return {
+    movesLeft: handle === 'left' || handle === 'top-left' || handle === 'bottom-left',
+    movesRight:
+      handle === 'right' || handle === 'top-right' || handle === 'bottom-right',
+    movesTop: handle === 'top' || handle === 'top-left' || handle === 'top-right',
+    movesBottom:
+      handle === 'bottom' || handle === 'bottom-left' || handle === 'bottom-right',
+  };
+}
+
+/**
+ * Returns which sides are anchored (do NOT move) for a given handle.
+ * Kept for convenience and external consumption; internally we use
+ * `handleSides` because the inverse phrasing is easier to reason about.
+ */
 export function anchorSides(handle: ResizeHandle): {
   left: boolean;
   top: boolean;
   right: boolean;
   bottom: boolean;
 } {
-  switch (handle) {
-    case 'top-left':
-      return { left: false, top: false, right: true, bottom: true };
-    case 'top':
-      return { left: false, top: false, right: false, bottom: true };
-    case 'top-right':
-      return { left: true, top: false, right: false, bottom: true };
-    case 'right':
-      return { left: true, top: false, right: false, bottom: false };
-    case 'bottom-right':
-      return { left: true, top: true, right: false, bottom: false };
-    case 'bottom':
-      return { left: false, top: true, right: false, bottom: false };
-    case 'bottom-left':
-      return { left: false, top: true, right: false, bottom: false };
-    case 'left':
-      return { left: false, top: false, right: true, bottom: false };
-  }
+  const m = handleSides(handle);
+  return {
+    left: !m.movesLeft,
+    right: !m.movesRight,
+    top: !m.movesTop,
+    bottom: !m.movesBottom,
+  };
 }
 
 /**
  * Compute the new bbox after dragging a handle by (dx, dy) in canvas space.
- * Honors aspect ratio lock (shift) and from-center (alt).
  *
- * The original bbox is unchanged; its absolute coords are passed in.
+ * Convention: dx > 0 means cursor moved right; dy > 0 means cursor moved down.
+ * The opposite (anchored) side stays fixed unless `fromCenter` is true,
+ * in which case the opposite side mirrors the moving side around the center.
+ *
+ * `lockAspect` (Shift): for corner handles, enforces `start.width / start.height`
+ * by adjusting the dominant axis to match the secondary one.
  */
 export function resizeBBox(
   start: BBox,
@@ -91,79 +105,84 @@ export function resizeBBox(
   opts: { lockAspect?: boolean; fromCenter?: boolean } = {},
 ): BBox {
   const { lockAspect = false, fromCenter = false } = opts;
+  const m = handleSides(handle);
 
   let { x, y, width, height } = start;
-  const a = anchorSides(handle);
 
-  // Apply raw deltas relative to which sides move.
-  if (fromCenter) {
-    if (!a.left) {
-      x -= dx;
-      width += dx * 2;
-    } else if (!a.right) {
+  // ── Horizontal axis ─────────────────────────────────────────────
+  if (m.movesLeft) {
+    // Handle is on the left side. Drag-right (+dx) moves left edge right.
+    if (fromCenter) {
+      // Right edge mirrors: it moves left by dx as well.
       x += dx;
-      width -= dx * 2;
-      // For from-center, treat the opposite side as also moving.
-      // (We handled left=false => width grows by 2dx; here right=false => same direction)
-    }
-    if (!a.top) {
-      y -= dy;
-      height += dy * 2;
-    } else if (!a.bottom) {
-      y += dy;
-      height -= dy * 2;
-    }
-  } else {
-    if (!a.left) {
-      // left side fixed, right side moves
-      width += dx;
+      width -= 2 * dx;
     } else {
-      // left side moves, right side fixed
       x += dx;
       width -= dx;
     }
-    if (!a.top) {
-      height += dy;
+  } else if (m.movesRight) {
+    // Handle is on the right side. Drag-right (+dx) moves right edge right.
+    if (fromCenter) {
+      x -= dx;
+      width += 2 * dx;
+    } else {
+      width += dx;
+    }
+  }
+  // else: edge handle on the perpendicular axis — no horizontal change.
+
+  // ── Vertical axis ───────────────────────────────────────────────
+  if (m.movesTop) {
+    if (fromCenter) {
+      y += dy;
+      height -= 2 * dy;
     } else {
       y += dy;
       height -= dy;
     }
+  } else if (m.movesBottom) {
+    if (fromCenter) {
+      y -= dy;
+      height += 2 * dy;
+    } else {
+      height += dy;
+    }
   }
 
-  // Aspect ratio lock — derive the dominant axis and propagate.
+  // ── Aspect ratio lock (corners only) ────────────────────────────
   if (lockAspect && start.width > 0 && start.height > 0) {
     const aspect = start.width / start.height;
-    const widthRatio = Math.abs(width / start.width);
-    const heightRatio = Math.abs(height / start.height);
     const isCorner =
-      handle === 'top-left' ||
-      handle === 'top-right' ||
-      handle === 'bottom-left' ||
-      handle === 'bottom-right';
+      (m.movesLeft || m.movesRight) && (m.movesTop || m.movesBottom);
     if (isCorner) {
-      // Use the larger of the two relative changes.
+      const widthRatio = Math.abs(width / start.width);
+      const heightRatio = Math.abs(height / start.height);
       if (widthRatio >= heightRatio) {
-        const newH = Math.abs(width) / aspect * Math.sign(height || 1);
+        // Width changed more — derive height from width.
+        const newH = (Math.abs(width) / aspect) * Math.sign(height || 1);
         const dh = newH - height;
-        if (a.top) y -= dh;
+        // Anchor the side that did NOT move.
+        if (m.movesTop) y -= dh; // bottom anchored — keep bottom edge fixed
         height = newH;
       } else {
         const newW = Math.abs(height) * aspect * Math.sign(width || 1);
         const dw = newW - width;
-        if (a.left) x -= dw;
+        if (m.movesLeft) x -= dw; // right anchored
         width = newW;
       }
     }
   }
 
-  // Don't allow flipping during a resize: clamp to a tiny min.
+  // ── Min-size clamp (don't allow flipping during a resize) ───────
   const MIN = 4;
   if (width < MIN) {
-    if (a.left) x -= MIN - width; // anchor was left? fix x to keep right edge
+    // If left edge moved, we shifted x past the right edge; pull x back so
+    // that the right edge stays where it was.
+    if (m.movesLeft) x -= MIN - width;
     width = MIN;
   }
   if (height < MIN) {
-    if (a.top) y -= MIN - height;
+    if (m.movesTop) y -= MIN - height;
     height = MIN;
   }
 
@@ -174,15 +193,12 @@ export function resizeBBox(
  * Apply a bbox transformation to a list of widgets. The widgets' positions
  * and sizes are scaled proportionally inside the bbox; their `rotate` is
  * untouched (rotation handled separately).
- *
- * Returns layout deltas to apply via editor.updateLayoutBatch.
  */
 export function distributeResize(
   widgets: WidgetNode[],
   oldBBox: BBox,
   newBBox: BBox,
 ): Array<{ id: string; layout: Partial<Layout> }> {
-  // Avoid divide-by-zero when bbox has 0 width/height (single point selection).
   const sx = oldBBox.width > 0 ? newBBox.width / oldBBox.width : 1;
   const sy = oldBBox.height > 0 ? newBBox.height / oldBBox.height : 1;
 
