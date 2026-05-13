@@ -29,6 +29,7 @@ export default function Editor() {
         target.element.parentElement?.getBoundingClientRect() as DOMRect,
         useCanvasStore.getState().camera
       )
+      
       useCanvasStore.getState().addElement(source.data as Meta, {
         x: Math.min(Math.max(0, Math.round(x)), width - source.data.props.layout.width),
         y: Math.min(Math.max(0, Math.round(y)), height - source.data.props.layout.height)
@@ -42,6 +43,7 @@ export default function Editor() {
       <div className="flex flex-1 min-h-0 min-w-0 gap-2 w-full">
         <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <Materials></Materials>
+          {/*  */}
           <CanvasLayout></CanvasLayout>
         </DragDropProvider>
         <Property></Property>

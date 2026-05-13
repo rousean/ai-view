@@ -57,4 +57,4 @@ export const useCanvasStore = create<CanvasState>()(
     }),
     { name: 'canvas-storage' }
   )
-);
+)
