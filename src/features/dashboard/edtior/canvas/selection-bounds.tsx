@@ -2,11 +2,8 @@ import { useCallback, useMemo } from 'react'
 import { useCanvasStore } from '../../store/use-canvas-store'
 
 type ResizeHandle = 'n' | 's' | 'e' | 'w' | 'nw' | 'ne' | 'sw' | 'se'
-
 const MIN_SIZE = 1
-
 const handles = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const
-
 const handlePositions = {
   nw: '-top-1 -left-1 w-2 h-2 cursor-nwse-resize',
   ne: '-top-1 -right-1 w-2 h-2 cursor-nesw-resize',
