@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as EditorV2RouteImport } from './routes/editor-v2'
 import { Route as DesignerRouteImport } from './routes/designer'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LayoutIndexRouteImport } from './routes/layout/index'
@@ -17,6 +18,11 @@ import { Route as LayoutIndexRouteImport } from './routes/layout/index'
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditorV2Route = EditorV2RouteImport.update({
+  id: '/editor-v2',
+  path: '/editor-v2',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DesignerRoute = DesignerRouteImport.update({
@@ -38,12 +44,14 @@ const LayoutIndexRoute = LayoutIndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/designer': typeof DesignerRoute
+  '/editor-v2': typeof EditorV2Route
   '/login': typeof LoginRoute
   '/layout/': typeof LayoutIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/designer': typeof DesignerRoute
+  '/editor-v2': typeof EditorV2Route
   '/login': typeof LoginRoute
   '/layout': typeof LayoutIndexRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/designer': typeof DesignerRoute
+  '/editor-v2': typeof EditorV2Route
   '/login': typeof LoginRoute
   '/layout/': typeof LayoutIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/designer' | '/login' | '/layout/'
+  fullPaths: '/' | '/designer' | '/editor-v2' | '/login' | '/layout/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/designer' | '/login' | '/layout'
-  id: '__root__' | '/' | '/designer' | '/login' | '/layout/'
+  to: '/' | '/designer' | '/editor-v2' | '/login' | '/layout'
+  id: '__root__' | '/' | '/designer' | '/editor-v2' | '/login' | '/layout/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DesignerRoute: typeof DesignerRoute
+  EditorV2Route: typeof EditorV2Route
   LoginRoute: typeof LoginRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
 }
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/editor-v2': {
+      id: '/editor-v2'
+      path: '/editor-v2'
+      fullPath: '/editor-v2'
+      preLoaderRoute: typeof EditorV2RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/designer': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DesignerRoute: DesignerRoute,
+  EditorV2Route: EditorV2Route,
   LoginRoute: LoginRoute,
   LayoutIndexRoute: LayoutIndexRoute,
 }

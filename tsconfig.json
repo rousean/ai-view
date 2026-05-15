@@ -14,7 +14,11 @@
     "allowJs": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": ["./src/*"],
+      "@schema/*": ["./src/packages/schema/*"],
+      "@widgets/*": ["./src/packages/widgets/*"],
+      "@renderer/*": ["./src/packages/renderer/*"],
+      "@designer/*": ["./src/packages/designer/*"]
     },
     "noEmit": true
   }
