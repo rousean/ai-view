@@ -11,6 +11,7 @@ export { useEcharts } from './shared/use-echarts';
 
 import type { WidgetMeta } from './widget-meta';
 import barChartMeta from './charts/bar-chart';
+import donutChartMeta from './charts/donut-chart';
 
 /**
  * Built-in widget collection. Each P-phase that adds a widget appends
@@ -18,6 +19,7 @@ import barChartMeta from './charts/bar-chart';
  */
 export const builtinWidgets: WidgetMeta[] = [
   barChartMeta as unknown as WidgetMeta,
+  donutChartMeta as unknown as WidgetMeta,
 ];
 
-export { barChartMeta };
+export { barChartMeta, donutChartMeta };
