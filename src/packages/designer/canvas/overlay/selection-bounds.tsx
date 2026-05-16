@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useDocumentStore } from '../../stores/document-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { selectWidget, selectWidgets } from '../../stores/selectors';
+import { unionBBox } from '../transformer/geometry';
 import { ResizeHandles } from './resize-handles';
 import { RotationHandle } from './rotation-handle';
 
@@ -11,12 +12,22 @@ interface SelectionBBox {
   y: number;
   width: number;
   height: number;
-  /** Single-element rotation, when only one widget is selected. */
+  /** Chrome rotation (only set when count === 1, otherwise 0). */
   rotate: number;
   count: number;
 }
 
-/** Computes the union AABB of selected widgets (in canvas space). */
+/**
+ * Compute the bbox to draw the selection chrome at.
+ *
+ * Single selection: the chrome rotates with the widget (`transform: rotate`
+ * applied at render). So we return the *un-rotated* layout rect plus the
+ * widget's rotation — the CSS transform will orient the chrome correctly.
+ *
+ * Multi-selection: the chrome stays axis-aligned. We must enclose every
+ * selected widget's *visual* extent — which for rotated widgets means
+ * using rotatedAABB, not the raw layout. unionBBox already handles this.
+ */
 function useSelectionBBox(): SelectionBBox | null {
   const ids = useEditorStore(useShallow((s) => s.selectedIds));
   const widgets = useDocumentStore(
@@ -32,24 +43,22 @@ function useSelectionBBox(): SelectionBBox | null {
     }),
   );
   if (widgets.length === 0) return null;
-  let minX = Infinity,
-    minY = Infinity,
-    maxX = -Infinity,
-    maxY = -Infinity;
-  for (const w of widgets) {
-    minX = Math.min(minX, w.layout.x);
-    minY = Math.min(minY, w.layout.y);
-    maxX = Math.max(maxX, w.layout.x + w.layout.width);
-    maxY = Math.max(maxY, w.layout.y + w.layout.height);
+
+  if (widgets.length === 1) {
+    const w = widgets[0];
+    return {
+      x: w.layout.x,
+      y: w.layout.y,
+      width: w.layout.width,
+      height: w.layout.height,
+      rotate: w.layout.rotate,
+      count: 1,
+    };
   }
-  return {
-    x: minX,
-    y: minY,
-    width: maxX - minX,
-    height: maxY - minY,
-    rotate: widgets.length === 1 ? widgets[0].layout.rotate : 0,
-    count: widgets.length,
-  };
+
+  const bb = unionBBox(widgets);
+  if (!bb) return null;
+  return { ...bb, rotate: 0, count: widgets.length };
 }
 
 /**
