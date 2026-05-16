@@ -1,5 +1,6 @@
 export { CanvasViewport } from './canvas-viewport';
 export { CameraTransformLayer } from './camera-transform-layer';
+export { AxisX, AxisY, RULER_SIZE } from './ruler';
 export { WidgetLayer } from './widget-layer';
 export { WidgetContainer } from './widget-container';
 export { GridLayer } from './grid-layer';
