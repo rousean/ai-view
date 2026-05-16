@@ -1,4 +1,5 @@
 import { MousePointer2 } from 'lucide-react';
+import { rotatedAABB } from '../canvas/transformer/geometry';
 import type { Tool, ToolContext } from './tool.interface';
 
 interface SelectState {
@@ -134,16 +135,15 @@ export const SelectTool: Tool = {
           height: Math.abs(b.y - a.y),
         };
         if (rect.width > 4 && rect.height > 4) {
+          // Hit-test against the rotated AABB so rotated widgets are
+          // selectable by the marquee that visually overlaps them.
           const hits = editor.getAllWidgets().filter((w) => {
-            const cx = w.layout.x;
-            const cy = w.layout.y;
-            const cw = w.layout.width;
-            const ch = w.layout.height;
+            const aabb = rotatedAABB(w);
             return (
-              cx + cw >= rect.x &&
-              cx <= rect.x + rect.width &&
-              cy + ch >= rect.y &&
-              cy <= rect.y + rect.height
+              aabb.x + aabb.width >= rect.x &&
+              aabb.x <= rect.x + rect.width &&
+              aabb.y + aabb.height >= rect.y &&
+              aabb.y <= rect.y + rect.height
             );
           });
           editor.select(hits.map((w) => w.id));

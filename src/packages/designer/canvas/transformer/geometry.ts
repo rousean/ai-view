@@ -2,7 +2,41 @@ import type { Layout, Point, Rect, WidgetNode } from '@schema/types';
 
 export interface BBox extends Rect {}
 
-/** Compute the AABB enclosing the given widgets in canvas space. */
+/**
+ * AABB enclosing a single widget *after* its rotation is applied.
+ *
+ * The widget renders by rotating its layout rect around its centre, so for
+ * any non-zero rotation the visual extent is larger than `layout.width` x
+ * `layout.height`. This returns the screen-aligned box that just contains
+ * that rotated quad.
+ *
+ * Formula:
+ *   rotW = w·|cos R| + h·|sin R|
+ *   rotH = w·|sin R| + h·|cos R|
+ *   centre stays where it was
+ */
+export function rotatedAABB(widget: WidgetNode): BBox {
+  const { x, y, width, height, rotate } = widget.layout;
+  if (!rotate) return { x, y, width, height };
+  const r = (rotate * Math.PI) / 180;
+  const c = Math.abs(Math.cos(r));
+  const s = Math.abs(Math.sin(r));
+  const rotW = width * c + height * s;
+  const rotH = width * s + height * c;
+  const cx = x + width / 2;
+  const cy = y + height / 2;
+  return {
+    x: cx - rotW / 2,
+    y: cy - rotH / 2,
+    width: rotW,
+    height: rotH,
+  };
+}
+
+/**
+ * AABB enclosing the visual extents of every widget in the list. Widgets
+ * with rotation contribute their rotated AABB, not their raw layout rect.
+ */
 export function unionBBox(widgets: WidgetNode[]): BBox | null {
   if (widgets.length === 0) return null;
   let minX = Infinity,
@@ -10,10 +44,11 @@ export function unionBBox(widgets: WidgetNode[]): BBox | null {
     maxX = -Infinity,
     maxY = -Infinity;
   for (const w of widgets) {
-    minX = Math.min(minX, w.layout.x);
-    minY = Math.min(minY, w.layout.y);
-    maxX = Math.max(maxX, w.layout.x + w.layout.width);
-    maxY = Math.max(maxY, w.layout.y + w.layout.height);
+    const r = rotatedAABB(w);
+    if (r.x < minX) minX = r.x;
+    if (r.y < minY) minY = r.y;
+    if (r.x + r.width > maxX) maxX = r.x + r.width;
+    if (r.y + r.height > maxY) maxY = r.y + r.height;
   }
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 }
@@ -190,9 +225,15 @@ export function resizeBBox(
 }
 
 /**
- * Apply a bbox transformation to a list of widgets. The widgets' positions
- * and sizes are scaled proportionally inside the bbox; their `rotate` is
- * untouched (rotation handled separately).
+ * Apply a bbox transformation to a list of widgets. Each widget's *centre*
+ * is scaled proportionally inside the bbox, and its raw width/height
+ * scale by the same ratio. `rotate` is untouched (rotation handled
+ * separately).
+ *
+ * Centre-based (rather than top-left-based) scaling is what makes this
+ * compose correctly with rotated widgets: a rotated widget's visual
+ * bounds live around its centre, not its layout top-left. For unrotated
+ * widgets the two formulations are equivalent.
  */
 export function distributeResize(
   widgets: WidgetNode[],
@@ -203,15 +244,21 @@ export function distributeResize(
   const sy = oldBBox.height > 0 ? newBBox.height / oldBBox.height : 1;
 
   return widgets.map((w) => {
-    const relX = w.layout.x - oldBBox.x;
-    const relY = w.layout.y - oldBBox.y;
+    const oldCx = w.layout.x + w.layout.width / 2;
+    const oldCy = w.layout.y + w.layout.height / 2;
+    const relCx = oldCx - oldBBox.x;
+    const relCy = oldCy - oldBBox.y;
+    const newCx = newBBox.x + relCx * sx;
+    const newCy = newBBox.y + relCy * sy;
+    const newW = w.layout.width * sx;
+    const newH = w.layout.height * sy;
     return {
       id: w.id,
       layout: {
-        x: newBBox.x + relX * sx,
-        y: newBBox.y + relY * sy,
-        width: w.layout.width * sx,
-        height: w.layout.height * sy,
+        x: newCx - newW / 2,
+        y: newCy - newH / 2,
+        width: newW,
+        height: newH,
       },
     };
   });
