@@ -19,18 +19,19 @@ import { WidgetLayer } from './widget-layer';
  * Top-level canvas component. Captures pointer/wheel/keyboard events,
  * resolves the current tool from the registry, and dispatches to it.
  *
- * Layout (CSS grid):
- *     ┌──────┬───────────────────┐
- *     │      │      AxisX        │  20 px
- *     ├──────┼───────────────────┤
- *     │ Axis │                   │
- *     │  Y   │   Camera-trans-   │  1 fr
- *     │      │   formed canvas   │
- *     └──────┴───────────────────┘
+ * Layout: the outer frame is a single positioned container. The viewport
+ * is an absolutely-positioned child that fills the frame, optionally
+ * inset by RULER_SIZE on the top and left when rulers are visible.
+ * Rulers are also absolute and self-measuring.
  *
- * Pointer events live on the inner viewport div so the rulers don't
- * intercept them. `data-canvas-viewport` is on the inner div too — the
- * rotation gesture hook uses that as the screen→canvas conversion anchor.
+ * This avoids:
+ *   - lifting viewportSize state into the viewport (rulers measure
+ *     themselves);
+ *   - DOM restructuring when showRulers toggles (only CSS inset changes);
+ *   - re-render fan-out from a single ResizeObserver in a parent.
+ *
+ * `data-canvas-viewport` stays on the inner viewport div — useRotateGesture
+ * uses it as the screen→canvas conversion anchor.
  */
 export const CanvasViewport: React.FC<{ className?: string }> = ({
   className,
@@ -39,23 +40,6 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({
   const tool = useEditorState((s) => s.tool);
   const showRulers = useEditorState((s) => s.view.showRulers);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
-
-  // Live viewport size (for AxisX width / AxisY height).
-  const [viewportSize, setViewportSize] = React.useState({ width: 0, height: 0 });
-  React.useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry)
-        setViewportSize({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        });
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   // Per-tool persistent scratch state, keyed by tool id.
   const toolStatesRef = React.useRef<Map<string, Record<string, unknown>>>(
@@ -158,7 +142,6 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({
   };
 
   const handleWheel = (e: React.WheelEvent) => {
-    // Default: zoom around cursor (Ctrl/Cmd to zoom, otherwise pan).
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
       const rect = containerRef.current?.getBoundingClientRect();
@@ -177,10 +160,9 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({
     }
   };
 
-  // Keyboard events (attached to window when canvas focused)
+  // Keyboard events
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      // Standard editor shortcuts at the viewport level.
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) editor.redo();
@@ -212,60 +194,84 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({
     };
   }, [editor, getActiveTool, getToolContext]);
 
-  const viewportDiv = (
-    <div
-      ref={containerRef}
-      data-canvas-viewport
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden',
-        // background: '#0e1422',
-        cursor: getActiveTool()?.cursor as string | undefined,
-        touchAction: 'none',
-      }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onWheel={handleWheel}
-    >
-      <CameraTransformLayer>
-        <PageBackgroundWithAssets />
-        <GridLayer />
-        <WidgetLayer />
-        <HoverIndicator />
-        <SelectionBounds />
-        <MarqueeOverlay />
-      </CameraTransformLayer>
-    </div>
-  );
-
-  if (!showRulers) {
-    // Skip the ruler chrome entirely; the viewport fills the whole area.
-    return <div className={className} style={{ width: '100%', height: '100%' }}>{viewportDiv}</div>;
-  }
+  const rulerOffset = showRulers ? RULER_SIZE : 0;
 
   return (
     <div
       className={className}
       style={{
-        display: 'grid',
-        gridTemplateColumns: `${RULER_SIZE}px 1fr`,
-        gridTemplateRows: `${RULER_SIZE}px 1fr`,
+        position: 'relative',
         width: '100%',
         height: '100%',
         color: '#5b8def',
       }}
     >
-      {/* Top-left corner — empty */}
-      <div />
-      {/* Top: X axis */}
-      <AxisX width={viewportSize.width} height={RULER_SIZE} />
-      {/* Left: Y axis */}
-      <AxisY width={RULER_SIZE} height={viewportSize.height} />
-      {/* Bottom-right: actual viewport */}
-      {viewportDiv}
+      {/* Viewport — fills the frame, reserves space for rulers via inset */}
+      <div
+        ref={containerRef}
+        data-canvas-viewport
+        style={{
+          position: 'absolute',
+          top: rulerOffset,
+          left: rulerOffset,
+          right: 0,
+          bottom: 0,
+          overflow: 'hidden',
+          // background: '#0e1422',
+          cursor: getActiveTool()?.cursor as string | undefined,
+          touchAction: 'none',
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onWheel={handleWheel}
+      >
+        <CameraTransformLayer>
+          <PageBackgroundWithAssets />
+          <GridLayer />
+          <WidgetLayer />
+          <HoverIndicator />
+          <SelectionBounds />
+          <MarqueeOverlay />
+        </CameraTransformLayer>
+      </div>
+
+      {/* Rulers — absolute overlay; self-measuring */}
+      {showRulers && (
+        <>
+          <AxisX
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: RULER_SIZE,
+              right: 0,
+              height: RULER_SIZE,
+              pointerEvents: 'none',
+            }}
+          />
+          <AxisY
+            style={{
+              position: 'absolute',
+              top: RULER_SIZE,
+              left: 0,
+              bottom: 0,
+              width: RULER_SIZE,
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Top-left corner */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: RULER_SIZE,
+              height: RULER_SIZE,
+              pointerEvents: 'none',
+            }}
+          />
+        </>
+      )}
     </div>
   );
 };
