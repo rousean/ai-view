@@ -20,6 +20,22 @@ interface PropertyPanelProps {
  * and renders one Setter per PropConfig grouped into tabs. Changes commit
  * via `editor.updateProps` (undo-aware).
  */
+/**
+ * Root <aside> wrapper. Always flex-column with min-h-0 and overflow-hidden
+ * so the inner scrollable form never pushes the panel past its parent's
+ * height (which used to leak a scrollbar onto the viewport).
+ */
+const PanelRoot: React.FC<{
+  className?: string;
+  children: React.ReactNode;
+}> = ({ className, children }) => (
+  <aside
+    className={`flex min-h-0 flex-col overflow-hidden ${className ?? ''}`}
+  >
+    {children}
+  </aside>
+);
+
 export const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
   const editor = useDashboardEditor();
   const selectedIds = useEditorState((s) => s.selectedIds);
@@ -30,23 +46,23 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
 
   if (selectedIds.length === 0) {
     return (
-      <aside className={className}>
+      <PanelRoot className={className}>
         <Empty hint="未选中组件" />
-      </aside>
+      </PanelRoot>
     );
   }
   if (selectedIds.length > 1) {
     return (
-      <aside className={className}>
+      <PanelRoot className={className}>
         <Empty hint={`已选中 ${selectedIds.length} 个组件\n（多选编辑暂未实现）`} />
-      </aside>
+      </PanelRoot>
     );
   }
   if (!widget) {
     return (
-      <aside className={className}>
+      <PanelRoot className={className}>
         <Empty hint="组件不存在" />
-      </aside>
+      </PanelRoot>
     );
   }
 
@@ -55,24 +71,24 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
     | undefined;
   if (!meta) {
     return (
-      <aside className={className}>
+      <PanelRoot className={className}>
         <Empty hint={`未注册的组件类型: ${widget.type}`} />
-      </aside>
+      </PanelRoot>
     );
   }
 
   return (
-    <aside className={className}>
+    <PanelRoot className={className}>
       <Header widget={widget} />
       <PropertyForm widget={widget} meta={meta} />
-    </aside>
+    </PanelRoot>
   );
 };
 
 // ─────────────────────────────────────────────────────────────────────
 
 const Empty: React.FC<{ hint: string }> = ({ hint }) => (
-  <div className="flex h-full items-center justify-center whitespace-pre-wrap p-6 text-center text-xs text-muted-foreground">
+  <div className="flex flex-1 items-center justify-center whitespace-pre-wrap p-6 text-center text-xs text-muted-foreground">
     {hint}
   </div>
 );
@@ -83,7 +99,7 @@ const Header: React.FC<{ widget: WidgetNode }> = ({ widget }) => {
   React.useEffect(() => setName(widget.name), [widget.name]);
 
   return (
-    <div className="border-b px-4 py-3">
+    <div className="shrink-0 border-b px-4 py-3">
       <input
         type="text"
         className="w-full bg-transparent text-sm font-medium focus:outline-none"
@@ -123,9 +139,9 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ widget, meta }) => {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       {groupKeys.length > 1 && (
-        <div className="flex border-b">
+        <div className="flex shrink-0 border-b">
           {groupKeys.map((g) => (
             <button
               key={g}
@@ -142,7 +158,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ widget, meta }) => {
           ))}
         </div>
       )}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
         <div className="space-y-3">
           {(groups[activeGroup] ?? []).map((cfg) => (
             <PropertyField key={cfg.path} widget={widget} cfg={cfg} />
