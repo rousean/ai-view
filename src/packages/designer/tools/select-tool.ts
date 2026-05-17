@@ -1,5 +1,7 @@
 import { MousePointer2 } from 'lucide-react';
-import { rotatedAABB } from '../canvas/transformer/geometry';
+import { rotatedAABB, unionBBox } from '../canvas/transformer/geometry';
+import { buildSnapContext } from '../snap/build-context';
+import { useSnapGuidesStore } from '../snap/snap-store';
 import type { Tool, ToolContext } from './tool.interface';
 
 interface SelectState {
@@ -7,7 +9,10 @@ interface SelectState {
   pointerStart?: { x: number; y: number };
   canvasStart?: { x: number; y: number };
   movingIds?: string[];
+  /** Initial top-left positions of widgets being moved. */
   initialLayouts?: Map<string, { x: number; y: number }>;
+  /** Initial visual bbox (rotated AABB union) of the moving selection. */
+  initialBBox?: { x: number; y: number; width: number; height: number };
   marqueeOrigin?: { x: number; y: number };
   hitWidgetId?: string;
 }
@@ -56,12 +61,19 @@ export const SelectTool: Tool = {
       s.phase = 'pre-move';
       const ids = editor.getSelectedIds();
       const initialLayouts = new Map<string, { x: number; y: number }>();
+      const selectedWidgets = [];
       for (const id of ids) {
         const w = editor.getWidget(id);
-        if (w) initialLayouts.set(id, { x: w.layout.x, y: w.layout.y });
+        if (w) {
+          initialLayouts.set(id, { x: w.layout.x, y: w.layout.y });
+          selectedWidgets.push(w);
+        }
       }
       s.movingIds = ids;
       s.initialLayouts = initialLayouts;
+      // Snapshot the visual bbox so snap targets stay stable for the
+      // entire gesture (no jitter when intermediate positions snap on/off).
+      s.initialBBox = unionBBox(selectedWidgets) ?? undefined;
       editor.mark('Move widgets');
     } else {
       // Empty canvas click → marquee or clear selection.
@@ -92,8 +104,31 @@ export const SelectTool: Tool = {
 
       // Convert delta from screen → canvas.
       const scale = editor.getCamera().scale;
-      const cdx = dx / scale;
-      const cdy = dy / scale;
+      let cdx = dx / scale;
+      let cdy = dy / scale;
+
+      // ── Snap pass ──────────────────────────────────────────────
+      // Alt held = bypass snap (free positioning).
+      if (!e.altKey && s.initialBBox) {
+        const movedBBox = {
+          x: s.initialBBox.x + cdx,
+          y: s.initialBBox.y + cdy,
+          width: s.initialBBox.width,
+          height: s.initialBBox.height,
+        };
+        const ctx = buildSnapContext(editor, s.movingIds ?? []);
+        const result = editor.snap.snap(
+          movedBBox,
+          { left: true, right: true, top: true, bottom: true, centerX: true, centerY: true },
+          ctx,
+          scale,
+        );
+        cdx += result.delta.x;
+        cdy += result.delta.y;
+        useSnapGuidesStore.getState().set(result.guides);
+      } else {
+        useSnapGuidesStore.getState().clear();
+      }
 
       const updates = (s.movingIds ?? []).map((id) => {
         const init = s.initialLayouts?.get(id);
@@ -151,6 +186,8 @@ export const SelectTool: Tool = {
       }
       editor.bus.emit('plugin.marquee.update', null);
     }
+    // Clear any active alignment guides at the end of every gesture.
+    useSnapGuidesStore.getState().clear();
     Object.assign(ctx.state, { phase: 'idle' } satisfies SelectState);
   },
 

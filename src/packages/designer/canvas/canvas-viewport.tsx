@@ -6,6 +6,7 @@ import {
 import type { Tool, ToolContext } from '../tools/tool.interface';
 import { CameraTransformLayer } from './camera-transform-layer';
 import { GridLayer } from './grid-layer';
+import { AlignmentGuidesOverlay } from './overlay/alignment-guides';
 import { MarqueeOverlay } from './overlay/marquee';
 import {
   HoverIndicator,
@@ -232,6 +233,7 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({
           <WidgetLayer />
           <HoverIndicator />
           <SelectionBounds />
+          <AlignmentGuidesOverlay />
           <MarqueeOverlay />
         </CameraTransformLayer>
       </div>

@@ -27,6 +27,7 @@ import { EventBus } from './event-bus';
 import { HistoryManager } from './history-manager';
 import { HookManager } from './hook-manager';
 import { RegistryHub } from './registry-hub';
+import { SnapManager } from '../snap/snap-manager';
 
 export interface EditorOptions {
   adapter: PersistenceAdapter;
@@ -62,6 +63,7 @@ export class DashboardEditor {
   readonly registry = new RegistryHub();
   readonly history: HistoryManager;
   readonly adapter: PersistenceAdapter;
+  readonly snap = new SnapManager();
 
   private installedPlugins = new Map<string, () => void>();
 

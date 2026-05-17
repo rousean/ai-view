@@ -5,4 +5,5 @@ export * from './editor';
 export * from './setters';
 export * from './tools';
 export * from './canvas';
+export * from './snap';
 export * from './ui';
