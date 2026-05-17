@@ -98,7 +98,7 @@ export const SelectionBounds: React.FC = () => {
         style={{
           position: 'absolute',
           inset: 0,
-          outline: `${stroke}px solid #5b8def`,
+          outline: `${stroke}px solid var(--selection-color, #5b8def)`,
           outlineOffset: `-${stroke}px`,
           pointerEvents: 'none',
         }}
@@ -138,7 +138,7 @@ export const HoverIndicator: React.FC = () => {
         top: widget.layout.y,
         width: widget.layout.width,
         height: widget.layout.height,
-        outline: `${stroke}px dashed rgba(91,141,239,0.6)`,
+        outline: `${stroke}px dashed var(--hover-color, rgba(91,141,239,0.6))`,
         outlineOffset: `-${stroke}px`,
         transform: widget.layout.rotate ? `rotate(${widget.layout.rotate}deg)` : undefined,
         transformOrigin: 'center',

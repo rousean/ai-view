@@ -204,7 +204,8 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({
         position: 'relative',
         width: '100%',
         height: '100%',
-        color: '#5b8def',
+        // Rulers + axes inherit this via currentColor.
+        color: 'var(--ruler-color, #5b8def)',
       }}
     >
       {/* Viewport — fills the frame, reserves space for rulers via inset */}

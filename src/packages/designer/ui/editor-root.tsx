@@ -16,6 +16,7 @@ import { registerBuiltinSetters } from '../setters';
 import { registerBuiltinTools } from '../tools';
 import { MaterialsPanel } from './materials-panel';
 import { PropertyPanel } from './property-panel';
+import { ThemeStyleProvider } from './theme-style-provider';
 import { Toolbar } from './toolbar';
 
 interface EditorRootProps {
@@ -90,7 +91,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({
 
   return (
     <EditorProvider editor={editor}>
-      <div className={`flex h-full flex-col ${className ?? ''}`}>
+      <ThemeStyleProvider className={`flex h-full flex-col ${className ?? ''}`}>
         <Toolbar />
         <div className="flex min-h-0 flex-1">
           <MaterialsPanel className="w-64 shrink-0" />
@@ -99,7 +100,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({
           </main>
           <PropertyPanel className="w-72 shrink-0 border-l bg-card" />
         </div>
-      </div>
+      </ThemeStyleProvider>
     </EditorProvider>
   );
 };

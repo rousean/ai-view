@@ -20,9 +20,15 @@ export const GridLayer: React.FC = () => {
   const { width, height } = page.canvas;
   const minor = page.grid.size;
   const major = minor * MAJOR_EVERY;
-  // Tailwind tokens get hairy through SVG; keep colours explicit and tuned
-  // for the default dark canvas. Light themes can override `grid.color`.
-  const color = page.grid.color ?? 'rgba(255,255,255,0.06)';
+  // Colours come from theme tokens that ThemeStyleProvider has injected
+  // onto a wrapping element. The fallback is a neutral mid-gray that
+  // survives on both dark and light canvases — never assume a palette.
+  // page.grid.color (if explicitly set on the document) takes precedence.
+  const minorStroke =
+    page.grid.color ?? 'var(--grid-color, rgba(127,127,127,0.18))';
+  const majorStroke = `var(--grid-major-color, ${
+    page.grid.color ?? 'rgba(127,127,127,0.32)'
+  })`;
 
   // Unique IDs so multiple GridLayer instances (multi-page in the future)
   // don't clobber each other's pattern defs.
@@ -51,7 +57,7 @@ export const GridLayer: React.FC = () => {
           <path
             d={`M ${minor} 0 L 0 0 L 0 ${minor}`}
             fill="none"
-            stroke={color}
+            stroke={minorStroke}
             strokeWidth={0.5}
           />
         </pattern>
@@ -64,8 +70,8 @@ export const GridLayer: React.FC = () => {
           <path
             d={`M ${major} 0 L 0 0 L 0 ${major}`}
             fill="none"
-            stroke={color}
-            strokeWidth={1.5}
+            stroke={majorStroke}
+            strokeWidth={1}
           />
         </pattern>
       </defs>

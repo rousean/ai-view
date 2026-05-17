@@ -23,7 +23,8 @@ export const AlignmentGuidesOverlay: React.FC = () => {
 
   const stroke = Math.max(1 / scale, 0.5);
   const dash = `${4 / scale} ${4 / scale}`;
-  const color = '#ec4899'; // magenta — distinct from selection blue
+  // Themed via --alignment-color (default magenta, distinct from selection blue).
+  const color = 'var(--alignment-color, #ec4899)';
 
   return (
     <svg

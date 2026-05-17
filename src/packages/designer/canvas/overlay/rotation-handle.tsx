@@ -26,7 +26,7 @@ export const RotationHandle: React.FC<Props> = ({ bbox }) => {
           top: bbox.y - offset,
           width: 1 / scale,
           height: offset,
-          background: '#5b8def',
+          background: 'var(--selection-color, #5b8def)',
           pointerEvents: 'none',
         }}
       />
@@ -39,8 +39,8 @@ export const RotationHandle: React.FC<Props> = ({ bbox }) => {
           width: sz,
           height: sz,
           borderRadius: '50%',
-          background: 'white',
-          border: `${1.5 / scale}px solid #5b8def`,
+          background: 'var(--selection-handle-bg, white)',
+          border: `${1.5 / scale}px solid var(--selection-color, #5b8def)`,
           cursor: 'grab',
           pointerEvents: 'auto',
           touchAction: 'none',

@@ -14,10 +14,20 @@ export function createDefaultTheme(): Theme {
     id: createThemeId(),
     name: 'Default',
     tokens: {
+      // Document colours
       '--bg': '#0b1220',
       '--fg': '#e6edf6',
       '--primary': '#5b8def',
       '--accent': '#22d3ee',
+      // Designer chrome — grid, ruler, selection. Themed so light /
+      // alternate palettes can override without touching components.
+      '--grid-color': 'rgba(255,255,255,0.06)',
+      '--grid-major-color': 'rgba(255,255,255,0.12)',
+      '--ruler-color': '#5b8def',
+      '--selection-color': '#5b8def',
+      '--selection-handle-bg': '#ffffff',
+      '--hover-color': 'rgba(91,141,239,0.6)',
+      '--alignment-color': '#ec4899',
     },
     palette: ['#5b8def', '#22d3ee', '#34d399', '#fbbf24', '#f97316', '#f472b6'],
     extensions: {},
