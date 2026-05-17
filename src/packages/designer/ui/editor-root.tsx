@@ -14,6 +14,7 @@ import {
   type PersistenceAdapter,
   type Project,
 } from '@schema/index';
+import { TooltipProvider } from '~/components/ui/tooltip';
 import { CanvasViewport } from '../canvas/canvas-viewport';
 import { DashboardEditor } from '../editor/dashboard-editor';
 import { EditorProvider } from '../editor/editor-context';
@@ -153,16 +154,18 @@ export const EditorRoot: React.FC<EditorRootProps> = ({
   return (
     <EditorProvider editor={editor}>
       <ThemeStyleProvider className={`flex h-full flex-col ${className ?? ''}`}>
-        <Toolbar />
-        <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="flex min-h-0 flex-1">
-            <MaterialsPanel className="w-64 shrink-0" />
-            <main className="relative flex-1 min-w-0">
-              <CanvasViewport />
-            </main>
-            <PropertyPanel className="w-72 shrink-0 border-l bg-card" />
-          </div>
-        </DragDropProvider>
+        <TooltipProvider delayDuration={300}>
+          <Toolbar />
+          <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <div className="flex min-h-0 flex-1">
+              <MaterialsPanel className="w-64 shrink-0" />
+              <main className="relative flex-1 min-w-0">
+                <CanvasViewport />
+              </main>
+              <PropertyPanel className="w-72 shrink-0 border-l bg-card" />
+            </div>
+          </DragDropProvider>
+        </TooltipProvider>
       </ThemeStyleProvider>
     </EditorProvider>
   );

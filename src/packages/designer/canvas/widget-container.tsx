@@ -61,6 +61,10 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(
           transformOrigin: 'center',
           opacity: layout.opacity,
           pointerEvents: widget.flags.locked ? 'none' : 'auto',
+          // Signal interactivity. The handle cursors (set per-handle on
+          // ResizeHandles / RotationHandle) win over this when the chrome
+          // is rendered, so this only shows when hovering the widget body.
+          cursor: widget.flags.locked ? 'default' : 'move',
         }}
       >
         {meta ? (

@@ -14,6 +14,9 @@ interface SelectionBBox {
   height: number;
   /** Chrome rotation (only set when count === 1, otherwise 0). */
   rotate: number;
+  /** Single-element flip; multi-selection chrome is never flipped. */
+  flipX: boolean;
+  flipY: boolean;
   count: number;
 }
 
@@ -52,13 +55,15 @@ function useSelectionBBox(): SelectionBBox | null {
       width: w.layout.width,
       height: w.layout.height,
       rotate: w.layout.rotate,
+      flipX: w.layout.flipX,
+      flipY: w.layout.flipY,
       count: 1,
     };
   }
 
   const bb = unionBBox(widgets);
   if (!bb) return null;
-  return { ...bb, rotate: 0, count: widgets.length };
+  return { ...bb, rotate: 0, flipX: false, flipY: false, count: widgets.length };
 }
 
 /**
@@ -79,6 +84,16 @@ export const SelectionBounds: React.FC = () => {
   const stroke = Math.max(1 / scale, 0.5);
   const isMarquee = interaction === 'marquee';
 
+  // Single-element chrome mirrors the widget's full transform — rotate +
+  // flip — so it visually overlays the rotated/flipped widget exactly.
+  // (Outline shape is symmetric so flip doesn't change the outline itself,
+  // but flip *does* reverse the rotation direction in a composed matrix,
+  // so we still need it for correct alignment.)
+  const chromeTransform =
+    bbox.count === 1 && (bbox.rotate || bbox.flipX || bbox.flipY)
+      ? `rotate(${bbox.rotate}deg) scale(${bbox.flipX ? -1 : 1}, ${bbox.flipY ? -1 : 1})`
+      : undefined;
+
   return (
     <div
       style={{
@@ -87,9 +102,7 @@ export const SelectionBounds: React.FC = () => {
         top: bbox.y,
         width: bbox.width,
         height: bbox.height,
-        // Single-element selection: rotate the chrome to match the widget.
-        // Multi-selection always uses the AABB (rotate = 0).
-        transform: bbox.count === 1 && bbox.rotate ? `rotate(${bbox.rotate}deg)` : undefined,
+        transform: chromeTransform,
         transformOrigin: 'center',
         pointerEvents: 'none',
       }}
@@ -130,6 +143,16 @@ export const HoverIndicator: React.FC = () => {
   const scale = useEditorStore((s) => s.camera.scale);
   if (!widget || isSelected) return null;
   const stroke = Math.max(1 / scale, 0.5);
+
+  // Match the widget's *full* transform so the dashed outline overlays the
+  // rotated/flipped widget at the same orientation. Just rotate alone is
+  // wrong when flipX/Y is set: rotate(R) scale(-1,1) ≠ rotate(R).
+  const { rotate, flipX, flipY } = widget.layout;
+  const transform =
+    rotate || flipX || flipY
+      ? `rotate(${rotate}deg) scale(${flipX ? -1 : 1}, ${flipY ? -1 : 1})`
+      : undefined;
+
   return (
     <div
       style={{
@@ -140,7 +163,7 @@ export const HoverIndicator: React.FC = () => {
         height: widget.layout.height,
         outline: `${stroke}px dashed var(--hover-color, rgba(91,141,239,0.6))`,
         outlineOffset: `-${stroke}px`,
-        transform: widget.layout.rotate ? `rotate(${widget.layout.rotate}deg)` : undefined,
+        transform,
         transformOrigin: 'center',
         pointerEvents: 'none',
       }}
