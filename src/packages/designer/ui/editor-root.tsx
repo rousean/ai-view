@@ -1,5 +1,10 @@
 import * as React from 'react';
 import {
+  DragDropProvider,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/react';
+import {
   builtinWidgets,
   type WidgetMeta,
 } from '@widgets/index';
@@ -39,6 +44,12 @@ export const EditorRoot: React.FC<EditorRootProps> = ({
 }) => {
   const [editor, setEditor] = React.useState<DashboardEditor | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Pickup offset inside the source card — measured at dragStart, applied
+  // at dragEnd. Hooks must run on every render path, so this ref lives
+  // above the early-return guards even though we only use it once the
+  // editor is loaded.
+  const pickupOffsetRef = React.useRef({ x: 0, y: 0 });
 
   React.useEffect(() => {
     let cancelled = false;
@@ -89,17 +100,69 @@ export const EditorRoot: React.FC<EditorRootProps> = ({
     );
   }
 
+  // Matches the legacy editor: the widget's top-left ends up exactly where
+  // the Feedback clone's top-left was when released, so there's no visible
+  // jump between the drop visual and the spawned widget.
+  const handleDragStart = (event: DragStartEvent) => {
+    const { source, position } = event.operation;
+    if (!source?.element) return;
+    const { left, top } = source.element.getBoundingClientRect();
+    pickupOffsetRef.current = {
+      x: position.current.x - left,
+      y: position.current.y - top,
+    };
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { source, target, position } = event.operation;
+    if (!source || !target || source.type !== 'materials' || target.id !== 'canvas') {
+      return;
+    }
+    const viewportEl = target.element as HTMLElement | null;
+    if (!viewportEl) return;
+
+    const meta = source.data as WidgetMeta;
+    const size = meta.defaultLayout;
+    const rect = viewportEl.getBoundingClientRect();
+
+    // Convert "screen position where the clone's top-left sits" → canvas
+    // space. That becomes the widget's top-left. Visual continuity: the
+    // widget materialises exactly where the drag clone was.
+    const offset = pickupOffsetRef.current;
+    const cloneTopLeft = editor.screenToCanvas(
+      {
+        x: position.current.x - offset.x,
+        y: position.current.y - offset.y,
+      },
+      { left: rect.left, top: rect.top },
+    );
+
+    const page = editor.getCurrentPage();
+    const cw = page?.canvas.width ?? size.width;
+    const ch = page?.canvas.height ?? size.height;
+    const x = Math.max(0, Math.min(cw - size.width, cloneTopLeft.x));
+    const y = Math.max(0, Math.min(ch - size.height, cloneTopLeft.y));
+
+    editor.addWidget(meta.type, {
+      position: { x, y },
+      size,
+      props: meta.defaultProps as Record<string, unknown>,
+    });
+  };
+
   return (
     <EditorProvider editor={editor}>
       <ThemeStyleProvider className={`flex h-full flex-col ${className ?? ''}`}>
         <Toolbar />
-        <div className="flex min-h-0 flex-1">
-          <MaterialsPanel className="w-64 shrink-0" />
-          <main className="relative flex-1 min-w-0">
-            <CanvasViewport />
-          </main>
-          <PropertyPanel className="w-72 shrink-0 border-l bg-card" />
-        </div>
+        <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div className="flex min-h-0 flex-1">
+            <MaterialsPanel className="w-64 shrink-0" />
+            <main className="relative flex-1 min-w-0">
+              <CanvasViewport />
+            </main>
+            <PropertyPanel className="w-72 shrink-0 border-l bg-card" />
+          </div>
+        </DragDropProvider>
       </ThemeStyleProvider>
     </EditorProvider>
   );

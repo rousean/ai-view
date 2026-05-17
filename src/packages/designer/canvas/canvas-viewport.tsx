@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useDroppable } from '@dnd-kit/react';
 import {
   useDashboardEditor,
   useEditorState,
@@ -41,6 +42,21 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({
   const tool = useEditorState((s) => s.tool);
   const showRulers = useEditorState((s) => s.view.showRulers);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Register the inner viewport div as a drop target for material drags
+  // from the left panel. The actual drop handler lives in EditorRoot;
+  // we only need to declare ourselves a target here.
+  const { ref: dropRef } = useDroppable({ id: 'canvas' });
+
+  // Combine our own ref + the dnd-kit ref into one callback so the same
+  // <div> hosts both pointer events and droppable detection.
+  const setContainerRef = React.useCallback(
+    (el: HTMLDivElement | null) => {
+      containerRef.current = el;
+      if (typeof dropRef === 'function') (dropRef as (el: HTMLElement | null) => void)(el);
+    },
+    [dropRef],
+  );
 
   // Per-tool persistent scratch state, keyed by tool id.
   const toolStatesRef = React.useRef<Map<string, Record<string, unknown>>>(
@@ -210,7 +226,7 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({
     >
       {/* Viewport — fills the frame, reserves space for rulers via inset */}
       <div
-        ref={containerRef}
+        ref={setContainerRef}
         data-canvas-viewport
         style={{
           position: 'absolute',

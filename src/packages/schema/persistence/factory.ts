@@ -8,33 +8,40 @@ import {
 import type { Page, Project, Theme } from '../types';
 import { SCHEMA_VERSION } from '../version';
 
-/** Create a sensible default theme. */
+/** Create a sensible default theme. Light by default. */
 export function createDefaultTheme(): Theme {
   return {
     id: createThemeId(),
     name: 'Default',
     tokens: {
       // Document colours
-      '--bg': '#0b1220',
-      '--fg': '#e6edf6',
-      '--primary': '#5b8def',
-      '--accent': '#22d3ee',
-      // Designer chrome — grid, ruler, selection. Themed so light /
+      '--bg': '#ffffff',
+      '--fg': '#1f2937',
+      '--primary': '#3b82f6',
+      '--accent': '#06b6d4',
+      // Designer chrome — grid, ruler, selection. Themed so dark /
       // alternate palettes can override without touching components.
-      '--grid-color': 'rgba(255,255,255,0.06)',
-      '--grid-major-color': 'rgba(255,255,255,0.12)',
-      '--ruler-color': '#5b8def',
-      '--selection-color': '#5b8def',
+      '--grid-color': 'rgba(0,0,0,0.05)',
+      '--grid-major-color': 'rgba(0,0,0,0.10)',
+      '--ruler-color': '#3b82f6',
+      '--selection-color': '#3b82f6',
       '--selection-handle-bg': '#ffffff',
-      '--hover-color': 'rgba(91,141,239,0.6)',
-      '--alignment-color': '#ec4899',
+      '--hover-color': 'rgba(59,130,246,0.55)',
+      '--alignment-color': '#db2777',
+      // Chart chrome (consumed by widgets via JS, not CSS — echarts
+      // option values must be concrete strings).
+      '--chart-axis-color': 'rgba(0,0,0,0.45)',
+      '--chart-split-color': 'rgba(0,0,0,0.06)',
+      // Page artboard chrome (CSS-only).
+      '--page-ring': '0 0 0 1px rgba(0,0,0,0.08)',
+      '--page-shadow': '0 12px 36px rgba(0,0,0,0.18)',
     },
-    palette: ['#5b8def', '#22d3ee', '#34d399', '#fbbf24', '#f97316', '#f472b6'],
+    palette: ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#f97316', '#ec4899'],
     extensions: {},
   };
 }
 
-/** Create a default 1920×1080 landscape page with a dark background. */
+/** Create a default 1920×1080 landscape page with a light background. */
 export function createDefaultPage(name = '页面 1'): Page {
   return {
     id: createPageId(),
@@ -43,13 +50,15 @@ export function createDefaultPage(name = '页面 1'): Page {
       width: 1920,
       height: 1080,
       orientation: 'landscape',
-      background: { type: 'color', color: '#0b1220' },
+      background: { type: 'color', color: '#ffffff' },
     },
     grid: {
       enabled: true,
       size: 20,
       snap: false,
-      color: 'rgba(255,255,255,0.06)',
+      // Subtle dark grid on light canvas. Falls back to --grid-color from
+      // the theme if left unset on the page.
+      color: 'rgba(0,0,0,0.05)',
     },
     guides: [],
     widgets: [],

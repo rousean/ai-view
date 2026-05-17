@@ -16,7 +16,11 @@ export const PageBackground: React.FC = () => {
         width: page.canvas.width,
         height: page.canvas.height,
         ...backgroundStyle(page.canvas.background, page.canvas),
-        boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 24px 60px rgba(0,0,0,0.4)',
+        // Neutral hairline + soft drop shadow. Works on light and dark
+        // canvases; intensity comes from theme tokens so palettes can tune it.
+        boxShadow:
+          'var(--page-ring, 0 0 0 1px rgba(0,0,0,0.08)),' +
+          ' var(--page-shadow, 0 12px 36px rgba(0,0,0,0.18))',
       }}
     />
   );
@@ -42,7 +46,7 @@ function backgroundStyle(bg: Background, canvas: CanvasConfig): React.CSSPropert
         bg.fit === 'cover' ? 'cover' : bg.fit === 'contain' ? 'contain' : '100% 100%';
       // We need the asset URL; fall back to a placeholder if absent.
       return {
-        background: 'rgba(255,255,255,0.04)',
+        background: 'var(--page-image-fallback, rgba(127,127,127,0.06))',
         backgroundImage: `var(--bg-image, none)`,
         backgroundSize: fit,
         backgroundPosition: 'center',
@@ -76,7 +80,9 @@ export const PageBackgroundWithAssets: React.FC = () => {
         width: page.canvas.width,
         height: page.canvas.height,
         ...style,
-        boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 24px 60px rgba(0,0,0,0.4)',
+        boxShadow:
+          'var(--page-ring, 0 0 0 1px rgba(0,0,0,0.08)),' +
+          ' var(--page-shadow, 0 12px 36px rgba(0,0,0,0.18))',
       }}
     />
   );

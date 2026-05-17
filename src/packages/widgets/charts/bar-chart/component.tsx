@@ -50,6 +50,11 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
   }, [data]);
 
   const color = props.barColor || theme?.palette?.[0] || '#5b8def';
+  // ECharts option needs concrete colour strings, so resolve theme tokens
+  // here rather than relying on CSS var() (which echarts can't read).
+  const fgColor = theme?.tokens['--fg'] ?? '#1f2937';
+  const axisColor = theme?.tokens['--chart-axis-color'] ?? 'rgba(0,0,0,0.45)';
+  const splitColor = theme?.tokens['--chart-split-color'] ?? 'rgba(0,0,0,0.06)';
 
   const option = React.useMemo<EChartsOption>(() => {
     return {
@@ -59,27 +64,27 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
             text: props.title,
             left: 12,
             top: 8,
-            textStyle: { fontSize: 14, color: theme?.tokens['--fg'] ?? '#e6edf6', fontWeight: 500 },
+            textStyle: { fontSize: 14, color: fgColor, fontWeight: 500 },
           }
         : undefined,
       tooltip: { trigger: 'axis' },
       grid: { left: 40, right: 20, top: props.title ? 40 : 16, bottom: 32 },
       legend: props.showLegend
-        ? { show: true, top: 8, right: 12, textStyle: { color: theme?.tokens['--fg'] } }
+        ? { show: true, top: 8, right: 12, textStyle: { color: fgColor } }
         : undefined,
       xAxis: {
         show: props.showXAxis,
         type: 'category',
         data: rows.map((r) => String(r.x)),
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.2)' } },
-        axisLabel: { color: theme?.tokens['--fg'] ?? '#e6edf6', fontSize: 11 },
+        axisLine: { lineStyle: { color: axisColor } },
+        axisLabel: { color: fgColor, fontSize: 11 },
       },
       yAxis: {
         show: props.showYAxis,
         type: 'value',
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.2)' } },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } },
-        axisLabel: { color: theme?.tokens['--fg'] ?? '#e6edf6', fontSize: 11 },
+        axisLine: { lineStyle: { color: axisColor } },
+        splitLine: { lineStyle: { color: splitColor } },
+        axisLabel: { color: fgColor, fontSize: 11 },
       },
       series: [
         {
@@ -93,7 +98,7 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
             ? {
                 show: true,
                 position: 'top',
-                color: theme?.tokens['--fg'] ?? '#e6edf6',
+                color: fgColor,
                 fontSize: 11,
               }
             : { show: false },
@@ -101,7 +106,19 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
         },
       ],
     };
-  }, [rows, color, props.barRadius, props.showLabels, props.showLegend, props.showXAxis, props.showYAxis, props.title, theme]);
+  }, [
+    rows,
+    color,
+    fgColor,
+    axisColor,
+    splitColor,
+    props.barRadius,
+    props.showLabels,
+    props.showLegend,
+    props.showXAxis,
+    props.showYAxis,
+    props.title,
+  ]);
 
   const chartRef = useEcharts(option, { width: layout.width, height: layout.height });
 
@@ -111,9 +128,10 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
       style={{
         width: layout.width,
         height: layout.height,
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 4,
+        // No container frame — the chart speaks for itself. If you want
+        // a card-style border, add it via a future "container" prop or
+        // a wrapper Frame widget.
+        background: 'transparent',
       }}
     />
   );

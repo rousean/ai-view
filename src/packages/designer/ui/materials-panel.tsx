@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { ChartBar } from 'lucide-react';
+import { Feedback } from '@dnd-kit/dom';
+import { useDraggable } from '@dnd-kit/react';
 import type { WidgetMeta } from '@widgets/widget-meta';
 import { useDashboardEditor } from '../editor/editor-context';
 
@@ -8,9 +10,14 @@ interface MaterialsPanelProps {
 }
 
 /**
- * Left panel — lists registered widget metas grouped by category. Click
- * a card to switch to PlaceTool with that widget queued; subsequent
- * canvas click drops the widget.
+ * Left panel — lists registered widget metas grouped by category.
+ *
+ * Each card is a `useDraggable` source with type='materials' and the
+ * meta object as its payload. The actual drop handler lives in
+ * EditorRoot (via DragDropProvider); the canvas registers itself as a
+ * droppable with id='canvas'.
+ *
+ * No onClick — only drag works. Mirrors the legacy editor's UX.
  */
 export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
   className,
@@ -24,18 +31,6 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
 
   const all = editor.registry.widgets.list() as unknown as WidgetMeta[];
   const grouped = React.useMemo(() => groupByCategory(all), [all]);
-
-  const handlePick = (meta: WidgetMeta) => {
-    // Quick add at canvas center (zero camera offset → canvas 0,0 area).
-    const page = editor.getCurrentPage();
-    const cx = page ? page.canvas.width / 2 - meta.defaultLayout.width / 2 : 0;
-    const cy = page ? page.canvas.height / 2 - meta.defaultLayout.height / 2 : 0;
-    editor.addWidget(meta.type, {
-      position: { x: cx, y: cy },
-      size: meta.defaultLayout,
-      props: meta.defaultProps as Record<string, unknown>,
-    });
-  };
 
   return (
     <aside className={`flex flex-col border-r bg-card ${className ?? ''}`}>
@@ -53,22 +48,7 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
               </h4>
               <div className="grid grid-cols-2 gap-2">
                 {items.map((meta) => (
-                  <button
-                    key={meta.type}
-                    type="button"
-                    onClick={() => handlePick(meta)}
-                    className="group flex flex-col items-center gap-1 rounded border bg-background p-2 transition hover:border-primary hover:bg-accent"
-                    title={meta.description ?? meta.title}
-                  >
-                    <div className="flex h-12 w-full items-center justify-center rounded bg-muted/50 text-muted-foreground group-hover:text-foreground">
-                      {meta.icon ? (
-                        <meta.icon className="h-6 w-6" />
-                      ) : (
-                        <ChartBar className="h-6 w-6" />
-                      )}
-                    </div>
-                    <span className="text-xs">{meta.title}</span>
-                  </button>
+                  <MaterialCard key={meta.type} meta={meta} />
                 ))}
               </div>
             </div>
@@ -78,6 +58,36 @@ export const MaterialsPanel: React.FC<MaterialsPanelProps> = ({
     </aside>
   );
 };
+
+// ─────────────────────────────────────────────────────────────────────
+
+const MaterialCard: React.FC<{ meta: WidgetMeta }> = ({ meta }) => {
+  // Stable id per card instance.
+  const id = React.useId();
+  const { ref } = useDraggable({
+    id,
+    type: 'materials',
+    data: meta,
+    // Feedback: while dragging, render a clone that follows the cursor.
+    // Disabling dropAnimation keeps the drop snappy.
+    plugins: [Feedback.configure({ feedback: 'clone', dropAnimation: null })],
+  });
+
+  return (
+    <div
+      ref={ref}
+      title={meta.description ?? meta.title}
+      className="group flex cursor-grab flex-col items-center gap-1 rounded border bg-background p-2 transition hover:border-primary hover:bg-accent active:cursor-grabbing"
+    >
+      <div className="flex h-12 w-full items-center justify-center rounded bg-muted/50 text-muted-foreground group-hover:text-foreground">
+        {meta.icon ? <meta.icon className="h-6 w-6" /> : <ChartBar className="h-6 w-6" />}
+      </div>
+      <span className="text-xs">{meta.title}</span>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────
 
 function groupByCategory(items: WidgetMeta[]): Record<string, WidgetMeta[]> {
   const out: Record<string, WidgetMeta[]> = {};

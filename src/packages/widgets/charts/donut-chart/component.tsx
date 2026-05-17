@@ -95,7 +95,7 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
         .attr('x', layout.width / 2)
         .attr('y', 16)
         .attr('text-anchor', 'middle')
-        .attr('fill', theme?.tokens['--fg'] ?? '#e6edf6')
+        .attr('fill', theme?.tokens['--fg'] ?? '#1f2937')
         .attr('font-size', 14)
         .text(props.title);
     }
@@ -187,11 +187,7 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
       ref={svgRef}
       width={layout.width}
       height={layout.height}
-      style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 4,
-      }}
+      style={{ background: 'transparent' }}
     />
   );
 };
