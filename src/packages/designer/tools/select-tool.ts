@@ -2,7 +2,14 @@ import { MousePointer2 } from 'lucide-react';
 import { rotatedAABB, unionBBox } from '../canvas/transformer/geometry';
 import { buildSnapContext } from '../snap/build-context';
 import { useSnapGuidesStore } from '../snap/snap-store';
+import { useEditorStore } from '../stores/editor-store';
 import type { Tool, ToolContext } from './tool.interface';
+
+/** Read user-visible snap toggles from EditorStore.view. */
+function shouldRunSnap(): boolean {
+  const v = useEditorStore.getState().view;
+  return v.snapToElements || v.snapToGuides || v.snapToGrid;
+}
 
 interface SelectState {
   phase: 'idle' | 'pre-move' | 'moving' | 'marquee' | 'pre-click';
@@ -108,24 +115,52 @@ export const SelectTool: Tool = {
       let cdy = dy / scale;
 
       // ── Snap pass ──────────────────────────────────────────────
-      // Alt held = bypass snap (free positioning).
-      if (!e.altKey && s.initialBBox) {
-        const movedBBox = {
-          x: s.initialBBox.x + cdx,
-          y: s.initialBBox.y + cdy,
-          width: s.initialBBox.width,
-          height: s.initialBBox.height,
-        };
-        const ctx = buildSnapContext(editor, s.movingIds ?? []);
-        const result = editor.snap.snap(
-          movedBBox,
-          { left: true, right: true, top: true, bottom: true, centerX: true, centerY: true },
-          ctx,
-          scale,
-        );
-        cdx += result.delta.x;
-        cdy += result.delta.y;
-        useSnapGuidesStore.getState().set(result.guides);
+      // Alt held = bypass snap (free positioning). Also respects
+      // EditorStore.view.snapTo* toggles. Defensive: skip entirely if
+      // editor.snap is missing (e.g. stale HMR instance).
+      if (
+        !e.altKey &&
+        s.initialBBox &&
+        editor.snap &&
+        shouldRunSnap()
+      ) {
+        try {
+          const view = useEditorStore.getState().view;
+          // Sync per-axis toggles into the manager each call — cheap.
+          editor.snap.configure({
+            toElements: view.snapToElements,
+            toGuides: view.snapToGuides,
+            toCanvas: view.snapToElements,
+            toGrid: view.snapToGrid,
+          });
+          const movedBBox = {
+            x: s.initialBBox.x + cdx,
+            y: s.initialBBox.y + cdy,
+            width: s.initialBBox.width,
+            height: s.initialBBox.height,
+          };
+          const snapCtx = buildSnapContext(editor, s.movingIds ?? []);
+          const result = editor.snap.snap(
+            movedBBox,
+            {
+              left: true,
+              right: true,
+              top: true,
+              bottom: true,
+              centerX: true,
+              centerY: true,
+            },
+            snapCtx,
+            scale,
+          );
+          cdx += result.delta.x;
+          cdy += result.delta.y;
+          useSnapGuidesStore.getState().set(result.guides);
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn('[snap] move snap failed', err);
+          useSnapGuidesStore.getState().clear();
+        }
       } else {
         useSnapGuidesStore.getState().clear();
       }
