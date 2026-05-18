@@ -1,4 +1,4 @@
-import type { DonutChartProps } from './types';
+import type { DonutChartProps } from './types'
 
 export const DEFAULT_DONUT_PROPS: DonutChartProps = {
   title: '环形图',
@@ -8,4 +8,4 @@ export const DEFAULT_DONUT_PROPS: DonutChartProps = {
   padding: 16,
   enableHover: true,
   showLabels: false,
-};
+}

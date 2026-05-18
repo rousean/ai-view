@@ -25,7 +25,7 @@ export default function SelectionBounds() {
     <div
       className="pointer-events-none absolute"
       style={box.chromeStyle}
-      onClick={e => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
       <div className="pointer-events-none absolute inset-0 border border-dashed border-blue-500" />
 
@@ -34,7 +34,7 @@ export default function SelectionBounds() {
         onPointerDown={(e) => interaction.onPointerDown(e, 'move')}
       />
 
-      {handles.map(handle => (
+      {handles.map((handle) => (
         <ResizeHandle
           key={handle}
           handle={handle}
@@ -45,7 +45,13 @@ export default function SelectionBounds() {
   )
 }
 
-function ResizeHandle({ handle, onPointerDown }: { handle: ResizeHandle; onPointerDown: (e: React.PointerEvent) => void }) {
+function ResizeHandle({
+  handle,
+  onPointerDown,
+}: {
+  handle: ResizeHandle
+  onPointerDown: (e: React.PointerEvent) => void
+}) {
   const pos = handlePositions[handle]
 
   return (
@@ -57,14 +63,14 @@ function ResizeHandle({ handle, onPointerDown }: { handle: ResizeHandle; onPoint
 }
 
 function useSelectionBox() {
-  const selectedIds = useCanvasStore(state => state.runtime.selectedIds)
-  const elements = useCanvasStore(state => state.elements)
+  const selectedIds = useCanvasStore((state) => state.runtime.selectedIds)
+  const elements = useCanvasStore((state) => state.elements)
 
   return useMemo(() => {
-    const selectedElements = Object.values(elements).filter(el => selectedIds.includes(el.id))
+    const selectedElements = Object.values(elements).filter((el) => selectedIds.includes(el.id))
     if (selectedElements.length === 0) return null
 
-    const bounds = getBounds(selectedElements.map(el => el.props.layout))
+    const bounds = getBounds(selectedElements.map((el) => el.props.layout))
     const base = {
       left: `${bounds.x}px`,
       top: `${bounds.y}px`,
@@ -84,91 +90,90 @@ function useSelectionBox() {
 }
 
 function useSelectionInteraction(box: ReturnType<typeof useSelectionBox> | null) {
-  const pushHistorySnapshot = useCanvasStore(state => state.pushHistorySnapshot)
-  const updateElement = useCanvasStore(state => state.updateElement)
-  const translateElementsFromLayouts = useCanvasStore(state => state.translateElementsFromLayouts)
+  const pushHistorySnapshot = useCanvasStore((state) => state.pushHistorySnapshot)
+  const updateElement = useCanvasStore((state) => state.updateElement)
+  const translateElementsFromLayouts = useCanvasStore((state) => state.translateElementsFromLayouts)
 
-  const onPointerDown = useCallback((
-    e: React.PointerEvent,
-    type: 'move' | 'resize',
-    handle?: ResizeHandle
-  ) => {
-    if (e.button !== 0 || !box) return
-    e.stopPropagation()
-    e.preventDefault()
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent, type: 'move' | 'resize', handle?: ResizeHandle) => {
+      if (e.button !== 0 || !box) return
+      e.stopPropagation()
+      e.preventDefault()
 
-    pushHistorySnapshot()
+      pushHistorySnapshot()
 
-    const startX = e.clientX
-    const startY = e.clientY
-    const startBox = { x: box.minX, y: box.minY, width: box.boxWidth, height: box.boxHeight }
-    const startLayouts = box.selectedElements.map(el => ({
-      id: el.id,
-      props: el.props,
-      layout: { ...el.props.layout }
-    }))
+      const startX = e.clientX
+      const startY = e.clientY
+      const startBox = { x: box.minX, y: box.minY, width: box.boxWidth, height: box.boxHeight }
+      const startLayouts = box.selectedElements.map((el) => ({
+        id: el.id,
+        props: el.props,
+        layout: { ...el.props.layout },
+      }))
 
-    const isAspectRatioLocked = (ev: PointerEvent) => ev.shiftKey
+      const isAspectRatioLocked = (ev: PointerEvent) => ev.shiftKey
 
-    const move = (ev: PointerEvent) => {
-      const scale = useCanvasStore.getState().camera.scale
-      const dx = (ev.clientX - startX) / scale
-      const dy = (ev.clientY - startY) / scale
+      const move = (ev: PointerEvent) => {
+        const scale = useCanvasStore.getState().camera.scale
+        const dx = (ev.clientX - startX) / scale
+        const dy = (ev.clientY - startY) / scale
 
-      if (type === 'move') {
-        const snapshot = Object.fromEntries(startLayouts.map(({ id, layout }) => [id, layout]))
-        translateElementsFromLayouts(snapshot, dx, dy)
-      } else if (type === 'resize' && handle) {
-        const resized = getResizedBounds(startBox, handle, dx, dy, isAspectRatioLocked(ev))
+        if (type === 'move') {
+          const snapshot = Object.fromEntries(startLayouts.map(({ id, layout }) => [id, layout]))
+          translateElementsFromLayouts(snapshot, dx, dy)
+        } else if (type === 'resize' && handle) {
+          const resized = getResizedBounds(startBox, handle, dx, dy, isAspectRatioLocked(ev))
 
-        startLayouts.forEach(({ id, props, layout }) => {
-          const left = resized.rawX + (layout.x - startBox.x) * resized.scaleX
-          const right = resized.rawX + (layout.x + layout.width - startBox.x) * resized.scaleX
-          const top = resized.rawY + (layout.y - startBox.y) * resized.scaleY
-          const bottom = resized.rawY + (layout.y + layout.height - startBox.y) * resized.scaleY
+          startLayouts.forEach(({ id, props, layout }) => {
+            const left = resized.rawX + (layout.x - startBox.x) * resized.scaleX
+            const right = resized.rawX + (layout.x + layout.width - startBox.x) * resized.scaleX
+            const top = resized.rawY + (layout.y - startBox.y) * resized.scaleY
+            const bottom = resized.rawY + (layout.y + layout.height - startBox.y) * resized.scaleY
 
-          const newX = Math.round(Math.min(left, right))
-          const newY = Math.round(Math.min(top, bottom))
-          const newWidth = Math.max(MIN_SIZE, Math.round(Math.abs(right - left)))
-          const newHeight = Math.max(MIN_SIZE, Math.round(Math.abs(bottom - top)))
+            const newX = Math.round(Math.min(left, right))
+            const newY = Math.round(Math.min(top, bottom))
+            const newWidth = Math.max(MIN_SIZE, Math.round(Math.abs(right - left)))
+            const newHeight = Math.max(MIN_SIZE, Math.round(Math.abs(bottom - top)))
 
-          updateElement(
-            id,
-            {
-              props: {
-                ...props,
-                layout: {
-                  ...layout,
-                  x: newX,
-                  y: newY,
-                  width: newWidth,
-                  height: newHeight,
+            updateElement(
+              id,
+              {
+                props: {
+                  ...props,
+                  layout: {
+                    ...layout,
+                    x: newX,
+                    y: newY,
+                    width: newWidth,
+                    height: newHeight,
+                  },
                 },
               },
-            },
-            { history: false }
-          )
-        })
+              { history: false },
+            )
+          })
+        }
       }
-    }
 
-    const up = () => {
-      document.removeEventListener('pointermove', move)
-      document.removeEventListener('pointerup', up)
-    }
+      const up = () => {
+        document.removeEventListener('pointermove', move)
+        document.removeEventListener('pointerup', up)
+      }
 
-    document.addEventListener('pointermove', move)
-    document.addEventListener('pointerup', up)
-  }, [box, pushHistorySnapshot, translateElementsFromLayouts, updateElement])
+      document.addEventListener('pointermove', move)
+      document.addEventListener('pointerup', up)
+    },
+    [box, pushHistorySnapshot, translateElementsFromLayouts, updateElement],
+  )
 
   return { onPointerDown }
 }
 
 function getBounds(positions: { x: number; y: number; width: number; height: number }[]) {
-  const minX = Math.min(...positions.map(p => p.x))
-  const minY = Math.min(...positions.map(p => p.y))
-  const maxX = Math.max(...positions.map(p => p.x + p.width))
-  const maxY = Math.max(...positions.map(p => p.y + p.height))
+  const minX = Math.min(...positions.map((p) => p.x))
+  const minY = Math.min(...positions.map((p) => p.y))
+  const maxX = Math.max(...positions.map((p) => p.x + p.width))
+  const maxY = Math.max(...positions.map((p) => p.y + p.height))
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
 }
 
@@ -177,7 +182,7 @@ function getResizedBounds(
   handle: ResizeHandle,
   dx: number,
   dy: number,
-  lockAspectRatio: boolean = false
+  lockAspectRatio: boolean = false,
 ) {
   let rawLeft = startBox.x
   let rawRight = startBox.x + startBox.width

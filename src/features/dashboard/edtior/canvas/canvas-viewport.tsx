@@ -1,8 +1,11 @@
 import { useCanvasStore } from '../../store/use-canvas-store'
 import { useCallback, forwardRef, type ForwardedRef } from 'react'
 
-export default forwardRef(function CanvasViewport ({ children }: { children: React.ReactNode }, ref: ForwardedRef<HTMLDivElement>) {
-  const setCamera = useCanvasStore(state => state.setCamera)
+export default forwardRef(function CanvasViewport(
+  { children }: { children: React.ReactNode },
+  ref: ForwardedRef<HTMLDivElement>,
+) {
+  const setCamera = useCanvasStore((state) => state.setCamera)
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
@@ -13,7 +16,7 @@ export default forwardRef(function CanvasViewport ({ children }: { children: Rea
     const move = (ev: PointerEvent) => {
       const dx = ev.clientX - e.clientX
       const dy = ev.clientY - e.clientY
-      setCamera({ x: x + dx,  y: y + dy })
+      setCamera({ x: x + dx, y: y + dy })
     }
 
     const up = () => {
@@ -40,7 +43,12 @@ export default forwardRef(function CanvasViewport ({ children }: { children: Rea
   }, [])
 
   return (
-    <div ref={ref} className="relative overflow-hidden cursor-move" onPointerDown={onPointerDown} onWheel={onWheelZoom}>
+    <div
+      ref={ref}
+      className="relative overflow-hidden cursor-move"
+      onPointerDown={onPointerDown}
+      onWheel={onWheelZoom}
+    >
       {children}
     </div>
   )

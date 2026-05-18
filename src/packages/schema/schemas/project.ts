@@ -1,9 +1,9 @@
-import { z } from 'zod';
-import { AssetSchema } from './asset';
-import { ExtensionsSchema } from './common';
-import { DataSourceSchema } from './data-source';
-import { PageSchema } from './page';
-import { ThemeSchema } from './theme';
+import { z } from 'zod'
+import { AssetSchema } from './asset'
+import { ExtensionsSchema } from './common'
+import { DataSourceSchema } from './data-source'
+import { PageSchema } from './page'
+import { ThemeSchema } from './theme'
 
 export const ProjectSchema = z.object({
   version: z.string(),
@@ -19,7 +19,7 @@ export const ProjectSchema = z.object({
   currentThemeId: z.string(),
   assets: z.array(AssetSchema),
   extensions: ExtensionsSchema,
-});
+})
 
 export const ProjectSummarySchema = z.object({
   id: z.string(),
@@ -27,4 +27,4 @@ export const ProjectSummarySchema = z.object({
   description: z.string().optional(),
   thumbnail: z.string().optional(),
   updatedAt: z.string(),
-});
+})

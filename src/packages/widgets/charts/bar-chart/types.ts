@@ -1,16 +1,16 @@
 /** BarChart-specific props. Validated by zod inside meta.ts. */
 export interface BarChartProps {
   /** Visible chart title above the bars. */
-  title: string;
+  title: string
   /** Show / hide axes. */
-  showXAxis: boolean;
-  showYAxis: boolean;
+  showXAxis: boolean
+  showYAxis: boolean
   /** Bar color (hex). Falls back to theme.palette[0] when empty. */
-  barColor: string;
+  barColor: string
   /** Show value labels on top of bars. */
-  showLabels: boolean;
+  showLabels: boolean
   /** Show legend (only relevant when there are multiple series). */
-  showLegend: boolean;
+  showLegend: boolean
   /** Bar border radius. */
-  barRadius: number;
+  barRadius: number
 }

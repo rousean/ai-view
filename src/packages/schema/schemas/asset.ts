@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { ExtensionsSchema } from './common';
+import { z } from 'zod'
+import { ExtensionsSchema } from './common'
 
 export const AssetSchema = z.object({
   id: z.string(),
@@ -11,4 +11,4 @@ export const AssetSchema = z.object({
   size: z.number().optional(),
   duration: z.number().optional(),
   extensions: ExtensionsSchema,
-});
+})

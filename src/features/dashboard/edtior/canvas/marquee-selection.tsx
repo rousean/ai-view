@@ -1,7 +1,7 @@
 import { useCanvasStore } from '../../store/use-canvas-store'
 
 export default function MarqueeSelection() {
-  const selectionRect = useCanvasStore(state => state.runtime.selectionRect)
+  const selectionRect = useCanvasStore((state) => state.runtime.selectionRect)
   if (!selectionRect) return null
 
   const { x, y, width, height } = selectionRect

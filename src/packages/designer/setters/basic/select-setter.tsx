@@ -1,21 +1,21 @@
-import * as React from 'react';
+import * as React from 'react'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '~/components/ui/select';
-import type { SetterProps } from '../setter.interface';
+} from '~/components/ui/select'
+import type { SetterProps } from '../setter.interface'
 
 export interface SelectOption {
-  value: string;
-  label: string;
+  value: string
+  label: string
 }
 
 interface SelectSetterProps {
-  options?: SelectOption[];
-  placeholder?: string;
+  options?: SelectOption[]
+  placeholder?: string
 }
 
 export const SelectSetter: React.FC<SetterProps<string>> = ({
@@ -24,15 +24,11 @@ export const SelectSetter: React.FC<SetterProps<string>> = ({
   setterProps,
   disabled,
 }) => {
-  const opts = (setterProps ?? {}) as SelectSetterProps;
-  const options = opts.options ?? [];
+  const opts = (setterProps ?? {}) as SelectSetterProps
+  const options = opts.options ?? []
 
   return (
-    <Select
-      value={value ?? ''}
-      disabled={disabled}
-      onValueChange={(v) => onChange(v)}
-    >
+    <Select value={value ?? ''} disabled={disabled} onValueChange={(v) => onChange(v)}>
       <SelectTrigger className="w-full">
         <SelectValue placeholder={opts.placeholder ?? '请选择'} />
       </SelectTrigger>
@@ -44,5 +40,5 @@ export const SelectSetter: React.FC<SetterProps<string>> = ({
         ))}
       </SelectContent>
     </Select>
-  );
-};
+  )
+}

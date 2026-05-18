@@ -1,29 +1,13 @@
-import * as React from 'react';
-import {
-  Hand,
-  MousePointer2,
-  Redo2,
-  RotateCcw,
-  Save,
-  Undo2,
-  ZoomIn,
-  ZoomOut,
-} from 'lucide-react';
-import { Button } from '~/components/ui/button';
-import { Separator } from '~/components/ui/separator';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '~/components/ui/tooltip';
-import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
-import {
-  useDashboardEditor,
-  useEditorState,
-} from '../editor/editor-context';
+import * as React from 'react'
+import { Hand, MousePointer2, Redo2, RotateCcw, Save, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
+import { Button } from '~/components/ui/button'
+import { Separator } from '~/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
+import { useDashboardEditor, useEditorState } from '../editor/editor-context'
 
 interface ToolbarProps {
-  className?: string;
+  className?: string
 }
 
 /**
@@ -34,24 +18,22 @@ interface ToolbarProps {
  * theme automatically (button hover states, focus rings, tooltip styling).
  */
 export const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
-  const editor = useDashboardEditor();
-  const tool = useEditorState((s) => s.tool);
-  const scale = useEditorState((s) => s.camera.scale);
+  const editor = useDashboardEditor()
+  const tool = useEditorState((s) => s.tool)
+  const scale = useEditorState((s) => s.camera.scale)
 
   // Force this component to re-evaluate canUndo / canRedo whenever the
   // history bus reports a change. Cheap; rerenders only the toolbar.
-  const [, force] = React.useReducer((x) => x + 1, 0);
-  React.useEffect(() => editor.bus.on('history.applied', () => force()), [editor]);
-  React.useEffect(() => editor.bus.on('history.undone', () => force()), [editor]);
-  React.useEffect(() => editor.bus.on('history.redone', () => force()), [editor]);
+  const [, force] = React.useReducer((x) => x + 1, 0)
+  React.useEffect(() => editor.bus.on('history.applied', () => force()), [editor])
+  React.useEffect(() => editor.bus.on('history.undone', () => force()), [editor])
+  React.useEffect(() => editor.bus.on('history.redone', () => force()), [editor])
 
-  const canUndo = editor.canUndo();
-  const canRedo = editor.canRedo();
+  const canUndo = editor.canUndo()
+  const canRedo = editor.canRedo()
 
   return (
-    <div
-      className={`flex h-12 items-center gap-2 border-b bg-card px-3 ${className ?? ''}`}
-    >
+    <div className={`flex h-12 items-center gap-2 border-b bg-card px-3 ${className ?? ''}`}>
       {/* Tool picker */}
       <ToggleGroup
         type="single"
@@ -150,5 +132,5 @@ export const Toolbar: React.FC<ToolbarProps> = ({ className }) => {
         </Button>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,14 +1,10 @@
-import * as React from 'react';
-import type { WidgetMeta } from '@widgets/widget-meta';
-import {
-  useDashboardEditor,
-  useDocumentState,
-  useEditorState,
-} from '../editor/editor-context';
-import { selectCurrentTheme, selectWidget } from '../stores/selectors';
+import * as React from 'react'
+import type { WidgetMeta } from '@widgets/widget-meta'
+import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
+import { selectCurrentTheme, selectWidget } from '../stores/selectors'
 
 interface WidgetContainerProps {
-  id: string;
+  id: string
 }
 
 /**
@@ -17,72 +13,70 @@ interface WidgetContainerProps {
  *
  * Heavy children (e.g. ECharts) are isolated by React.memo on this container.
  */
-export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(
-  function WidgetContainer({ id }) {
-    const editor = useDashboardEditor();
-    const widget = useDocumentState((s) => selectWidget(id)(s) ?? null);
-    const theme = useDocumentState((s) => selectCurrentTheme(s));
-    const isSelected = useEditorState((s) => s.selectedIds.includes(id));
-    const isHovered = useEditorState((s) => s.hoverId === id);
+export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(function WidgetContainer({
+  id,
+}) {
+  const editor = useDashboardEditor()
+  const widget = useDocumentState((s) => selectWidget(id)(s) ?? null)
+  const theme = useDocumentState((s) => selectCurrentTheme(s))
+  const isSelected = useEditorState((s) => s.selectedIds.includes(id))
+  const isHovered = useEditorState((s) => s.hoverId === id)
 
-    if (!widget) return null;
-    if (widget.flags.hidden) return null;
+  if (!widget) return null
+  if (widget.flags.hidden) return null
 
-    const meta = editor.registry.widgets.get(widget.type) as
-      | WidgetMeta
-      | undefined;
+  const meta = editor.registry.widgets.get(widget.type) as WidgetMeta | undefined
 
-    const layout = widget.layout;
-    // Pivot all transforms (rotate, scale/flip) around the widget's visual
-    // centre so that:
-    //   1. rotation gestures (which use bbox-centre as pivot) match what's
-    //      drawn on screen — the widget spins in place, not around its
-    //      top-left;
-    //   2. the selection chrome (also pivoted at centre) stays aligned with
-    //      the widget;
-    //   3. flipX/flipY mirror around the centre line, which is what users
-    //      expect.
-    //
-    // The base position uses `left/top` (NOT translate) so the
-    // centre-pivoted transform composes cleanly without offset bookkeeping.
-    return (
-      <div
-        data-widget-id={widget.id}
-        data-widget-type={widget.type}
-        data-selected={isSelected || undefined}
-        data-hover={isHovered || undefined}
-        style={{
-          position: 'absolute',
-          left: layout.x,
-          top: layout.y,
-          width: layout.width,
-          height: layout.height,
-          transform: `rotate(${layout.rotate}deg) scale(${layout.flipX ? -1 : 1}, ${layout.flipY ? -1 : 1})`,
-          transformOrigin: 'center',
-          opacity: layout.opacity,
-          pointerEvents: widget.flags.locked ? 'none' : 'auto',
-          // Signal interactivity. The handle cursors (set per-handle on
-          // ResizeHandles / RotationHandle) win over this when the chrome
-          // is rendered, so this only shows when hovering the widget body.
-          cursor: widget.flags.locked ? 'default' : 'move',
-        }}
-      >
-        {meta ? (
-          <meta.Component
-            node={widget}
-            props={widget.props as never}
-            data={undefined}
-            layout={layout}
-            theme={theme}
-            designMode
-          />
-        ) : (
-          <UnknownWidgetFallback type={widget.type} />
-        )}
-      </div>
-    );
-  },
-);
+  const layout = widget.layout
+  // Pivot all transforms (rotate, scale/flip) around the widget's visual
+  // centre so that:
+  //   1. rotation gestures (which use bbox-centre as pivot) match what's
+  //      drawn on screen — the widget spins in place, not around its
+  //      top-left;
+  //   2. the selection chrome (also pivoted at centre) stays aligned with
+  //      the widget;
+  //   3. flipX/flipY mirror around the centre line, which is what users
+  //      expect.
+  //
+  // The base position uses `left/top` (NOT translate) so the
+  // centre-pivoted transform composes cleanly without offset bookkeeping.
+  return (
+    <div
+      data-widget-id={widget.id}
+      data-widget-type={widget.type}
+      data-selected={isSelected || undefined}
+      data-hover={isHovered || undefined}
+      style={{
+        position: 'absolute',
+        left: layout.x,
+        top: layout.y,
+        width: layout.width,
+        height: layout.height,
+        transform: `rotate(${layout.rotate}deg) scale(${layout.flipX ? -1 : 1}, ${layout.flipY ? -1 : 1})`,
+        transformOrigin: 'center',
+        opacity: layout.opacity,
+        pointerEvents: widget.flags.locked ? 'none' : 'auto',
+        // Signal interactivity. The handle cursors (set per-handle on
+        // ResizeHandles / RotationHandle) win over this when the chrome
+        // is rendered, so this only shows when hovering the widget body.
+        cursor: widget.flags.locked ? 'default' : 'move',
+      }}
+    >
+      {meta ? (
+        <meta.Component
+          node={widget}
+          props={widget.props as never}
+          data={undefined}
+          layout={layout}
+          theme={theme}
+          designMode
+        />
+      ) : (
+        <UnknownWidgetFallback type={widget.type} />
+      )}
+    </div>
+  )
+})
 
 const UnknownWidgetFallback: React.FC<{ type: string }> = ({ type }) => (
   <div
@@ -99,4 +93,4 @@ const UnknownWidgetFallback: React.FC<{ type: string }> = ({ type }) => (
   >
     未注册组件: {type}
   </div>
-);
+)

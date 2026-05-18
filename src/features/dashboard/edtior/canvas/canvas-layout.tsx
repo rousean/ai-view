@@ -1,16 +1,17 @@
-import CanvasAxis from "./canvas-axis"
-import CanvasViewport from "./canvas-viewport"
-import CanvasTransform from "./canvas-transform"
-import { useEffect, useRef, useState } from "react"
+import CanvasAxis from './canvas-axis'
+import CanvasViewport from './canvas-viewport'
+import CanvasTransform from './canvas-transform'
+import { useEffect, useRef, useState } from 'react'
 
 export default function CanvasLayout() {
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 })
-  
+
   useEffect(() => {
-    const observer = new ResizeObserver(entries => {
+    const observer = new ResizeObserver((entries) => {
       const entry = entries[0]
-      if (entry) setViewportSize({ width: entry.contentRect.width, height: entry.contentRect.height })
+      if (entry)
+        setViewportSize({ width: entry.contentRect.width, height: entry.contentRect.height })
     })
     if (viewportRef.current) observer.observe(viewportRef.current)
     return () => observer.disconnect()

@@ -1,9 +1,9 @@
-import type { Project } from '@schema/types';
-import type { DashboardEditor } from './dashboard-editor';
-import { Registry } from './registry';
+import type { Project } from '@schema/types'
+import type { DashboardEditor } from './dashboard-editor'
+import { Registry } from './registry'
 
 export interface CommandContext {
-  editor: DashboardEditor;
+  editor: DashboardEditor
 }
 
 /**
@@ -20,21 +20,21 @@ export interface CommandContext {
  * A command can have at most one of `apply` / `run`.
  */
 export interface Command<P = unknown> {
-  type: string; // Registry key
-  label?: string | ((payload: P) => string);
-  undoable: boolean;
+  type: string // Registry key
+  label?: string | ((payload: P) => string)
+  undoable: boolean
   /** Optional: gate when the button is enabled / when the cmd shows in menus. */
-  canExecute?: (ctx: CommandContext, payload: P) => boolean;
+  canExecute?: (ctx: CommandContext, payload: P) => boolean
   /** Document-mutating handler: gets an immer draft. */
-  apply?: (draft: Project, ctx: CommandContext, payload: P) => void;
+  apply?: (draft: Project, ctx: CommandContext, payload: P) => void
   /** Side-effect handler: no draft. */
-  run?: (ctx: CommandContext, payload: P) => void;
+  run?: (ctx: CommandContext, payload: P) => void
   /** mergeKey for HistoryManager coalescing (apply path only). */
-  mergeKey?: (payload: P) => string | undefined;
+  mergeKey?: (payload: P) => string | undefined
 }
 
 export class CommandRegistry extends Registry<Command<any>> {
   constructor() {
-    super('commands');
+    super('commands')
   }
 }

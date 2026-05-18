@@ -1,5 +1,5 @@
-import { Registry } from '../editor/registry';
-import type { SetterDefinition } from './setter.interface';
+import { Registry } from '../editor/registry'
+import type { SetterDefinition } from './setter.interface'
 
 /**
  * Registry for property-panel setters. Plugins register their setters
@@ -7,6 +7,6 @@ import type { SetterDefinition } from './setter.interface';
  */
 export class SetterRegistry extends Registry<SetterDefinition> {
   constructor() {
-    super('setters');
+    super('setters')
   }
 }

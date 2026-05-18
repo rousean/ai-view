@@ -1,11 +1,11 @@
-import * as React from 'react';
-import { useEditorStore } from '../stores/editor-store';
+import * as React from 'react'
+import { useEditorStore } from '../stores/editor-store'
 
 interface CameraTransformLayerProps {
   /** Style applied to the inner transformed div. */
-  style?: React.CSSProperties;
-  children: React.ReactNode;
-  className?: string;
+  style?: React.CSSProperties
+  children: React.ReactNode
+  className?: string
 }
 
 /**
@@ -21,19 +21,19 @@ export const CameraTransformLayer: React.FC<CameraTransformLayerProps> = ({
   children,
   className,
 }) => {
-  const innerRef = React.useRef<HTMLDivElement | null>(null);
+  const innerRef = React.useRef<HTMLDivElement | null>(null)
 
   React.useEffect(() => {
     const apply = (cam: { x: number; y: number; scale: number }) => {
-      const el = innerRef.current;
-      if (!el) return;
-      el.style.transform = `translate(${cam.x}px, ${cam.y}px) scale(${cam.scale})`;
-    };
-    apply(useEditorStore.getState().camera);
+      const el = innerRef.current
+      if (!el) return
+      el.style.transform = `translate(${cam.x}px, ${cam.y}px) scale(${cam.scale})`
+    }
+    apply(useEditorStore.getState().camera)
     return useEditorStore.subscribe((s) => s.camera, apply, {
       equalityFn: (a, b) => a.x === b.x && a.y === b.y && a.scale === b.scale,
-    });
-  }, []);
+    })
+  }, [])
 
   return (
     <div
@@ -58,5 +58,5 @@ export const CameraTransformLayer: React.FC<CameraTransformLayerProps> = ({
         {children}
       </div>
     </div>
-  );
-};
+  )
+}

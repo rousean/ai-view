@@ -6,25 +6,25 @@
  */
 
 // Types
-export * from './types';
+export * from './types'
 
 // zod schemas (re-exported under a namespace to avoid name collisions
 // with the type exports above).
-export * as Schemas from './schemas';
+export * as Schemas from './schemas'
 
 // Migrations
-export { migrate, compareVersion } from './migrations';
-export type { Migration } from './migrations';
+export { migrate, compareVersion } from './migrations'
+export type { Migration } from './migrations'
 
 // Persistence
-export type { PersistenceAdapter } from './persistence';
+export type { PersistenceAdapter } from './persistence'
 export {
   LocalStoragePersistence,
   createEmptyProject,
   createDefaultPage,
   createDefaultTheme,
   createSampleStaticDataSource,
-} from './persistence';
+} from './persistence'
 
 // IDs
 export {
@@ -37,7 +37,7 @@ export {
   createGuideId,
   createGroupId,
   createProjectId,
-} from './id';
+} from './id'
 
 // Version
-export { SCHEMA_VERSION } from './version';
+export { SCHEMA_VERSION } from './version'

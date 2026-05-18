@@ -1,35 +1,35 @@
-import { create } from 'zustand';
-import { devtools, subscribeWithSelector } from 'zustand/middleware';
+import { create } from 'zustand'
+import { devtools, subscribeWithSelector } from 'zustand/middleware'
 
 export type FetchStatus =
   | { state: 'idle' }
   | { state: 'loading' }
   | { state: 'success'; updatedAt: number }
-  | { state: 'error'; error: string; updatedAt: number };
+  | { state: 'error'; error: string; updatedAt: number }
 
 export interface WidgetError {
-  message: string;
-  stack?: string;
+  message: string
+  stack?: string
 }
 
 export interface RuntimeState {
   /** dataSourceId → fetched data (after source-level transforms). */
-  fetchedData: Record<string, unknown>;
+  fetchedData: Record<string, unknown>
   /** dataSourceId → status. */
-  fetchStatus: Record<string, FetchStatus>;
+  fetchStatus: Record<string, FetchStatus>
   /** Design-time mock master switch. */
-  designTimeMockMode: boolean;
+  designTimeMockMode: boolean
   /** widgetId → render error. */
-  widgetErrors: Record<string, WidgetError | undefined>;
+  widgetErrors: Record<string, WidgetError | undefined>
 
   actions: {
-    setFetchedData: (sourceId: string, data: unknown) => void;
-    setFetchStatus: (sourceId: string, status: FetchStatus) => void;
-    clearFetched: (sourceId: string) => void;
-    setMockMode: (enabled: boolean) => void;
-    setWidgetError: (widgetId: string, err: WidgetError | undefined) => void;
-    clearAll: () => void;
-  };
+    setFetchedData: (sourceId: string, data: unknown) => void
+    setFetchStatus: (sourceId: string, status: FetchStatus) => void
+    clearFetched: (sourceId: string) => void
+    setMockMode: (enabled: boolean) => void
+    setWidgetError: (widgetId: string, err: WidgetError | undefined) => void
+    clearAll: () => void
+  }
 }
 
 export const useRuntimeStore = create<RuntimeState>()(
@@ -56,11 +56,11 @@ export const useRuntimeStore = create<RuntimeState>()(
         clearFetched: (sourceId) =>
           set(
             (s) => {
-              const data = { ...s.fetchedData };
-              const status = { ...s.fetchStatus };
-              delete data[sourceId];
-              delete status[sourceId];
-              return { fetchedData: data, fetchStatus: status };
+              const data = { ...s.fetchedData }
+              const status = { ...s.fetchStatus }
+              delete data[sourceId]
+              delete status[sourceId]
+              return { fetchedData: data, fetchStatus: status }
             },
             false,
             'runtime/clearFetched',
@@ -89,4 +89,4 @@ export const useRuntimeStore = create<RuntimeState>()(
     })),
     { name: 'RuntimeStore' },
   ),
-);
+)

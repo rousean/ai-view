@@ -1,4 +1,4 @@
-import type { PropConfig } from '../../widget-meta';
+import type { PropConfig } from '../../widget-meta'
 
 export const DONUT_CHART_PROPS_CONFIG: PropConfig[] = [
   {
@@ -49,4 +49,4 @@ export const DONUT_CHART_PROPS_CONFIG: PropConfig[] = [
     setterProps: { min: 0, max: 80, step: 1, unit: 'px' },
     group: '样式',
   },
-];
+]

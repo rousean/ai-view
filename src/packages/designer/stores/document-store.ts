@@ -1,8 +1,8 @@
-import type { Patch } from 'immer';
-import { applyPatches } from 'immer';
-import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
-import type { Project } from '@schema/types';
+import type { Patch } from 'immer'
+import { applyPatches } from 'immer'
+import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
+import type { Project } from '@schema/types'
 
 /**
  * DocumentStore — the single source of truth for the persistent project
@@ -13,13 +13,13 @@ import type { Project } from '@schema/types';
  * via the editor facade. Direct setState from outside the editor is a bug.
  */
 export interface DocumentState {
-  project: Project | null;
+  project: Project | null
 
   /** Internal setter — replace the whole project. Used by load(). */
-  _setProject: (project: Project | null) => void;
+  _setProject: (project: Project | null) => void
 
   /** Internal patch applier — used by HistoryManager. */
-  _applyPatches: (patches: Patch[]) => void;
+  _applyPatches: (patches: Patch[]) => void
 }
 
 export const useDocumentStore = create<DocumentState>()(
@@ -30,8 +30,8 @@ export const useDocumentStore = create<DocumentState>()(
       _applyPatches: (patches) =>
         set(
           (state) => {
-            if (!state.project) return state;
-            return { project: applyPatches(state.project, patches) };
+            if (!state.project) return state
+            return { project: applyPatches(state.project, patches) }
           },
           false,
           'document/applyPatches',
@@ -39,4 +39,4 @@ export const useDocumentStore = create<DocumentState>()(
     }),
     { name: 'DocumentStore' },
   ),
-);
+)

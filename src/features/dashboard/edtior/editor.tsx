@@ -27,12 +27,12 @@ export default function Editor() {
       const { x, y } = screenToCanvas(
         { x: position.current.x - offset.current.x, y: position.current.y - offset.current.y },
         target.element.parentElement?.getBoundingClientRect() as DOMRect,
-        useCanvasStore.getState().camera
+        useCanvasStore.getState().camera,
       )
-      
+
       useCanvasStore.getState().addElement(source.data as Meta, {
         x: Math.min(Math.max(0, Math.round(x)), width - source.data.props.layout.width),
-        y: Math.min(Math.max(0, Math.round(y)), height - source.data.props.layout.height)
+        y: Math.min(Math.max(0, Math.round(y)), height - source.data.props.layout.height),
       })
     }
   }

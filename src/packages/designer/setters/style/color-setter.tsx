@@ -1,23 +1,13 @@
-import * as React from 'react';
-import { Button } from '~/components/ui/button';
-import {
-  ColorArea,
-  ColorPicker,
-  ColorSlider,
-  ColorThumb,
-  SliderTrack,
-} from '~/components/ui/color';
-import { Input } from '~/components/ui/input';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '~/components/ui/popover';
-import type { SetterProps } from '../setter.interface';
+import * as React from 'react'
+import { Button } from '~/components/ui/button'
+import { ColorArea, ColorPicker, ColorSlider, ColorThumb, SliderTrack } from '~/components/ui/color'
+import { Input } from '~/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
+import type { SetterProps } from '../setter.interface'
 
 interface ColorSetterProps {
   /** Preset swatches shown below the picker. */
-  presets?: string[];
+  presets?: string[]
 }
 
 const DEFAULT_PRESETS = [
@@ -31,7 +21,7 @@ const DEFAULT_PRESETS = [
   '#0b1220',
   '#e6edf6',
   '#ffffff',
-];
+]
 
 /**
  * Colour setter:
@@ -46,19 +36,19 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
   setterProps,
   disabled,
 }) => {
-  const opts = (setterProps ?? {}) as ColorSetterProps;
-  const v = typeof value === 'string' && value.length > 0 ? value : '#ffffff';
-  const presets = opts.presets ?? DEFAULT_PRESETS;
-  const [text, setText] = React.useState(v);
+  const opts = (setterProps ?? {}) as ColorSetterProps
+  const v = typeof value === 'string' && value.length > 0 ? value : '#ffffff'
+  const presets = opts.presets ?? DEFAULT_PRESETS
+  const [text, setText] = React.useState(v)
 
-  React.useEffect(() => setText(v), [v]);
+  React.useEffect(() => setText(v), [v])
 
   const commitText = (raw: string) => {
-    const s = raw.trim();
-    if (/^#[0-9a-fA-F]{3,8}$/.test(s)) onChange(s);
-    else if (s === '') onChange('');
-    else setText(v); // reject invalid, revert display
-  };
+    const s = raw.trim()
+    if (/^#[0-9a-fA-F]{3,8}$/.test(s)) onChange(s)
+    else if (s === '') onChange('')
+    else setText(v) // reject invalid, revert display
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -72,18 +62,13 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
             className="shrink-0 p-0"
             aria-label="选择颜色"
           >
-            <span
-              className="block size-5 rounded border border-border"
-              style={{ background: v }}
-            />
+            <span className="block size-5 rounded border border-border" style={{ background: v }} />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-64" align="start">
           <ColorPicker
             value={v}
-            onChange={(c) =>
-              onChange(typeof c === 'string' ? c : c.toString('hex'))
-            }
+            onChange={(c) => onChange(typeof c === 'string' ? c : c.toString('hex'))}
           >
             <div className="space-y-3">
               <ColorArea
@@ -125,9 +110,9 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
         onChange={(e) => setText(e.target.value)}
         onBlur={(e) => commitText(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') commitText((e.target as HTMLInputElement).value);
+          if (e.key === 'Enter') commitText((e.target as HTMLInputElement).value)
         }}
       />
     </div>
-  );
-};
+  )
+}

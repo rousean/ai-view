@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { useEditorStore } from '../stores/editor-store';
+import * as React from 'react'
+import { useEditorStore } from '../stores/editor-store'
 
 /**
  * X / Y rulers around the canvas viewport.
@@ -11,72 +11,72 @@ import { useEditorStore } from '../stores/editor-store';
  * Render these as absolute-positioned overlays inside the canvas frame.
  */
 
-const RULER_THICKNESS = 20;
+const RULER_THICKNESS = 20
 
 function getTickStep(scale: number, minPixelStep = 8): number {
-  return getNiceStep(minPixelStep / scale);
+  return getNiceStep(minPixelStep / scale)
 }
 
 function getNiceStep(rawStep: number): number {
-  const exponent = Math.floor(Math.log10(rawStep));
-  const base = 10 ** exponent;
-  const normalized = rawStep / base;
-  if (normalized <= 1) return base;
-  if (normalized <= 2) return 2 * base;
-  if (normalized <= 5) return 5 * base;
-  return 10 * base;
+  const exponent = Math.floor(Math.log10(rawStep))
+  const base = 10 ** exponent
+  const normalized = rawStep / base
+  if (normalized <= 1) return base
+  if (normalized <= 2) return 2 * base
+  if (normalized <= 5) return 5 * base
+  return 10 * base
 }
 
 function getVisibleTicks(start: number, end: number, step = 10): number[] {
-  const first = Math.floor(start / step) * step;
-  const ticks: number[] = [];
-  for (let t = first; t <= end; t += step) ticks.push(t);
-  return ticks;
+  const first = Math.floor(start / step) * step
+  const ticks: number[] = []
+  for (let t = first; t <= end; t += step) ticks.push(t)
+  return ticks
 }
 
 function isMajorTick(value: number, tickStep = 10): boolean {
-  const majorStep = tickStep * 10;
-  return Math.abs(value / majorStep - Math.round(value / majorStep)) < 1e-6;
+  const majorStep = tickStep * 10
+  return Math.abs(value / majorStep - Math.round(value / majorStep)) < 1e-6
 }
 
 /** Small hook to keep a state-of-size in sync with the element's box. */
 function useElementSize<T extends HTMLElement>() {
-  const ref = React.useRef<T | null>(null);
-  const [size, setSize] = React.useState({ width: 0, height: 0 });
+  const ref = React.useRef<T | null>(null)
+  const [size, setSize] = React.useState({ width: 0, height: 0 })
   React.useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const el = ref.current
+    if (!el) return
     const ro = new ResizeObserver(([entry]) => {
       if (entry)
         setSize({
           width: entry.contentRect.width,
           height: entry.contentRect.height,
-        });
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return { ref, size };
+        })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return { ref, size }
 }
 
 interface RulerProps {
-  style?: React.CSSProperties;
-  className?: string;
+  style?: React.CSSProperties
+  className?: string
 }
 
 export const AxisX: React.FC<RulerProps> = ({ style, className }) => {
-  const camera = useEditorStore((s) => s.camera);
-  const { ref, size } = useElementSize<HTMLDivElement>();
-  const { width, height } = size;
+  const camera = useEditorStore((s) => s.camera)
+  const { ref, size } = useElementSize<HTMLDivElement>()
+  const { width, height } = size
 
-  const { x, scale } = camera;
-  const left = -x / scale;
-  const right = left + (width || 1) / scale;
-  const tickStep = getTickStep(scale);
+  const { x, scale } = camera
+  const left = -x / scale
+  const right = left + (width || 1) / scale
+  const tickStep = getTickStep(scale)
   const xTicks = React.useMemo(
     () => (width > 0 ? getVisibleTicks(left, right, tickStep) : []),
     [left, right, tickStep, width],
-  );
+  )
 
   return (
     <div ref={ref} className={className} style={style}>
@@ -92,9 +92,9 @@ export const AxisX: React.FC<RulerProps> = ({ style, className }) => {
               strokeWidth={0.5}
             />
             {xTicks.map((tick) => {
-              const X = (tick - left) * scale;
-              if (X < 0 || X > width) return null;
-              const major = isMajorTick(tick, tickStep);
+              const X = (tick - left) * scale
+              if (X < 0 || X > width) return null
+              const major = isMajorTick(tick, tickStep)
               return (
                 <g key={`x-${tick}`}>
                   <line
@@ -117,28 +117,28 @@ export const AxisX: React.FC<RulerProps> = ({ style, className }) => {
                     </text>
                   )}
                 </g>
-              );
+              )
             })}
           </g>
         </svg>
       )}
     </div>
-  );
-};
+  )
+}
 
 export const AxisY: React.FC<RulerProps> = ({ style, className }) => {
-  const camera = useEditorStore((s) => s.camera);
-  const { ref, size } = useElementSize<HTMLDivElement>();
-  const { width, height } = size;
+  const camera = useEditorStore((s) => s.camera)
+  const { ref, size } = useElementSize<HTMLDivElement>()
+  const { width, height } = size
 
-  const { y, scale } = camera;
-  const top = -y / scale;
-  const bottom = top + (height || 1) / scale;
-  const tickStep = getTickStep(scale);
+  const { y, scale } = camera
+  const top = -y / scale
+  const bottom = top + (height || 1) / scale
+  const tickStep = getTickStep(scale)
   const yTicks = React.useMemo(
     () => (height > 0 ? getVisibleTicks(top, bottom, tickStep) : []),
     [top, bottom, tickStep, height],
-  );
+  )
 
   return (
     <div ref={ref} className={className} style={style}>
@@ -154,9 +154,9 @@ export const AxisY: React.FC<RulerProps> = ({ style, className }) => {
               strokeWidth={0.5}
             />
             {yTicks.map((tick) => {
-              const Y = (tick - top) * scale;
-              if (Y < 0 || Y > height) return null;
-              const major = isMajorTick(tick, tickStep);
+              const Y = (tick - top) * scale
+              if (Y < 0 || Y > height) return null
+              const major = isMajorTick(tick, tickStep)
               return (
                 <g key={`y-${tick}`}>
                   <line
@@ -180,13 +180,13 @@ export const AxisY: React.FC<RulerProps> = ({ style, className }) => {
                     </text>
                   )}
                 </g>
-              );
+              )
             })}
           </g>
         </svg>
       )}
     </div>
-  );
-};
+  )
+}
 
-export const RULER_SIZE = RULER_THICKNESS;
+export const RULER_SIZE = RULER_THICKNESS

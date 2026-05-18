@@ -1,10 +1,10 @@
-import { ChartPie } from 'lucide-react';
-import { z } from 'zod';
-import type { WidgetMeta } from '../../widget-meta';
-import { DonutChartComponent } from './component';
-import { DEFAULT_DONUT_PROPS } from './default-props';
-import { DONUT_CHART_PROPS_CONFIG } from './props-config';
-import type { DonutChartProps } from './types';
+import { ChartPie } from 'lucide-react'
+import { z } from 'zod'
+import type { WidgetMeta } from '../../widget-meta'
+import { DonutChartComponent } from './component'
+import { DEFAULT_DONUT_PROPS } from './default-props'
+import { DONUT_CHART_PROPS_CONFIG } from './props-config'
+import type { DonutChartProps } from './types'
 
 const DonutChartPropsSchema = z.object({
   title: z.string(),
@@ -14,7 +14,7 @@ const DonutChartPropsSchema = z.object({
   padding: z.number().min(0),
   enableHover: z.boolean(),
   showLabels: z.boolean(),
-});
+})
 
 export const donutChartMeta: WidgetMeta<DonutChartProps> = {
   type: 'donut-chart',
@@ -46,7 +46,7 @@ export const donutChartMeta: WidgetMeta<DonutChartProps> = {
     rotatable: true,
     minSize: { width: 160, height: 160 },
   },
-};
+}
 
-export default donutChartMeta;
-export type { DonutChartProps };
+export default donutChartMeta
+export type { DonutChartProps }

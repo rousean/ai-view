@@ -7,7 +7,7 @@ export default function CanvasElement({ element }: { element: Element }) {
   if (!Component) return null
 
   const { x, y, zIndex, rotate } = element.props.layout
-  const { onPointerDown } = useElementDrag(element.id) 
+  const { onPointerDown } = useElementDrag(element.id)
 
   return (
     <div
@@ -24,48 +24,53 @@ export default function CanvasElement({ element }: { element: Element }) {
 }
 
 export function useElementDrag(elementId: string) {
-  const pushHistorySnapshot = useCanvasStore(state => state.pushHistorySnapshot)
-  const translateElementsFromLayouts = useCanvasStore(state => state.translateElementsFromLayouts)
-  const setSelectedIds = useCanvasStore(state => state.setSelectedIds)
+  const pushHistorySnapshot = useCanvasStore((state) => state.pushHistorySnapshot)
+  const translateElementsFromLayouts = useCanvasStore((state) => state.translateElementsFromLayouts)
+  const setSelectedIds = useCanvasStore((state) => state.setSelectedIds)
 
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0) return
-    e.stopPropagation()
-    e.preventDefault()
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button !== 0) return
+      e.stopPropagation()
+      e.preventDefault()
 
-    const alreadySelected = useCanvasStore.getState().runtime.selectedIds.includes(elementId)
+      const alreadySelected = useCanvasStore.getState().runtime.selectedIds.includes(elementId)
 
-    if (!alreadySelected) {
-      setSelectedIds([elementId])
-    }
-
-    pushHistorySnapshot()
-
-    const startX = e.clientX
-    const startY = e.clientY
-
-    const move = (ev: PointerEvent) => {
-      const dist = Math.hypot(ev.clientX - startX, ev.clientY - startY)
-      if (dist < 5) return
-
-      const { camera } = useCanvasStore.getState()
-      const dx = (ev.clientX - startX) / camera.scale
-      const dy = (ev.clientY - startY) / camera.scale
-
-      const snapshot = { [elementId]: useCanvasStore.getState().elements[elementId]?.props.layout }
-      if (snapshot[elementId]) {
-        translateElementsFromLayouts(snapshot, dx, dy)
+      if (!alreadySelected) {
+        setSelectedIds([elementId])
       }
-    }
 
-    const up = () => {
-      document.removeEventListener('pointermove', move)
-      document.removeEventListener('pointerup', up)
-    }
+      pushHistorySnapshot()
 
-    document.addEventListener('pointermove', move)
-    document.addEventListener('pointerup', up)
-  }, [elementId, pushHistorySnapshot, translateElementsFromLayouts, setSelectedIds])
+      const startX = e.clientX
+      const startY = e.clientY
+
+      const move = (ev: PointerEvent) => {
+        const dist = Math.hypot(ev.clientX - startX, ev.clientY - startY)
+        if (dist < 5) return
+
+        const { camera } = useCanvasStore.getState()
+        const dx = (ev.clientX - startX) / camera.scale
+        const dy = (ev.clientY - startY) / camera.scale
+
+        const snapshot = {
+          [elementId]: useCanvasStore.getState().elements[elementId]?.props.layout,
+        }
+        if (snapshot[elementId]) {
+          translateElementsFromLayouts(snapshot, dx, dy)
+        }
+      }
+
+      const up = () => {
+        document.removeEventListener('pointermove', move)
+        document.removeEventListener('pointerup', up)
+      }
+
+      document.addEventListener('pointermove', move)
+      document.addEventListener('pointerup', up)
+    },
+    [elementId, pushHistorySnapshot, translateElementsFromLayouts, setSelectedIds],
+  )
 
   return { onPointerDown }
 }

@@ -1,12 +1,6 @@
-import { create } from 'zustand';
-import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
-import type {
-  Camera,
-  Point,
-  Rect,
-  ResizeHandle,
-  WidgetNode,
-} from '@schema/types';
+import { create } from 'zustand'
+import { devtools, persist, subscribeWithSelector } from 'zustand/middleware'
+import type { Camera, Point, Rect, ResizeHandle, WidgetNode } from '@schema/types'
 
 /** Discriminated union of in-flight gesture states. */
 export type Interaction =
@@ -15,81 +9,81 @@ export type Interaction =
   | { kind: 'resizing'; ids: string[]; handle: ResizeHandle }
   | { kind: 'rotating'; ids: string[]; pivot: Point }
   | { kind: 'marquee'; rect: Rect }
-  | { kind: 'panning' };
+  | { kind: 'panning' }
 
 export interface EditorViewOptions {
-  showGrid: boolean;
-  showGuides: boolean;
-  showRulers: boolean;
-  showAlignmentGuides: boolean;
-  snapToGrid: boolean;
-  snapToElements: boolean;
-  snapToGuides: boolean;
+  showGrid: boolean
+  showGuides: boolean
+  showRulers: boolean
+  showAlignmentGuides: boolean
+  snapToGrid: boolean
+  snapToElements: boolean
+  snapToGuides: boolean
 }
 
 export interface EditorPanelVisibility {
-  materials: boolean;
-  property: boolean;
-  layers: boolean;
-  minimap: boolean;
+  materials: boolean
+  property: boolean
+  layers: boolean
+  minimap: boolean
 }
 
 export interface EditorPreferences {
-  theme: 'light' | 'dark';
-  autoSave: boolean;
+  theme: 'light' | 'dark'
+  autoSave: boolean
   /** ms */
-  autoSaveInterval: number;
+  autoSaveInterval: number
 }
 
 export interface EditorClipboard {
-  widgets: WidgetNode[];
-  copiedAt: number;
+  widgets: WidgetNode[]
+  copiedAt: number
 }
 
 export interface EditorState {
   // Camera
-  camera: Camera;
+  camera: Camera
 
   // Selection
-  selectedIds: string[];
-  hoverId: string | null;
-  primarySelectionId: string | null;
+  selectedIds: string[]
+  hoverId: string | null
+  primarySelectionId: string | null
 
   // Tool
-  tool: string;
-  toolLocked: boolean;
-  toolContext: Record<string, unknown>;
+  tool: string
+  toolLocked: boolean
+  toolContext: Record<string, unknown>
 
   // Interaction state machine
-  interaction: Interaction;
+  interaction: Interaction
 
   // Clipboard
-  clipboard: EditorClipboard | null;
+  clipboard: EditorClipboard | null
 
   // Panels & view options
-  panels: EditorPanelVisibility;
-  view: EditorViewOptions;
+  panels: EditorPanelVisibility
+  view: EditorViewOptions
 
   // Preferences (persisted)
-  preferences: EditorPreferences;
+  preferences: EditorPreferences
 
   // Actions
   actions: {
-    setCamera: (camera: Partial<Camera>) => void;
-    setSelected: (ids: string[]) => void;
-    setHover: (id: string | null) => void;
-    setPrimarySelection: (id: string | null) => void;
-    setTool: (tool: string, ctx?: Record<string, unknown>) => void;
-    setToolLocked: (locked: boolean) => void;
-    setInteraction: (interaction: Interaction) => void;
-    setClipboard: (cb: EditorClipboard | null) => void;
-    togglePanel: (key: keyof EditorPanelVisibility) => void;
-    setPanel: (key: keyof EditorPanelVisibility, visible: boolean) => void;
-    setView: (view: Partial<EditorViewOptions>) => void;
-    setPreferences: (prefs: Partial<EditorPreferences>) => void;
+    setCamera: (camera: Partial<Camera>) => void
+    setSelected: (ids: string[]) => void
+    setHover: (id: string | null) => void
+    setPrimarySelection: (id: string | null) => void
+    setTool: (tool: string, ctx?: Record<string, unknown>) => void
+    setToolLocked: (locked: boolean) => void
+    setInteraction: (interaction: Interaction) => void
+    setClipboard: (cb: EditorClipboard | null) => void
+    togglePanel: (key: keyof EditorPanelVisibility) => void
+    setPanel: (key: keyof EditorPanelVisibility, visible: boolean) => void
+    setView: (view: Partial<EditorViewOptions>) => void
+    setPreferences: (prefs: Partial<EditorPreferences>) => void
     /** Reset volatile state (selection, interaction, clipboard) on document load. */
-    resetVolatile: () => void;
-  };
+    resetVolatile: () => void
+  }
 }
 
 const DEFAULT_VIEW: EditorViewOptions = {
@@ -100,20 +94,20 @@ const DEFAULT_VIEW: EditorViewOptions = {
   snapToGrid: false,
   snapToElements: true,
   snapToGuides: true,
-};
+}
 
 const DEFAULT_PANELS: EditorPanelVisibility = {
   materials: true,
   property: true,
   layers: false,
   minimap: false,
-};
+}
 
 const DEFAULT_PREFERENCES: EditorPreferences = {
   theme: 'dark',
   autoSave: true,
   autoSaveInterval: 30_000,
-};
+}
 
 export const useEditorStore = create<EditorState>()(
   devtools(
@@ -134,11 +128,7 @@ export const useEditorStore = create<EditorState>()(
 
         actions: {
           setCamera: (camera) =>
-            set(
-              (s) => ({ camera: { ...s.camera, ...camera } }),
-              false,
-              'editor/setCamera',
-            ),
+            set((s) => ({ camera: { ...s.camera, ...camera } }), false, 'editor/setCamera'),
           setSelected: (ids) =>
             set(
               {
@@ -149,20 +139,11 @@ export const useEditorStore = create<EditorState>()(
               'editor/setSelected',
             ),
           setHover: (id) => set({ hoverId: id }, false, 'editor/setHover'),
-          setPrimarySelection: (id) =>
-            set({ primarySelectionId: id }, false, 'editor/setPrimary'),
-          setTool: (tool, ctx) =>
-            set(
-              { tool, toolContext: ctx ?? {} },
-              false,
-              'editor/setTool',
-            ),
-          setToolLocked: (locked) =>
-            set({ toolLocked: locked }, false, 'editor/setToolLocked'),
-          setInteraction: (interaction) =>
-            set({ interaction }, false, 'editor/setInteraction'),
-          setClipboard: (cb) =>
-            set({ clipboard: cb }, false, 'editor/setClipboard'),
+          setPrimarySelection: (id) => set({ primarySelectionId: id }, false, 'editor/setPrimary'),
+          setTool: (tool, ctx) => set({ tool, toolContext: ctx ?? {} }, false, 'editor/setTool'),
+          setToolLocked: (locked) => set({ toolLocked: locked }, false, 'editor/setToolLocked'),
+          setInteraction: (interaction) => set({ interaction }, false, 'editor/setInteraction'),
+          setClipboard: (cb) => set({ clipboard: cb }, false, 'editor/setClipboard'),
           togglePanel: (key) =>
             set(
               (s) => ({ panels: { ...s.panels, [key]: !s.panels[key] } }),
@@ -170,17 +151,9 @@ export const useEditorStore = create<EditorState>()(
               'editor/togglePanel',
             ),
           setPanel: (key, visible) =>
-            set(
-              (s) => ({ panels: { ...s.panels, [key]: visible } }),
-              false,
-              'editor/setPanel',
-            ),
+            set((s) => ({ panels: { ...s.panels, [key]: visible } }), false, 'editor/setPanel'),
           setView: (view) =>
-            set(
-              (s) => ({ view: { ...s.view, ...view } }),
-              false,
-              'editor/setView',
-            ),
+            set((s) => ({ view: { ...s.view, ...view } }), false, 'editor/setView'),
           setPreferences: (prefs) =>
             set(
               (s) => ({ preferences: { ...s.preferences, ...prefs } }),
@@ -214,4 +187,4 @@ export const useEditorStore = create<EditorState>()(
     ),
     { name: 'EditorStore' },
   ),
-);
+)

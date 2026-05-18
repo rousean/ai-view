@@ -1,6 +1,6 @@
-export { SnapManager, DEFAULT_THRESHOLDS } from './snap-manager';
-export { useSnapGuidesStore } from './snap-store';
-export { buildSnapContext } from './build-context';
+export { SnapManager, DEFAULT_THRESHOLDS } from './snap-manager'
+export { useSnapGuidesStore } from './snap-store'
+export { buildSnapContext } from './build-context'
 export type {
   SnapRect,
   SnapSides,
@@ -9,4 +9,4 @@ export type {
   SnapResult,
   SnapTargetType,
   ActiveSnapGuide,
-} from './types';
+} from './types'

@@ -1,14 +1,9 @@
-import type * as React from 'react';
-import type { z } from 'zod';
-import type {
-  Layout,
-  ResizeInfo,
-  Theme,
-  WidgetNode,
-} from '@schema/types';
+import type * as React from 'react'
+import type { z } from 'zod'
+import type { Layout, ResizeInfo, Theme, WidgetNode } from '@schema/types'
 
 /** Tab bucket for the property panel. Convention follows DataV. */
-export type PropGroup = '配置' | '样式' | '数据' | '交互' | '动画' | string;
+export type PropGroup = '配置' | '样式' | '数据' | '交互' | '动画' | string
 
 /**
  * Configuration for a single property field on the property panel.
@@ -18,57 +13,57 @@ export type PropGroup = '配置' | '样式' | '数据' | '交互' | '动画' | s
  */
 export interface PropConfig {
   /** Dot/bracket path into widget.props. */
-  path: string;
+  path: string
 
   /** SetterRegistry key. */
-  setter: string;
+  setter: string
 
-  label: string;
-  description?: string;
+  label: string
+  description?: string
 
   /** Forwarded to the setter component as `setterProps`. */
-  setterProps?: Record<string, unknown>;
+  setterProps?: Record<string, unknown>
 
   /** Tab bucket. */
-  group?: PropGroup;
+  group?: PropGroup
   /** Collapsible section title within a group. */
-  section?: string;
+  section?: string
 
   /** Conditional visibility. Receives current props object. */
-  visible?: (props: Record<string, unknown>) => boolean;
+  visible?: (props: Record<string, unknown>) => boolean
   /** Conditional read-only. */
-  disabled?: (props: Record<string, unknown>) => boolean;
+  disabled?: (props: Record<string, unknown>) => boolean
 
   /** Initial collapsed state when wrapped in a section. */
-  collapsed?: boolean;
+  collapsed?: boolean
 }
 
 /** Capability flags advertised by the widget. */
 export interface WidgetCapabilities {
   /** true | 'horizontal' | 'vertical' | false. Default true. */
-  resizable?: boolean | 'horizontal' | 'vertical';
-  rotatable?: boolean;
+  resizable?: boolean | 'horizontal' | 'vertical'
+  rotatable?: boolean
   /** Lock aspect ratio while resizing. */
-  aspectRatio?: number | 'auto';
-  minSize?: { width: number; height: number };
-  maxSize?: { width: number; height: number };
+  aspectRatio?: number | 'auto'
+  minSize?: { width: number; height: number }
+  maxSize?: { width: number; height: number }
 }
 
 /** Data field declaration (drives the field-mapping setter). */
 export interface WidgetDataField {
   /** Internal name used in mapping object keys (e.g. 'x', 'y', 'series'). */
-  name: string;
+  name: string
   /** Display label. */
-  label: string;
+  label: string
   /** Allowed source field types. */
-  type: 'string' | 'number' | 'date' | 'boolean';
-  required?: boolean;
+  type: 'string' | 'number' | 'date' | 'boolean'
+  required?: boolean
 }
 
 export interface WidgetDataSchema {
-  fields: WidgetDataField[];
+  fields: WidgetDataField[]
   /** Whether the widget supports an arbitrary number of series. */
-  multiSeries?: boolean;
+  multiSeries?: boolean
 }
 
 /**
@@ -76,14 +71,14 @@ export interface WidgetDataSchema {
  * no store reach-through. The container resolves and provides everything.
  */
 export interface WidgetRenderProps<TProps extends object = Record<string, unknown>> {
-  node: WidgetNode;
-  props: TProps;
+  node: WidgetNode
+  props: TProps
   /** Already mapped + transformed. May be undefined when no binding / loading. */
-  data: unknown;
-  layout: Layout;
-  theme: Theme | null;
+  data: unknown
+  layout: Layout
+  theme: Theme | null
   /** True in the designer; false in the runtime renderer. */
-  designMode: boolean;
+  designMode: boolean
 }
 
 /**
@@ -93,43 +88,43 @@ export interface WidgetRenderProps<TProps extends object = Record<string, unknow
  */
 export interface WidgetMeta<TProps extends object = Record<string, unknown>> {
   /** Unique registry key (e.g. 'bar-chart'). */
-  type: string;
-  version: string;
-  category: string; // 'chart' | 'media' | 'text' | 'decoration' | ...
-  title: string;
-  description?: string;
+  type: string
+  version: string
+  category: string // 'chart' | 'media' | 'text' | 'decoration' | ...
+  title: string
+  description?: string
 
   /** Material-library icon (left panel). */
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string }>
   /** Drag preview / library thumbnail. */
-  thumbnail?: string;
+  thumbnail?: string
   /** Search keywords. */
-  tags?: string[];
+  tags?: string[]
 
   // Defaults applied when an instance is created via editor.addWidget().
-  defaultProps: TProps;
-  defaultLayout: { width: number; height: number };
+  defaultProps: TProps
+  defaultLayout: { width: number; height: number }
   /** Optional: produce a default name e.g. ('柱状图 1'). */
-  defaultName?: (existingCount: number) => string;
+  defaultName?: (existingCount: number) => string
 
   /** zod schema for runtime validation of props. Optional. */
-  propsSchema?: z.ZodType<TProps>;
+  propsSchema?: z.ZodType<TProps>
 
   /** Property-panel field config, in display order. */
-  propsConfig: PropConfig[];
+  propsConfig: PropConfig[]
 
   /** Optional data input schema for this widget. */
-  dataSchema?: WidgetDataSchema;
+  dataSchema?: WidgetDataSchema
 
   /** Render component (designer + runtime). */
-  Component: React.ComponentType<WidgetRenderProps<TProps>>;
+  Component: React.ComponentType<WidgetRenderProps<TProps>>
   /** Compact preview for the materials library (no data needed). */
-  Preview?: React.ComponentType;
+  Preview?: React.ComponentType
 
   // Lifecycle hooks
-  onCreate?: (node: WidgetNode) => Partial<WidgetNode>;
-  onResize?: (node: WidgetNode, info: ResizeInfo) => Partial<Layout>;
-  onDataChange?: (node: WidgetNode, data: unknown) => void;
+  onCreate?: (node: WidgetNode) => Partial<WidgetNode>
+  onResize?: (node: WidgetNode, info: ResizeInfo) => Partial<Layout>
+  onDataChange?: (node: WidgetNode, data: unknown) => void
 
-  capabilities?: WidgetCapabilities;
+  capabilities?: WidgetCapabilities
 }

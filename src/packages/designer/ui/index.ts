@@ -1,5 +1,5 @@
-export { PropertyPanel } from './property-panel';
-export { MaterialsPanel } from './materials-panel';
-export { Toolbar } from './toolbar';
-export { EditorRoot } from './editor-root';
-export { ThemeStyleProvider } from './theme-style-provider';
+export { PropertyPanel } from './property-panel'
+export { MaterialsPanel } from './materials-panel'
+export { Toolbar } from './toolbar'
+export { EditorRoot } from './editor-root'
+export { ThemeStyleProvider } from './theme-style-provider'

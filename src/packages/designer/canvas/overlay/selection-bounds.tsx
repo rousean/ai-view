@@ -1,23 +1,23 @@
-import * as React from 'react';
-import { useShallow } from 'zustand/react/shallow';
-import { useDocumentStore } from '../../stores/document-store';
-import { useEditorStore } from '../../stores/editor-store';
-import { selectWidget, selectWidgets } from '../../stores/selectors';
-import { unionBBox } from '../transformer/geometry';
-import { ResizeHandles } from './resize-handles';
-import { RotationHandle } from './rotation-handle';
+import * as React from 'react'
+import { useShallow } from 'zustand/react/shallow'
+import { useDocumentStore } from '../../stores/document-store'
+import { useEditorStore } from '../../stores/editor-store'
+import { selectWidget, selectWidgets } from '../../stores/selectors'
+import { unionBBox } from '../transformer/geometry'
+import { ResizeHandles } from './resize-handles'
+import { RotationHandle } from './rotation-handle'
 
 interface SelectionBBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  x: number
+  y: number
+  width: number
+  height: number
   /** Chrome rotation (only set when count === 1, otherwise 0). */
-  rotate: number;
+  rotate: number
   /** Single-element flip; multi-selection chrome is never flipped. */
-  flipX: boolean;
-  flipY: boolean;
-  count: number;
+  flipX: boolean
+  flipY: boolean
+  count: number
 }
 
 /**
@@ -32,23 +32,23 @@ interface SelectionBBox {
  * using rotatedAABB, not the raw layout. unionBBox already handles this.
  */
 function useSelectionBBox(): SelectionBBox | null {
-  const ids = useEditorStore(useShallow((s) => s.selectedIds));
+  const ids = useEditorStore(useShallow((s) => s.selectedIds))
   const widgets = useDocumentStore(
     useShallow((s) => {
-      if (ids.length === 0) return [];
+      if (ids.length === 0) return []
       if (ids.length === 1) {
-        const w = selectWidget(ids[0])(s);
-        return w ? [w] : [];
+        const w = selectWidget(ids[0])(s)
+        return w ? [w] : []
       }
-      const all = selectWidgets(s);
-      const set = new Set(ids);
-      return all.filter((w) => set.has(w.id));
+      const all = selectWidgets(s)
+      const set = new Set(ids)
+      return all.filter((w) => set.has(w.id))
     }),
-  );
-  if (widgets.length === 0) return null;
+  )
+  if (widgets.length === 0) return null
 
   if (widgets.length === 1) {
-    const w = widgets[0];
+    const w = widgets[0]
     return {
       x: w.layout.x,
       y: w.layout.y,
@@ -58,12 +58,12 @@ function useSelectionBBox(): SelectionBBox | null {
       flipX: w.layout.flipX,
       flipY: w.layout.flipY,
       count: 1,
-    };
+    }
   }
 
-  const bb = unionBBox(widgets);
-  if (!bb) return null;
-  return { ...bb, rotate: 0, flipX: false, flipY: false, count: widgets.length };
+  const bb = unionBBox(widgets)
+  if (!bb) return null
+  return { ...bb, rotate: 0, flipX: false, flipY: false, count: widgets.length }
 }
 
 /**
@@ -76,13 +76,13 @@ function useSelectionBBox(): SelectionBBox | null {
  * stroke widths are counter-scaled to stay 1px on screen.
  */
 export const SelectionBounds: React.FC = () => {
-  const bbox = useSelectionBBox();
-  const scale = useEditorStore((s) => s.camera.scale);
-  const interaction = useEditorStore((s) => s.interaction.kind);
-  if (!bbox) return null;
+  const bbox = useSelectionBBox()
+  const scale = useEditorStore((s) => s.camera.scale)
+  const interaction = useEditorStore((s) => s.interaction.kind)
+  if (!bbox) return null
 
-  const stroke = Math.max(1 / scale, 0.5);
-  const isMarquee = interaction === 'marquee';
+  const stroke = Math.max(1 / scale, 0.5)
+  const isMarquee = interaction === 'marquee'
 
   // Single-element chrome mirrors the widget's full transform — rotate +
   // flip — so it visually overlays the rotated/flipped widget exactly.
@@ -92,7 +92,7 @@ export const SelectionBounds: React.FC = () => {
   const chromeTransform =
     bbox.count === 1 && (bbox.rotate || bbox.flipX || bbox.flipY)
       ? `rotate(${bbox.rotate}deg) scale(${bbox.flipX ? -1 : 1}, ${bbox.flipY ? -1 : 1})`
-      : undefined;
+      : undefined
 
   return (
     <div
@@ -118,9 +118,7 @@ export const SelectionBounds: React.FC = () => {
       />
       {!isMarquee && (
         <>
-          <RotationHandle
-            bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }}
-          />
+          <RotationHandle bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }} />
           <ResizeHandles
             bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }}
             rotation={bbox.count === 1 ? bbox.rotate : 0}
@@ -128,30 +126,26 @@ export const SelectionBounds: React.FC = () => {
         </>
       )}
     </div>
-  );
-};
+  )
+}
 
 /** Single-selection hover indicator. Renders only when not selected. */
 export const HoverIndicator: React.FC = () => {
-  const hoverId = useEditorStore((s) => s.hoverId);
-  const isSelected = useEditorStore((s) =>
-    hoverId ? s.selectedIds.includes(hoverId) : false,
-  );
-  const widget = useDocumentStore((s) =>
-    hoverId ? selectWidget(hoverId)(s) ?? null : null,
-  );
-  const scale = useEditorStore((s) => s.camera.scale);
-  if (!widget || isSelected) return null;
-  const stroke = Math.max(1 / scale, 0.5);
+  const hoverId = useEditorStore((s) => s.hoverId)
+  const isSelected = useEditorStore((s) => (hoverId ? s.selectedIds.includes(hoverId) : false))
+  const widget = useDocumentStore((s) => (hoverId ? (selectWidget(hoverId)(s) ?? null) : null))
+  const scale = useEditorStore((s) => s.camera.scale)
+  if (!widget || isSelected) return null
+  const stroke = Math.max(1 / scale, 0.5)
 
   // Match the widget's *full* transform so the dashed outline overlays the
   // rotated/flipped widget at the same orientation. Just rotate alone is
   // wrong when flipX/Y is set: rotate(R) scale(-1,1) ≠ rotate(R).
-  const { rotate, flipX, flipY } = widget.layout;
+  const { rotate, flipX, flipY } = widget.layout
   const transform =
     rotate || flipX || flipY
       ? `rotate(${rotate}deg) scale(${flipX ? -1 : 1}, ${flipY ? -1 : 1})`
-      : undefined;
+      : undefined
 
   return (
     <div
@@ -168,5 +162,5 @@ export const HoverIndicator: React.FC = () => {
         pointerEvents: 'none',
       }}
     />
-  );
-};
+  )
+}

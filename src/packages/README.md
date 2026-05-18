@@ -5,12 +5,12 @@ ai-view 大屏可视化平台的分层架构。采用"假分层 monorepo"——�
 
 ## 包列表
 
-| 包         | alias          | 职责                                                  |
-| ---------- | -------------- | ----------------------------------------------------- |
-| `schema`   | `@schema/*`    | 类型定义、zod 校验、ID 生成、持久化适配器接口         |
-| `widgets`  | `@widgets/*`   | 所有 widget meta + 组件（图表/媒体/文本/装饰）        |
-| `renderer` | `@renderer/*`  | 运行期渲染（不含设计器）                              |
-| `designer` | `@designer/*`  | 设计器（编辑器、stores、tools、snap、UI 等）          |
+| 包         | alias         | 职责                                           |
+| ---------- | ------------- | ---------------------------------------------- |
+| `schema`   | `@schema/*`   | 类型定义、zod 校验、ID 生成、持久化适配器接口  |
+| `widgets`  | `@widgets/*`  | 所有 widget meta + 组件（图表/媒体/文本/装饰） |
+| `renderer` | `@renderer/*` | 运行期渲染（不含设计器）                       |
+| `designer` | `@designer/*` | 设计器（编辑器、stores、tools、snap、UI 等）   |
 
 ## 依赖方向（强制单向，禁止反向 import）
 
@@ -21,8 +21,8 @@ schema  ←  widgets  ←  renderer  ←  designer
 
 具体规则：
 
-- ❌ `schema`   不得 import 任何其他包
-- ❌ `widgets`  不得 import `renderer` / `designer`
+- ❌ `schema` 不得 import 任何其他包
+- ❌ `widgets` 不得 import `renderer` / `designer`
 - ❌ `renderer` 不得 import `designer`
 - ✅ `designer` 可 import 所有
 

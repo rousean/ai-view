@@ -3,8 +3,8 @@
  * line. Used by SnapManager as a snap target with high priority.
  */
 export interface Guide {
-  id: string;
-  orientation: 'horizontal' | 'vertical';
+  id: string
+  orientation: 'horizontal' | 'vertical'
   /** canvas-space pixel coordinate. */
-  position: number;
+  position: number
 }

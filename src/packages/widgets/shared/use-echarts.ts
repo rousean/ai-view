@@ -1,5 +1,5 @@
-import * as echarts from 'echarts';
-import * as React from 'react';
+import * as echarts from 'echarts'
+import * as React from 'react'
 
 /**
  * Hook that owns an echarts instance for the lifetime of a component.
@@ -18,32 +18,32 @@ export function useEcharts(
   size: { width: number; height: number },
   themeName?: string,
 ): React.RefObject<HTMLDivElement | null> {
-  const ref = React.useRef<HTMLDivElement | null>(null);
-  const instanceRef = React.useRef<echarts.ECharts | null>(null);
+  const ref = React.useRef<HTMLDivElement | null>(null)
+  const instanceRef = React.useRef<echarts.ECharts | null>(null)
 
   // Mount / dispose
   React.useEffect(() => {
-    if (!ref.current) return;
+    if (!ref.current) return
     instanceRef.current = echarts.init(ref.current, themeName, {
       renderer: 'canvas',
-    });
-    instanceRef.current.setOption(option, true);
+    })
+    instanceRef.current.setOption(option, true)
     return () => {
-      instanceRef.current?.dispose();
-      instanceRef.current = null;
-    };
+      instanceRef.current?.dispose()
+      instanceRef.current = null
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [themeName]);
+  }, [themeName])
 
   // Option update
   React.useEffect(() => {
-    instanceRef.current?.setOption(option, true);
-  }, [option]);
+    instanceRef.current?.setOption(option, true)
+  }, [option])
 
   // Resize
   React.useEffect(() => {
-    instanceRef.current?.resize({ width: size.width, height: size.height });
-  }, [size.width, size.height]);
+    instanceRef.current?.resize({ width: size.width, height: size.height })
+  }, [size.width, size.height])
 
-  return ref;
+  return ref
 }

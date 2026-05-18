@@ -11,9 +11,7 @@ export const fetchPost = createServerFn({ method: 'POST' })
   .inputValidator((d: string) => d)
   .handler(async ({ data }) => {
     console.info(`Fetching post with id ${data}...`)
-    const res = await fetch(
-      `https://jsonplaceholder.typicode.com/posts/${data}`,
-    )
+    const res = await fetch(`https://jsonplaceholder.typicode.com/posts/${data}`)
     if (!res.ok) {
       if (res.status === 404) {
         throw notFound()

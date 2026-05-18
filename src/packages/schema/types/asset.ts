@@ -4,23 +4,23 @@
  * IndexedDB, or a remote CDN — abstracted via PersistenceAdapter.
  */
 export interface Asset {
-  id: string;
-  name: string;
+  id: string
+  name: string
   /**
    * Built-in: 'image' | 'video' | 'svg' | 'font' | 'lottie'.
    * Open string to allow plugin-defined types.
    */
-  type: string;
+  type: string
 
   /** dataURL, blob URL, or remote URL. */
-  url: string;
+  url: string
 
-  width?: number;
-  height?: number;
+  width?: number
+  height?: number
   /** Bytes. */
-  size?: number;
+  size?: number
   /** ms (audio/video). */
-  duration?: number;
+  duration?: number
 
-  extensions: Record<string, unknown>;
+  extensions: Record<string, unknown>
 }

@@ -1,9 +1,9 @@
-import { z } from 'zod';
-import type { WidgetMeta } from '../../widget-meta';
-import { BarChartComponent } from './component';
-import { DEFAULT_BAR_PROPS } from './default-props';
-import { BAR_CHART_PROPS_CONFIG } from './props-config';
-import type { BarChartProps } from './types';
+import { z } from 'zod'
+import type { WidgetMeta } from '../../widget-meta'
+import { BarChartComponent } from './component'
+import { DEFAULT_BAR_PROPS } from './default-props'
+import { BAR_CHART_PROPS_CONFIG } from './props-config'
+import type { BarChartProps } from './types'
 
 const BarChartPropsSchema = z.object({
   title: z.string(),
@@ -13,7 +13,7 @@ const BarChartPropsSchema = z.object({
   showLabels: z.boolean(),
   showLegend: z.boolean(),
   barRadius: z.number(),
-});
+})
 
 export const barChartMeta: WidgetMeta<BarChartProps> = {
   type: 'bar-chart',
@@ -44,7 +44,7 @@ export const barChartMeta: WidgetMeta<BarChartProps> = {
     rotatable: true,
     minSize: { width: 200, height: 140 },
   },
-};
+}
 
-export default barChartMeta;
-export type { BarChartProps };
+export default barChartMeta
+export type { BarChartProps }

@@ -13,7 +13,8 @@ function LoginPage() {
           className="flex flex-col gap-4"
           onSubmit={(e) => {
             e.preventDefault()
-          }}>
+          }}
+        >
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-neutral-700">邮箱或用户名</span>
             <input
@@ -34,7 +35,8 @@ function LoginPage() {
           </label>
           <button
             type="submit"
-            className="mt-2 rounded-md bg-neutral-900 text-white px-3 py-2.5 text-sm font-medium hover:bg-neutral-800">
+            className="mt-2 rounded-md bg-neutral-900 text-white px-3 py-2.5 text-sm font-medium hover:bg-neutral-800"
+          >
             登录
           </button>
         </form>

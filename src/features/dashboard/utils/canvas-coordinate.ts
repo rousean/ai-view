@@ -2,7 +2,7 @@
 export function screenToCanvas(
   screenPoint: { x: number; y: number },
   containerRect: DOMRect,
-  camera: { x: number; y: number; scale: number }
+  camera: { x: number; y: number; scale: number },
 ) {
   const { x: screenX, y: screenY } = screenPoint
   const { left, top } = containerRect
@@ -18,14 +18,14 @@ export function screenToCanvas(
 export function canvasToScreen(
   canvasPoint: { x: number; y: number },
   containerRect: DOMRect,
-  camera: { x: number; y: number; scale: number }
+  camera: { x: number; y: number; scale: number },
 ) {
   const { x: canvasX, y: canvasY } = canvasPoint
   const { left, top } = containerRect
   const { x: camX, y: camY, scale } = camera
 
   return {
-    x: (canvasX * scale + camX) + left,
-    y: (canvasY * scale + camY) + top,
+    x: canvasX * scale + camX + left,
+    y: canvasY * scale + camY + top,
   }
 }

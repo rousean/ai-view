@@ -1,8 +1,8 @@
-import * as React from 'react';
-import { useDocumentStore } from '../../stores/document-store';
-import { useEditorStore } from '../../stores/editor-store';
-import { selectCurrentPage } from '../../stores/selectors';
-import { useSnapGuidesStore } from '../../snap/snap-store';
+import * as React from 'react'
+import { useDocumentStore } from '../../stores/document-store'
+import { useEditorStore } from '../../stores/editor-store'
+import { selectCurrentPage } from '../../stores/selectors'
+import { useSnapGuidesStore } from '../../snap/snap-store'
 
 /**
  * Magenta dashed lines drawn through every active snap target during a
@@ -14,17 +14,17 @@ import { useSnapGuidesStore } from '../../snap/snap-store';
  * later if needed.
  */
 export const AlignmentGuidesOverlay: React.FC = () => {
-  const guides = useSnapGuidesStore((s) => s.guides);
-  const page = useDocumentStore((s) => selectCurrentPage(s));
-  const scale = useEditorStore((s) => s.camera.scale);
-  const showAlignmentGuides = useEditorStore((s) => s.view.showAlignmentGuides);
+  const guides = useSnapGuidesStore((s) => s.guides)
+  const page = useDocumentStore((s) => selectCurrentPage(s))
+  const scale = useEditorStore((s) => s.camera.scale)
+  const showAlignmentGuides = useEditorStore((s) => s.view.showAlignmentGuides)
 
-  if (!showAlignmentGuides || guides.length === 0 || !page) return null;
+  if (!showAlignmentGuides || guides.length === 0 || !page) return null
 
-  const stroke = Math.max(1 / scale, 0.5);
-  const dash = `${4 / scale} ${4 / scale}`;
+  const stroke = Math.max(1 / scale, 0.5)
+  const dash = `${4 / scale} ${4 / scale}`
   // Themed via --alignment-color (default magenta, distinct from selection blue).
-  const color = 'var(--alignment-color, #ec4899)';
+  const color = 'var(--alignment-color, #ec4899)'
 
   return (
     <svg
@@ -64,5 +64,5 @@ export const AlignmentGuidesOverlay: React.FC = () => {
         ),
       )}
     </svg>
-  );
-};
+  )
+}

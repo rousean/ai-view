@@ -1,13 +1,13 @@
-import * as React from 'react';
-import { Input } from '~/components/ui/input';
-import { Textarea } from '~/components/ui/textarea';
-import type { SetterProps } from '../setter.interface';
+import * as React from 'react'
+import { Input } from '~/components/ui/input'
+import { Textarea } from '~/components/ui/textarea'
+import type { SetterProps } from '../setter.interface'
 
 interface StringSetterProps {
-  placeholder?: string;
-  multiline?: boolean;
-  maxLength?: number;
-  rows?: number;
+  placeholder?: string
+  multiline?: boolean
+  maxLength?: number
+  rows?: number
 }
 
 export const StringSetter: React.FC<SetterProps<string>> = ({
@@ -16,8 +16,8 @@ export const StringSetter: React.FC<SetterProps<string>> = ({
   setterProps,
   disabled,
 }) => {
-  const opts = (setterProps ?? {}) as StringSetterProps;
-  const v = value ?? '';
+  const opts = (setterProps ?? {}) as StringSetterProps
+  const v = value ?? ''
 
   if (opts.multiline) {
     return (
@@ -29,7 +29,7 @@ export const StringSetter: React.FC<SetterProps<string>> = ({
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
       />
-    );
+    )
   }
   return (
     <Input
@@ -40,5 +40,5 @@ export const StringSetter: React.FC<SetterProps<string>> = ({
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
     />
-  );
-};
+  )
+}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { select, pie, interpolateRainbow, arc, hsl, PieArcDatum } from 'd3'
+import { select, pie, interpolateRainbow, arc, hsl, type PieArcDatum } from 'd3'
 import { cn } from '~/lib/utils'
 import type { Props, Data } from '../../../type'
 
@@ -8,7 +8,15 @@ type PieDatum = {
   value: number
 }
 
-export function Donut({ props, data, className }: { props: Props, data: Data, className?: string }) {
+export function Donut({
+  props,
+  data,
+  className,
+}: {
+  props: Props
+  data: Data
+  className?: string
+}) {
   const svgRef = useRef<SVGSVGElement | null>(null)
 
   const { width, height, x, y, top, right, bottom, left } = props.layout
@@ -41,9 +49,7 @@ export function Donut({ props, data, className }: { props: Props, data: Data, cl
     const centerX = left + innerWidth / 2
     const centerY = top + innerHeight / 2
 
-    const g = svg
-      .append('g')
-      .attr('transform', `translate(${centerX}, ${centerY})`)
+    const g = svg.append('g').attr('transform', `translate(${centerX}, ${centerY})`)
 
     const resolvedOuterRadius = Math.min(innerWidth, innerHeight) / 2
     const radiusRatio = Math.max(0, Math.min(radius / 100, 1))
@@ -54,7 +60,9 @@ export function Donut({ props, data, className }: { props: Props, data: Data, cl
       .outerRadius(resolvedOuterRadius)
       .cornerRadius(cornerRadius)
 
-    const pieData = pie<PieDatum>().padAngle(padAngle).value((d) => d.value)(parsedData)
+    const pieData = pie<PieDatum>()
+      .padAngle(padAngle)
+      .value((d) => d.value)(parsedData)
 
     const pieWithColor = pieData.map((item, index) => ({
       ...item,
@@ -68,9 +76,7 @@ export function Donut({ props, data, className }: { props: Props, data: Data, cl
       .append('g')
       .on('mouseover', function (_, d) {
         select(this).transition().duration(250).attr('transform', calcTranslate(d, 6))
-        select(this)
-          .select('path')
-          .attr('stroke', hsl(d.color).darker(1).toString())
+        select(this).select('path').attr('stroke', hsl(d.color).darker(1).toString())
       })
       .on('mouseout', function (_, d) {
         select(this).transition().duration(250).attr('transform', 'translate(0, 0)')
@@ -92,9 +98,7 @@ export function Donut({ props, data, className }: { props: Props, data: Data, cl
     //   .style('display', (d) => (d.endAngle - d.startAngle > Math.PI / 8 ? 'inline' : 'none'))
   }, [width, height, top, right, bottom, left, parsedData, radius, cornerRadius, padAngle])
 
-  return (
-    <svg ref={svgRef} className={className} width={width} height={height}></svg>
-  )
+  return <svg ref={svgRef} className={className} width={width} height={height}></svg>
 }
 
 function calcTranslate(d: PieArcDatum<PieDatum>, move: number) {

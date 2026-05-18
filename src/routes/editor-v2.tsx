@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { EditorRoot } from '@designer/ui/editor-root';
+import { createFileRoute } from '@tanstack/react-router'
+import { EditorRoot } from '@designer/ui/editor-root'
 
 /**
  * New editor (v2) — backed by the @designer architecture.
@@ -10,12 +10,12 @@ import { EditorRoot } from '@designer/ui/editor-root';
  */
 export const Route = createFileRoute('/editor-v2')({
   component: EditorV2Page,
-});
+})
 
 function EditorV2Page() {
   return (
     <div className="h-screen w-screen">
       <EditorRoot />
     </div>
-  );
+  )
 }

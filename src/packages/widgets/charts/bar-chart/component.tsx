@@ -1,9 +1,9 @@
-import * as React from 'react';
-import type { EChartsOption } from 'echarts';
-import type { WidgetRenderProps } from '../../widget-meta';
-import { useEcharts } from '../../shared/use-echarts';
-import type { BarChartProps } from './types';
-import { DEFAULT_BAR_PROPS } from './default-props';
+import * as React from 'react'
+import type { EChartsOption } from 'echarts'
+import type { WidgetRenderProps } from '../../widget-meta'
+import { useEcharts } from '../../shared/use-echarts'
+import type { BarChartProps } from './types'
+import { DEFAULT_BAR_PROPS } from './default-props'
 
 /** Demo / fallback dataset used when no databinding is configured. */
 const FALLBACK_DATA = [
@@ -13,27 +13,27 @@ const FALLBACK_DATA = [
   { category: '四月', value: 80 },
   { category: '五月', value: 70 },
   { category: '六月', value: 110 },
-];
+]
 
 interface MappedRow {
-  x: string | number;
-  y: number;
+  x: string | number
+  y: number
 }
 
 function normalizeData(input: unknown): MappedRow[] {
-  if (!Array.isArray(input) || input.length === 0) return [];
+  if (!Array.isArray(input) || input.length === 0) return []
   return input
     .map((row) => {
       if (row && typeof row === 'object') {
-        const r = row as Record<string, unknown>;
+        const r = row as Record<string, unknown>
         return {
           x: (r.x ?? r.category ?? r.name ?? '') as string | number,
           y: Number(r.y ?? r.value ?? 0),
-        };
+        }
       }
-      return null;
+      return null
     })
-    .filter((r): r is MappedRow => r !== null && Number.isFinite(r.y));
+    .filter((r): r is MappedRow => r !== null && Number.isFinite(r.y))
 }
 
 export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
@@ -42,19 +42,21 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
   layout,
   theme,
 }) => {
-  const props = { ...DEFAULT_BAR_PROPS, ...rawProps };
+  const props = { ...DEFAULT_BAR_PROPS, ...rawProps }
 
   const rows = React.useMemo(() => {
-    const normalized = normalizeData(data);
-    return normalized.length > 0 ? normalized : FALLBACK_DATA.map((d) => ({ x: d.category, y: d.value }));
-  }, [data]);
+    const normalized = normalizeData(data)
+    return normalized.length > 0
+      ? normalized
+      : FALLBACK_DATA.map((d) => ({ x: d.category, y: d.value }))
+  }, [data])
 
-  const color = props.barColor || theme?.palette?.[0] || '#5b8def';
+  const color = props.barColor || theme?.palette?.[0] || '#5b8def'
   // ECharts option needs concrete colour strings, so resolve theme tokens
   // here rather than relying on CSS var() (which echarts can't read).
-  const fgColor = theme?.tokens['--fg'] ?? '#1f2937';
-  const axisColor = theme?.tokens['--chart-axis-color'] ?? 'rgba(0,0,0,0.45)';
-  const splitColor = theme?.tokens['--chart-split-color'] ?? 'rgba(0,0,0,0.06)';
+  const fgColor = theme?.tokens['--fg'] ?? '#1f2937'
+  const axisColor = theme?.tokens['--chart-axis-color'] ?? 'rgba(0,0,0,0.45)'
+  const splitColor = theme?.tokens['--chart-split-color'] ?? 'rgba(0,0,0,0.06)'
 
   const option = React.useMemo<EChartsOption>(() => {
     return {
@@ -105,7 +107,7 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
           animationDuration: 300,
         },
       ],
-    };
+    }
   }, [
     rows,
     color,
@@ -118,9 +120,9 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
     props.showXAxis,
     props.showYAxis,
     props.title,
-  ]);
+  ])
 
-  const chartRef = useEcharts(option, { width: layout.width, height: layout.height });
+  const chartRef = useEcharts(option, { width: layout.width, height: layout.height })
 
   return (
     <div
@@ -134,5 +136,5 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
         background: 'transparent',
       }}
     />
-  );
-};
+  )
+}

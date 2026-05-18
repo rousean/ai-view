@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { ExtensionsSchema } from './common';
+import { z } from 'zod'
+import { ExtensionsSchema } from './common'
 
 export const ThemeSchema = z.object({
   id: z.string(),
@@ -8,4 +8,4 @@ export const ThemeSchema = z.object({
   palette: z.array(z.string()),
   echartsTheme: z.record(z.unknown()).optional(),
   extensions: ExtensionsSchema,
-});
+})

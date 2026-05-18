@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { ExtensionsSchema, PointSchema } from './common';
+import { z } from 'zod'
+import { ExtensionsSchema, PointSchema } from './common'
 
 export const LayoutSchema = z.object({
   x: z.number(),
@@ -10,19 +10,19 @@ export const LayoutSchema = z.object({
   flipX: z.boolean(),
   flipY: z.boolean(),
   opacity: z.number().min(0).max(1),
-});
+})
 
 export const WidgetFlagsSchema = z.object({
   locked: z.boolean(),
   hidden: z.boolean(),
-});
+})
 
 export const TransformStepSchema = z.object({
   id: z.string(),
   type: z.string(),
   enabled: z.boolean(),
   params: z.record(z.unknown()),
-});
+})
 
 export const DataBindingSchema = z.object({
   sourceId: z.string(),
@@ -34,7 +34,7 @@ export const DataBindingSchema = z.object({
       data: z.array(z.unknown()),
     })
     .optional(),
-});
+})
 
 export const EventBindingSchema = z.object({
   id: z.string(),
@@ -44,7 +44,7 @@ export const EventBindingSchema = z.object({
     params: z.record(z.unknown()),
   }),
   enabled: z.boolean(),
-});
+})
 
 export const AnimationConfigSchema = z.object({
   enter: z
@@ -62,7 +62,7 @@ export const AnimationConfigSchema = z.object({
     })
     .optional(),
   keyframes: z.unknown().optional(),
-});
+})
 
 export const WidgetNodeSchema = z.object({
   id: z.string(),
@@ -78,7 +78,7 @@ export const WidgetNodeSchema = z.object({
   groupId: z.string().optional(),
   parentId: z.string().optional(),
   extensions: ExtensionsSchema,
-});
+})
 
 export const ResizeHandleSchema = z.enum([
   'top-left',
@@ -89,7 +89,7 @@ export const ResizeHandleSchema = z.enum([
   'right',
   'bottom',
   'left',
-]);
+])
 
 export const ResizeInfoSchema = z.object({
   handle: ResizeHandleSchema,
@@ -98,4 +98,4 @@ export const ResizeInfoSchema = z.object({
   pointerCurrent: PointSchema,
   shift: z.boolean(),
   alt: z.boolean(),
-});
+})

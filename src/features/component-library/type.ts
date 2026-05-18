@@ -59,7 +59,6 @@ type TextStyle = {
   writingMode?: 'horizontal-tb' | 'vertical-rl' | 'vertical-lr' // 书写模式
 }
 
-
 type ShadowStyle = {
   shadowColor?: string // 阴影颜色
   shadowBlur?: number // 阴影模糊度

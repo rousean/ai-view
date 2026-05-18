@@ -4,9 +4,9 @@ import {
   createPageId,
   createProjectId,
   createThemeId,
-} from '../id';
-import type { Page, Project, Theme } from '../types';
-import { SCHEMA_VERSION } from '../version';
+} from '../id'
+import type { Page, Project, Theme } from '../types'
+import { SCHEMA_VERSION } from '../version'
 
 /** Create a sensible default theme. Light by default. */
 export function createDefaultTheme(): Theme {
@@ -38,7 +38,7 @@ export function createDefaultTheme(): Theme {
     },
     palette: ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#f97316', '#ec4899'],
     extensions: {},
-  };
+  }
 }
 
 /** Create a default 1920×1080 landscape page with a light background. */
@@ -63,21 +63,23 @@ export function createDefaultPage(name = '页面 1'): Page {
     guides: [],
     widgets: [],
     extensions: {},
-  };
+  }
 }
 
 /**
  * Create a brand new empty project. Used by PersistenceAdapter.create().
  * Caller may override `id`, `name`, `description`.
  */
-export function createEmptyProject(opts: {
-  name?: string;
-  description?: string;
-  id?: string;
-} = {}): Project {
-  const now = new Date().toISOString();
-  const theme = createDefaultTheme();
-  const page = createDefaultPage();
+export function createEmptyProject(
+  opts: {
+    name?: string
+    description?: string
+    id?: string
+  } = {},
+): Project {
+  const now = new Date().toISOString()
+  const theme = createDefaultTheme()
+  const page = createDefaultPage()
   return {
     version: SCHEMA_VERSION,
     id: opts.id ?? createProjectId(),
@@ -92,7 +94,7 @@ export function createEmptyProject(opts: {
     currentThemeId: theme.id,
     assets: [],
     extensions: {},
-  };
+  }
 }
 
 /** Useful helper for tests/setup: stable mock data source. */
@@ -116,9 +118,9 @@ export function createSampleStaticDataSource() {
       { category: '六月', value: 110 },
     ],
     extensions: {},
-  };
+  }
 }
 
 /** Convenience: blank asset id for "no image". */
-export const NULL_ASSET_ID = '';
-export { createAssetId };
+export const NULL_ASSET_ID = ''
+export { createAssetId }

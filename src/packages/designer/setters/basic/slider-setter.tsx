@@ -1,15 +1,15 @@
-import * as React from 'react';
-import { Input } from '~/components/ui/input';
-import { Slider } from '~/components/ui/slider';
-import type { SetterProps } from '../setter.interface';
+import * as React from 'react'
+import { Input } from '~/components/ui/input'
+import { Slider } from '~/components/ui/slider'
+import type { SetterProps } from '../setter.interface'
 
 interface SliderSetterProps {
-  min?: number;
-  max?: number;
-  step?: number;
+  min?: number
+  max?: number
+  step?: number
   /** Show numeric input alongside the slider. Defaults to true. */
-  showInput?: boolean;
-  unit?: string;
+  showInput?: boolean
+  unit?: string
 }
 
 export const SliderSetter: React.FC<SetterProps<number>> = ({
@@ -18,11 +18,11 @@ export const SliderSetter: React.FC<SetterProps<number>> = ({
   setterProps,
   disabled,
 }) => {
-  const opts = (setterProps ?? {}) as SliderSetterProps;
-  const min = opts.min ?? 0;
-  const max = opts.max ?? 100;
-  const step = opts.step ?? 1;
-  const v = typeof value === 'number' ? value : min;
+  const opts = (setterProps ?? {}) as SliderSetterProps
+  const min = opts.min ?? 0
+  const max = opts.max ?? 100
+  const step = opts.step ?? 1
+  const v = typeof value === 'number' ? value : min
 
   return (
     <div className="flex items-center gap-3">
@@ -34,8 +34,8 @@ export const SliderSetter: React.FC<SetterProps<number>> = ({
         value={[v]}
         disabled={disabled}
         onValueChange={(next) => {
-          const n = next[0];
-          if (Number.isFinite(n)) onChange(n);
+          const n = next[0]
+          if (Number.isFinite(n)) onChange(n)
         }}
       />
       {opts.showInput !== false && (
@@ -48,16 +48,12 @@ export const SliderSetter: React.FC<SetterProps<number>> = ({
           step={step}
           disabled={disabled}
           onChange={(e) => {
-            const n = Number(e.target.value);
-            if (Number.isFinite(n)) onChange(n);
+            const n = Number(e.target.value)
+            if (Number.isFinite(n)) onChange(n)
           }}
         />
       )}
-      {opts.unit && (
-        <span className="shrink-0 text-xs text-muted-foreground">
-          {opts.unit}
-        </span>
-      )}
+      {opts.unit && <span className="shrink-0 text-xs text-muted-foreground">{opts.unit}</span>}
     </div>
-  );
-};
+  )
+}

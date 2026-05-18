@@ -1,8 +1,8 @@
-import * as React from 'react';
-import { useShallow } from 'zustand/react/shallow';
-import { useDocumentStore } from '../stores/document-store';
-import { selectCurrentPage, selectWidgets } from '../stores/selectors';
-import { WidgetContainer } from './widget-container';
+import * as React from 'react'
+import { useShallow } from 'zustand/react/shallow'
+import { useDocumentStore } from '../stores/document-store'
+import { selectCurrentPage, selectWidgets } from '../stores/selectors'
+import { WidgetContainer } from './widget-container'
 
 /**
  * Iterates the current page's widget order and renders one
@@ -18,12 +18,10 @@ import { WidgetContainer } from './widget-container';
  * user something to grab to drag the widget back).
  */
 export const WidgetLayer: React.FC = () => {
-  const ids = useDocumentStore(
-    useShallow((s) => selectWidgets(s).map((w) => w.id)),
-  );
-  const canvas = useDocumentStore((s) => selectCurrentPage(s)?.canvas ?? null);
+  const ids = useDocumentStore(useShallow((s) => selectWidgets(s).map((w) => w.id)))
+  const canvas = useDocumentStore((s) => selectCurrentPage(s)?.canvas ?? null)
 
-  if (!canvas) return null;
+  if (!canvas) return null
 
   return (
     <div
@@ -40,5 +38,5 @@ export const WidgetLayer: React.FC = () => {
         <WidgetContainer key={id} id={id} />
       ))}
     </div>
-  );
-};
+  )
+}

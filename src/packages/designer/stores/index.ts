@@ -1,7 +1,7 @@
-export { useDocumentStore } from './document-store';
-export type { DocumentState } from './document-store';
+export { useDocumentStore } from './document-store'
+export type { DocumentState } from './document-store'
 
-export { useEditorStore } from './editor-store';
+export { useEditorStore } from './editor-store'
 export type {
   EditorState,
   EditorViewOptions,
@@ -9,9 +9,9 @@ export type {
   EditorPreferences,
   EditorClipboard,
   Interaction,
-} from './editor-store';
+} from './editor-store'
 
-export { useRuntimeStore } from './runtime-store';
-export type { RuntimeState, FetchStatus, WidgetError } from './runtime-store';
+export { useRuntimeStore } from './runtime-store'
+export type { RuntimeState, FetchStatus, WidgetError } from './runtime-store'
 
-export * from './selectors';
+export * from './selectors'

@@ -6,12 +6,12 @@ export const data: Data = {
     { 语言: 'Python', 使用人数: 200 },
     { 语言: 'Java', 使用人数: 300 },
     { 语言: 'C++', 使用人数: 400 },
-    { 语言: 'C#', 使用人数: 100 }
+    { 语言: 'C#', 使用人数: 100 },
   ],
   encoding: {
     name: '语言',
-    value: '使用人数'
-  }
+    value: '使用人数',
+  },
 }
 
 export const props: Props = {
@@ -25,13 +25,13 @@ export const props: Props = {
     top: 10,
     right: 10,
     bottom: 10,
-    left: 10
+    left: 10,
   },
   series: {
     radius: 80,
     cornerRadius: 10,
-    padAngle: 0.01
-  }
+    padAngle: 0.01,
+  },
 }
 
 export const schema: Schema[] = []

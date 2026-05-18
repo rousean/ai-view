@@ -1,4 +1,4 @@
-import type { BarChartProps } from './types';
+import type { BarChartProps } from './types'
 
 export const DEFAULT_BAR_PROPS: BarChartProps = {
   title: '柱状图',
@@ -8,4 +8,4 @@ export const DEFAULT_BAR_PROPS: BarChartProps = {
   showLabels: false,
   showLegend: false,
   barRadius: 4,
-};
+}

@@ -83,12 +83,16 @@ type CanvasStore = {
   setCamera: (camera: Partial<CanvasStore['camera']>, options?: { history?: boolean }) => void
 
   // 元素 action
-  addElement: (meta: Meta, layout?: Partial<Props['layout']>, runtime?: Partial<Element['runtime']>) => string
+  addElement: (
+    meta: Meta,
+    layout?: Partial<Props['layout']>,
+    runtime?: Partial<Element['runtime']>,
+  ) => string
   /** `history: false` 用于拖拽等高频更新，避免每帧 snapshot；交互开始前请先 `pushHistorySnapshot` */
   updateElement: (
     id: string,
     updates: Partial<Omit<Element, 'id' | 'runtime'>> & { runtime?: Partial<Element['runtime']> },
-    options?: { history?: boolean }
+    options?: { history?: boolean },
   ) => void
 
   /** 将当前文档记入撤销栈（拖拽/缩放开始前调用一次即可） */
@@ -101,7 +105,7 @@ type CanvasStore = {
   translateElementsFromLayouts: (
     snapshot: Record<string, Element['props']['layout']>,
     dx: number,
-    dy: number
+    dy: number,
   ) => void
 
   removeElement: (id: string) => void
@@ -216,14 +220,8 @@ export const useCanvasStore = create<CanvasStore>()(
           for (const [id, start] of Object.entries(snapshot)) {
             const el = state.elements[id]
             if (!el || el.runtime.locked) continue
-            const nextX = Math.min(
-              Math.max(0, Math.round(start.x + dx)),
-              cw - start.width
-            )
-            const nextY = Math.min(
-              Math.max(0, Math.round(start.y + dy)),
-              ch - start.height
-            )
+            const nextX = Math.min(Math.max(0, Math.round(start.x + dx)), cw - start.width)
+            const nextY = Math.min(Math.max(0, Math.round(start.y + dy)), ch - start.height)
             el.props.layout = { ...el.props.layout, x: nextX, y: nextY }
           }
         }),
@@ -239,17 +237,17 @@ export const useCanvasStore = create<CanvasStore>()(
 
       removeElements: (ids) =>
         set((state) => {
-          const existingIds = ids.filter(id => state.elements[id])
+          const existingIds = ids.filter((id) => state.elements[id])
           if (existingIds.length === 0) return
 
           pushHistory(state)
-          existingIds.forEach(id => delete state.elements[id])
+          existingIds.forEach((id) => delete state.elements[id])
           cleanupRuntimeIds(state, existingIds)
         }),
 
       setSelectedIds: (ids, options = { history: false }) =>
         set((state) => {
-          const nextIds = ids.filter(id => state.elements[id])
+          const nextIds = ids.filter((id) => state.elements[id])
           if (options.history) pushHistory(state)
           state.runtime.selectedIds = nextIds
         }),
@@ -281,11 +279,11 @@ export const useCanvasStore = create<CanvasStore>()(
 
       groupElements: (ids, groupId = crypto.randomUUID()) => {
         set((state) => {
-          const existingIds = ids.filter(id => state.elements[id])
+          const existingIds = ids.filter((id) => state.elements[id])
           if (existingIds.length === 0) return
 
           pushHistory(state)
-          existingIds.forEach(id => {
+          existingIds.forEach((id) => {
             state.elements[id].runtime.groupId = groupId
           })
           state.runtime.selectedIds = existingIds
@@ -295,11 +293,13 @@ export const useCanvasStore = create<CanvasStore>()(
 
       ungroupElements: (groupId) =>
         set((state) => {
-          const groupElements = Object.values(state.elements).filter(element => element.runtime.groupId === groupId)
+          const groupElements = Object.values(state.elements).filter(
+            (element) => element.runtime.groupId === groupId,
+          )
           if (groupElements.length === 0) return
 
           pushHistory(state)
-          groupElements.forEach(element => {
+          groupElements.forEach((element) => {
             element.runtime.groupId = undefined
           })
         }),
@@ -327,11 +327,11 @@ export const useCanvasStore = create<CanvasStore>()(
           state.history.past = []
           state.history.future = []
         }),
-    }))
-  )
+    })),
+  ),
 )
 
-function structuredClone (obj: any) {
+function structuredClone(obj: any) {
   return JSON.parse(JSON.stringify(obj))
 }
 
@@ -361,9 +361,12 @@ function pushHistory(state: CanvasStore) {
 }
 
 function cleanupRuntimeIds(state: CanvasStore, removedIds: string[]) {
-  state.runtime.selectedIds = state.runtime.selectedIds.filter(id => !removedIds.includes(id))
+  state.runtime.selectedIds = state.runtime.selectedIds.filter((id) => !removedIds.includes(id))
 
-  if (state.runtime.hoverId && removedIds.includes(state.runtime.hoverId)) state.runtime.hoverId = null
-  if (state.runtime.draggingId && removedIds.includes(state.runtime.draggingId)) state.runtime.draggingId = null
-  if (state.runtime.resizingId && removedIds.includes(state.runtime.resizingId)) state.runtime.resizingId = null
+  if (state.runtime.hoverId && removedIds.includes(state.runtime.hoverId))
+    state.runtime.hoverId = null
+  if (state.runtime.draggingId && removedIds.includes(state.runtime.draggingId))
+    state.runtime.draggingId = null
+  if (state.runtime.resizingId && removedIds.includes(state.runtime.resizingId))
+    state.runtime.resizingId = null
 }

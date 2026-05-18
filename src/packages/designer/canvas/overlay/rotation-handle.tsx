@@ -1,9 +1,9 @@
-import * as React from 'react';
-import { useEditorStore } from '../../stores/editor-store';
-import { useRotateGesture } from '../interaction/use-rotate-gesture';
+import * as React from 'react'
+import { useEditorStore } from '../../stores/editor-store'
+import { useRotateGesture } from '../interaction/use-rotate-gesture'
 
 interface Props {
-  bbox: { x: number; y: number; width: number; height: number };
+  bbox: { x: number; y: number; width: number; height: number }
 }
 
 /**
@@ -11,10 +11,10 @@ interface Props {
  * around the bbox center to rotate. Shift snaps to 15° increments.
  */
 export const RotationHandle: React.FC<Props> = ({ bbox }) => {
-  const start = useRotateGesture();
-  const scale = useEditorStore((s) => s.camera.scale);
-  const offset = 24 / scale;
-  const sz = 12 / scale;
+  const start = useRotateGesture()
+  const scale = useEditorStore((s) => s.camera.scale)
+  const offset = 24 / scale
+  const sz = 12 / scale
 
   return (
     <>
@@ -47,5 +47,5 @@ export const RotationHandle: React.FC<Props> = ({ bbox }) => {
         }}
       />
     </>
-  );
-};
+  )
+}

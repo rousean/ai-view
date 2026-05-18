@@ -1,4 +1,4 @@
-import type { Point } from './common';
+import type { Point } from './common'
 
 /**
  * Visual layout — position, size, transform. All in canvas-space pixels,
@@ -8,24 +8,24 @@ import type { Point } from './common';
  * not stored on Layout.
  */
 export interface Layout {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  x: number
+  y: number
+  width: number
+  height: number
   /** rotation in degrees */
-  rotate: number;
-  flipX: boolean;
-  flipY: boolean;
+  rotate: number
+  flipX: boolean
+  flipY: boolean
   /** 0..1 */
-  opacity: number;
+  opacity: number
 }
 
 /** Boolean flags affecting widget participation in editor / runtime. */
 export interface WidgetFlags {
   /** Cannot be selected/edited; click passes through. */
-  locked: boolean;
+  locked: boolean
   /** Not rendered. */
-  hidden: boolean;
+  hidden: boolean
 }
 
 /**
@@ -35,41 +35,41 @@ export interface WidgetFlags {
  */
 export interface DataBinding {
   /** Reference to Project.dataSources[].id */
-  sourceId: string;
+  sourceId: string
 
   /**
    * Field mapping: widget schema field name → data column name.
    * e.g. { x: 'date', y: 'sales', series: 'category' }
    */
-  mapping: Record<string, string>;
+  mapping: Record<string, string>
 
   /** Widget-level transforms. Run after the data-source's transforms. */
-  transform?: TransformStep[];
+  transform?: TransformStep[]
 
   /** Design-time mock override. When mock.enabled, widget gets mock.data. */
-  mock?: { enabled: boolean; data: unknown[] };
+  mock?: { enabled: boolean; data: unknown[] }
 }
 
 /** A single step in a data transformation chain. */
 export interface TransformStep {
-  id: string;
+  id: string
   /** Registry key, e.g. 'filter' | 'aggregate' | 'sort' | 'jsExpression' */
-  type: string;
-  enabled: boolean;
-  params: Record<string, unknown>;
+  type: string
+  enabled: boolean
+  params: Record<string, unknown>
 }
 
 /** Wire a runtime event (click, hover…) to an action (jump, modal…). */
 export interface EventBinding {
-  id: string;
+  id: string
   /** Registry key for trigger type. */
-  trigger: string;
+  trigger: string
   action: {
     /** Registry key for action type. */
-    type: string;
-    params: Record<string, unknown>;
-  };
-  enabled: boolean;
+    type: string
+    params: Record<string, unknown>
+  }
+  enabled: boolean
 }
 
 /** Animation configuration. MVP: enter only; keyframes is reserved. */
@@ -77,18 +77,18 @@ export interface AnimationConfig {
   /** Played when widget mounts (page load / page switch). */
   enter?: {
     /** Registry key, e.g. 'fade' | 'slideUp' | 'scale' */
-    type: string;
-    duration: number;
-    delay: number;
-    easing: string;
-  };
+    type: string
+    duration: number
+    delay: number
+    easing: string
+  }
   /** Played when bound data updates. */
   update?: {
-    type: string;
-    duration: number;
-  };
+    type: string
+    duration: number
+  }
   /** Reserved for future timeline support. */
-  keyframes?: unknown;
+  keyframes?: unknown
 }
 
 /**
@@ -99,35 +99,35 @@ export interface AnimationConfig {
  * the typed `props` after the meta-level schema parses it.
  */
 export interface WidgetNode {
-  id: string;
+  id: string
 
   /** Registry key (e.g. 'bar-chart', 'image', 'text'). */
-  type: string;
+  type: string
 
   /** User-editable display name (shown in layers panel). */
-  name: string;
+  name: string
 
-  layout: Layout;
-  flags: WidgetFlags;
+  layout: Layout
+  flags: WidgetFlags
 
   /** Type-specific properties. Validated by WidgetMeta.propsSchema. */
-  props: Record<string, unknown>;
+  props: Record<string, unknown>
 
-  dataBinding?: DataBinding;
-  events?: EventBinding[];
-  animation?: AnimationConfig;
+  dataBinding?: DataBinding
+  events?: EventBinding[]
+  animation?: AnimationConfig
 
   /**
    * Selection group: widgets sharing a groupId are selected/moved together
    * but do NOT inherit transforms (no nested coordinate space).
    */
-  groupId?: string;
+  groupId?: string
 
   /** Reserved for future Frame/Container widget. Not yet used. */
-  parentId?: string;
+  parentId?: string
 
   /** Plugin-private namespace. Core ignores this field. */
-  extensions: Record<string, unknown>;
+  extensions: Record<string, unknown>
 }
 
 /** Resize handle identifier. Used by tools and ShapeUtil-style hooks. */
@@ -139,16 +139,16 @@ export type ResizeHandle =
   | 'top'
   | 'right'
   | 'bottom'
-  | 'left';
+  | 'left'
 
 /** Information passed to onResize hooks during a resize gesture. */
 export interface ResizeInfo {
-  handle: ResizeHandle;
-  initialLayout: Layout;
-  pointerStart: Point;
-  pointerCurrent: Point;
+  handle: ResizeHandle
+  initialLayout: Layout
+  pointerStart: Point
+  pointerCurrent: Point
   /** Whether shift is held (typically: lock aspect ratio). */
-  shift: boolean;
+  shift: boolean
   /** Whether alt/option is held (typically: scale from center). */
-  alt: boolean;
+  alt: boolean
 }

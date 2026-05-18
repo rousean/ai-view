@@ -1,4 +1,10 @@
 **/build
 **/public
+**/.output
+**/node_modules
+**/dist
+**/.claude
 pnpm-lock.yaml
-routeTree.gen.ts
+package-lock.json
+*.gen.ts
+src/components/ui/**

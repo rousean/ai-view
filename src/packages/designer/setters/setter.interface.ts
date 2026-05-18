@@ -1,6 +1,6 @@
-import type * as React from 'react';
-import type { WidgetNode } from '@schema/types';
-import type { DashboardEditor } from '../editor/dashboard-editor';
+import type * as React from 'react'
+import type { WidgetNode } from '@schema/types'
+import type { DashboardEditor } from '../editor/dashboard-editor'
 
 /**
  * Props every Setter component receives. The setter is responsible
@@ -8,26 +8,26 @@ import type { DashboardEditor } from '../editor/dashboard-editor';
  * Path resolution + commit-to-store happens in PropertyPanel.
  */
 export interface SetterProps<T = unknown> {
-  value: T;
-  defaultValue?: T;
-  onChange: (value: T) => void;
+  value: T
+  defaultValue?: T
+  onChange: (value: T) => void
 
   /** Forwarded from PropConfig.setterProps. */
-  setterProps?: Record<string, unknown>;
+  setterProps?: Record<string, unknown>
 
   /** Surrounding context the setter may need (e.g. data setter wants editor). */
   context: {
-    node: WidgetNode;
-    editor: DashboardEditor;
-  };
+    node: WidgetNode
+    editor: DashboardEditor
+  }
 
-  disabled?: boolean;
+  disabled?: boolean
 }
 
-export type SetterComponent<T = unknown> = React.ComponentType<SetterProps<T>>;
+export type SetterComponent<T = unknown> = React.ComponentType<SetterProps<T>>
 
 /** Registry entry — wraps the component with its registry key. */
 export interface SetterDefinition {
-  type: string;
-  component: SetterComponent<any>;
+  type: string
+  component: SetterComponent<any>
 }

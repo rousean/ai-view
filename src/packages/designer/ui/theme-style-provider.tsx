@@ -1,13 +1,13 @@
-import * as React from 'react';
-import { useDocumentState } from '../editor/editor-context';
-import { selectCurrentTheme } from '../stores/selectors';
+import * as React from 'react'
+import { useDocumentState } from '../editor/editor-context'
+import { selectCurrentTheme } from '../stores/selectors'
 
 interface ThemeStyleProviderProps {
-  children: React.ReactNode;
+  children: React.ReactNode
   /** Optional extra className for the wrapper div. */
-  className?: string;
+  className?: string
   /** Style merged onto the wrapper after theme tokens. */
-  style?: React.CSSProperties;
+  style?: React.CSSProperties
 }
 
 /**
@@ -24,21 +24,21 @@ export const ThemeStyleProvider: React.FC<ThemeStyleProviderProps> = ({
   className,
   style,
 }) => {
-  const theme = useDocumentState((s) => selectCurrentTheme(s));
+  const theme = useDocumentState((s) => selectCurrentTheme(s))
 
   const tokenStyle = React.useMemo<React.CSSProperties>(() => {
-    if (!theme) return {};
-    const out: Record<string, string> = {};
+    if (!theme) return {}
+    const out: Record<string, string> = {}
     for (const [k, v] of Object.entries(theme.tokens)) {
       // Honour the convention: theme tokens already start with `--`.
-      out[k.startsWith('--') ? k : `--${k}`] = v;
+      out[k.startsWith('--') ? k : `--${k}`] = v
     }
-    return out as React.CSSProperties;
-  }, [theme]);
+    return out as React.CSSProperties
+  }, [theme])
 
   return (
     <div className={className} style={{ ...tokenStyle, ...style }}>
       {children}
     </div>
-  );
-};
+  )
+}

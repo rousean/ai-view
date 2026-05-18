@@ -11,50 +11,46 @@
  * change to widget.props without trampling sibling fields.
  */
 
-const SEG_RE = /[^.[\]]+/g;
+const SEG_RE = /[^.[\]]+/g
 
 export function parsePath(path: string): Array<string | number> {
-  const matches = path.match(SEG_RE) ?? [];
+  const matches = path.match(SEG_RE) ?? []
   return matches.map((seg) => {
-    const n = Number(seg);
-    return Number.isInteger(n) && String(n) === seg ? n : seg;
-  });
+    const n = Number(seg)
+    return Number.isInteger(n) && String(n) === seg ? n : seg
+  })
 }
 
 export function getByPath(root: unknown, path: string): unknown {
-  const segs = parsePath(path);
-  let cur: unknown = root;
+  const segs = parsePath(path)
+  let cur: unknown = root
   for (const s of segs) {
-    if (cur == null) return undefined;
-    cur = (cur as Record<string | number, unknown>)[s];
+    if (cur == null) return undefined
+    cur = (cur as Record<string | number, unknown>)[s]
   }
-  return cur;
+  return cur
 }
 
-export function setByPath<R extends object>(
-  root: R,
-  path: string,
-  value: unknown,
-): R {
-  const segs = parsePath(path);
-  if (segs.length === 0) return root;
+export function setByPath<R extends object>(root: R, path: string, value: unknown): R {
+  const segs = parsePath(path)
+  if (segs.length === 0) return root
 
   function clone(parent: unknown, segIdx: number): unknown {
-    const seg = segs[segIdx];
-    const isArrayIdx = typeof seg === 'number';
+    const seg = segs[segIdx]
+    const isArrayIdx = typeof seg === 'number'
     const base: any = isArrayIdx
       ? Array.isArray(parent)
         ? [...parent]
         : []
-      : { ...(parent && typeof parent === 'object' ? (parent as object) : {}) };
+      : { ...(parent && typeof parent === 'object' ? (parent as object) : {}) }
 
     if (segIdx === segs.length - 1) {
-      base[seg] = value;
+      base[seg] = value
     } else {
-      base[seg] = clone(base[seg], segIdx + 1);
+      base[seg] = clone(base[seg], segIdx + 1)
     }
-    return base;
+    return base
   }
 
-  return clone(root, 0) as R;
+  return clone(root, 0) as R
 }

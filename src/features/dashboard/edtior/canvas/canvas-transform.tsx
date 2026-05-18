@@ -8,10 +8,10 @@ import SelectionBounds from './selection-bounds'
 import MarqueeSelection from './marquee-selection'
 
 export default function CanvasTransform() {
-  const elements = useCanvasStore(state => state.elements)
-  const width = useCanvasStore(state => state.canvas.width)
-  const height = useCanvasStore(state => state.canvas.height)
-  const { x, y, scale } = useCanvasStore(state => state.camera)
+  const elements = useCanvasStore((state) => state.elements)
+  const width = useCanvasStore((state) => state.canvas.width)
+  const height = useCanvasStore((state) => state.canvas.height)
+  const { x, y, scale } = useCanvasStore((state) => state.camera)
   const { ref } = useDroppable({ id: 'canvas' })
   const { onPointerDown } = useMarqueeSelection()
 
@@ -23,7 +23,7 @@ export default function CanvasTransform() {
       onPointerDown={onPointerDown}
     >
       <Gridding width={width} height={height}></Gridding>
-      {Object.values(elements).map(element => (
+      {Object.values(elements).map((element) => (
         <CanvasElement key={element.id} element={element}></CanvasElement>
       ))}
       <SelectionBounds></SelectionBounds>
@@ -51,7 +51,12 @@ export function useMarqueeSelection() {
       const end = screenToCanvas({ x: ev.clientX, y: ev.clientY }, viewportRect, camera)
       const x = Math.min(start.x, end.x)
       const y = Math.min(start.y, end.y)
-      setSelectionRect({ x, y, width: Math.abs(end.x - start.x), height: Math.abs(end.y - start.y) })
+      setSelectionRect({
+        x,
+        y,
+        width: Math.abs(end.x - start.x),
+        height: Math.abs(end.y - start.y),
+      })
     }
 
     const up = (ev: PointerEvent) => {
@@ -93,7 +98,7 @@ function rectsIntersect(a: SelectionRect, b: SelectionRect): boolean {
 
 function pickElementsIntersectingRect(
   elements: Record<string, Element>,
-  rect: SelectionRect
+  rect: SelectionRect,
 ): string[] {
   const ids: string[] = []
   for (const el of Object.values(elements)) {
