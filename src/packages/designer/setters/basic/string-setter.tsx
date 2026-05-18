@@ -1,6 +1,4 @@
 import * as React from 'react'
-import { Input } from '~/components/ui/input'
-import { Textarea } from '~/components/ui/textarea'
 import type { SetterProps } from '../setter.interface'
 
 interface StringSetterProps {
@@ -10,6 +8,10 @@ interface StringSetterProps {
   rows?: number
 }
 
+/**
+ * String input. Uses the Figma-style `.prop-input` class (defined in
+ * designer/styles/editor.css) so it matches the property-panel chrome.
+ */
 export const StringSetter: React.FC<SetterProps<string>> = ({
   value,
   onChange,
@@ -21,7 +23,14 @@ export const StringSetter: React.FC<SetterProps<string>> = ({
 
   if (opts.multiline) {
     return (
-      <Textarea
+      <textarea
+        className="prop-input"
+        style={{
+          height: 'auto',
+          padding: '6px 8px',
+          resize: 'vertical',
+          minHeight: 60,
+        }}
         rows={opts.rows ?? 3}
         value={v}
         placeholder={opts.placeholder}
@@ -32,13 +41,14 @@ export const StringSetter: React.FC<SetterProps<string>> = ({
     )
   }
   return (
-    <Input
-      type="text"
-      value={v}
-      placeholder={opts.placeholder}
-      maxLength={opts.maxLength}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-    />
+    <div className="prop-input">
+      <input
+        value={v}
+        placeholder={opts.placeholder}
+        maxLength={opts.maxLength}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
   )
 }

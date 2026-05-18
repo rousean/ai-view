@@ -1,13 +1,12 @@
 import * as React from 'react'
-import { Switch } from '~/components/ui/switch'
+import { Toggle } from '../../ui/property-controls'
 import type { SetterProps } from '../setter.interface'
 
-export const BooleanSetter: React.FC<SetterProps<boolean>> = ({ value, onChange, disabled }) => {
-  return (
-    <Switch
-      checked={!!value}
-      disabled={disabled}
-      onCheckedChange={(checked) => onChange(checked)}
-    />
-  )
+/** Wraps the Figma-style 28x16 pill toggle. */
+export const BooleanSetter: React.FC<SetterProps<boolean>> = ({
+  value,
+  onChange,
+  disabled,
+}) => {
+  return <Toggle on={!!value} disabled={disabled} onChange={(next) => onChange(next)} />
 }

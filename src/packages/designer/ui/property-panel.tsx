@@ -1,217 +1,548 @@
 import * as React from 'react'
+import {
+  ChartBar,
+  ChartLine,
+  ChartPie,
+  ChevronDown,
+  Copy,
+  Database,
+  Hash,
+  MoreHorizontal,
+  Radar,
+  Table,
+  Trash2,
+  Type as TextIcon,
+} from 'lucide-react'
+import type { Background, WidgetNode } from '@schema/types'
 import type { PropConfig, WidgetMeta } from '@widgets/widget-meta'
-import type { WidgetNode } from '@schema/types'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
 import { ScrollArea } from '~/components/ui/scroll-area'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
-import { selectWidget } from '../stores/selectors'
 import { getByPath, setByPath } from '../setters/path-utils'
-
-interface PropertyPanelProps {
-  className?: string
-}
+import { selectCurrentPage, selectCurrentTheme, selectWidget } from '../stores/selectors'
+import {
+  ColorInput,
+  NumInput,
+  PropRow,
+  PropSection,
+  Segmented,
+  Toggle,
+} from './property-controls'
 
 /**
- * Selection-driven, schema-driven property panel.
- *
- * Resolves the selected widget, looks up its WidgetMeta in the registry,
- * groups propsConfig by tab and renders one Setter per field. Changes
- * commit via editor.updateProps (undo-aware via command pipeline).
- *
- * All chrome uses shadcn primitives (Tabs / ScrollArea / Input / Label)
- * so the panel inherits the project theme automatically.
+ * Right-side property panel — Figma-style with two top tabs (画布 / 图表).
+ * 画布 tab edits page-level config (size, background, grid, theme, fit mode).
+ * 图表 tab edits the selected widget; sections come from WidgetMeta.propsConfig.
  */
+export function PropertyPanel() {
+  const selectedIds = useEditorState((s) => s.selectedIds)
+  const [tab, setTab] = React.useState<'canvas' | 'chart'>(
+    selectedIds.length === 1 ? 'chart' : 'canvas',
+  )
+  React.useEffect(() => {
+    setTab(selectedIds.length === 1 ? 'chart' : 'canvas')
+  }, [selectedIds.length])
 
-const PanelRoot: React.FC<{
-  className?: string
-  children: React.ReactNode
-}> = ({ className, children }) => (
-  <aside className={`flex min-h-0 flex-col overflow-hidden ${className ?? ''}`}>{children}</aside>
-)
+  return (
+    <aside
+      style={{
+        width: 'var(--panel-w-right)',
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--panel-bg)',
+        borderLeft: '1px solid var(--border)',
+      }}
+    >
+      <div className="tabs" style={{ flexShrink: 0 }}>
+        <button
+          className={'tab ' + (tab === 'canvas' ? 'active' : '')}
+          onClick={() => setTab('canvas')}
+        >
+          画布
+        </button>
+        <button
+          className={'tab ' + (tab === 'chart' ? 'active' : '')}
+          onClick={() => setTab('chart')}
+        >
+          图表
+          {selectedIds.length === 1 && (
+            <span
+              style={{
+                marginLeft: 4,
+                display: 'inline-block',
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                background: 'var(--accent)',
+                verticalAlign: 'middle',
+              }}
+            />
+          )}
+        </button>
+        <div style={{ flex: 1 }} />
+        <button
+          className="btn btn-ghost-icon"
+          style={{ alignSelf: 'center', marginRight: 4 }}
+          aria-label="更多"
+        >
+          <MoreHorizontal size={14} />
+        </button>
+      </div>
+      <ScrollArea className="flex-1 min-h-0">
+        {tab === 'canvas' ? <CanvasProps /> : <ChartProps />}
+      </ScrollArea>
+    </aside>
+  )
+}
 
-export const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
+// ═══════════════════════════════════════════════════════════════════
+// 画布 tab — page-level config
+// ═══════════════════════════════════════════════════════════════════
+
+function CanvasProps() {
+  const editor = useDashboardEditor()
+  const page = useDocumentState((s) => selectCurrentPage(s))
+  const theme = useDocumentState((s) => selectCurrentTheme(s))
+  if (!page) return null
+
+  const bg = page.canvas.background
+  const bgType = bg.type
+  const startColor =
+    bg.type === 'color'
+      ? bg.color
+      : bg.type === 'gradient'
+        ? (bg.gradient.stops[0]?.color ?? '#ffffff')
+        : '#ffffff'
+  const endColor =
+    bg.type === 'gradient'
+      ? (bg.gradient.stops[bg.gradient.stops.length - 1]?.color ?? '#000000')
+      : '#000000'
+  const angle = bg.type === 'gradient' ? (bg.gradient.angle ?? 180) : 180
+
+  const setBackground = (next: Background) =>
+    editor.execute('canvas.setBackground', { background: next })
+
+  return (
+    <>
+      <PropSection title="尺寸">
+        <PropRow label="宽 × 高">
+          <NumInput
+            value={page.canvas.width}
+            onChange={(w) => editor.setCanvasSize(w, page.canvas.height)}
+          />
+          <span className="t-4">×</span>
+          <NumInput
+            value={page.canvas.height}
+            onChange={(h) => editor.setCanvasSize(page.canvas.width, h)}
+          />
+        </PropRow>
+        <PropRow label="比例">
+          <Segmented
+            value={ratioOf(page.canvas.width, page.canvas.height)}
+            onChange={(r) => {
+              const presets: Record<string, [number, number]> = {
+                '16:9': [1920, 1080],
+                '21:9': [2560, 1080],
+                '4:3': [1600, 1200],
+              }
+              const target = presets[r]
+              if (target) editor.setCanvasSize(target[0], target[1])
+            }}
+            options={[
+              { value: '16:9', label: '16:9' },
+              { value: '21:9', label: '21:9' },
+              { value: '4:3', label: '4:3' },
+              { value: '自由', label: '自由' },
+            ]}
+          />
+        </PropRow>
+      </PropSection>
+
+      <PropSection title="背景">
+        <PropRow label="类型">
+          <Segmented
+            value={bgType === 'color' ? '纯色' : bgType === 'gradient' ? '渐变' : '图片'}
+            onChange={(t) => {
+              if (t === '纯色') setBackground({ type: 'color', color: startColor })
+              else if (t === '渐变')
+                setBackground({
+                  type: 'gradient',
+                  gradient: {
+                    type: 'linear',
+                    angle,
+                    stops: [
+                      { offset: 0, color: startColor },
+                      { offset: 1, color: endColor },
+                    ],
+                  },
+                })
+              else setBackground({ type: 'image', assetId: '', fit: 'cover' })
+            }}
+            options={[
+              { value: '纯色', label: '纯色' },
+              { value: '渐变', label: '渐变' },
+              { value: '图片', label: '图片' },
+            ]}
+          />
+        </PropRow>
+        {bgType === 'color' && (
+          <PropRow label="颜色">
+            <ColorInput
+              value={startColor}
+              onChange={(c) => setBackground({ type: 'color', color: c })}
+            />
+          </PropRow>
+        )}
+        {bgType === 'gradient' && (
+          <>
+            <PropRow label="起始色">
+              <ColorInput
+                value={startColor}
+                onChange={(c) =>
+                  setBackground({
+                    type: 'gradient',
+                    gradient: {
+                      type: 'linear',
+                      angle,
+                      stops: [
+                        { offset: 0, color: c },
+                        { offset: 1, color: endColor },
+                      ],
+                    },
+                  })
+                }
+              />
+            </PropRow>
+            <PropRow label="终止色">
+              <ColorInput
+                value={endColor}
+                onChange={(c) =>
+                  setBackground({
+                    type: 'gradient',
+                    gradient: {
+                      type: 'linear',
+                      angle,
+                      stops: [
+                        { offset: 0, color: startColor },
+                        { offset: 1, color: c },
+                      ],
+                    },
+                  })
+                }
+              />
+            </PropRow>
+            <PropRow label="角度">
+              <NumInput
+                value={angle}
+                suffix="°"
+                onChange={(a) =>
+                  setBackground({
+                    type: 'gradient',
+                    gradient: {
+                      type: 'linear',
+                      angle: a,
+                      stops: [
+                        { offset: 0, color: startColor },
+                        { offset: 1, color: endColor },
+                      ],
+                    },
+                  })
+                }
+              />
+            </PropRow>
+          </>
+        )}
+      </PropSection>
+
+      <PropSection title="栅格">
+        <PropRow label="显示栅格">
+          <Toggle on={page.grid.enabled} onChange={(on) => editor.setGrid({ enabled: on })} />
+        </PropRow>
+        <PropRow label="栅格尺寸">
+          <NumInput
+            value={page.grid.size}
+            suffix="px"
+            onChange={(n) => editor.setGrid({ size: n })}
+          />
+        </PropRow>
+        <PropRow label="对齐栅格">
+          <Toggle on={page.grid.snap} onChange={(on) => editor.setGrid({ snap: on })} />
+        </PropRow>
+      </PropSection>
+
+      {theme && (
+        <PropSection title="主题色">
+          <div style={{ padding: '4px 12px 8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+              {theme.palette.map((c, i) => (
+                <div
+                  key={c + i}
+                  style={{
+                    aspectRatio: '1',
+                    borderRadius: 4,
+                    background: c,
+                    boxShadow:
+                      i === 0
+                        ? '0 0 0 2px var(--panel-bg), 0 0 0 4px var(--accent)'
+                        : '0 0 0 1px rgba(0,0,0,.1)',
+                    cursor: 'pointer',
+                  }}
+                />
+              ))}
+            </div>
+            <div className="t-3 t-xs" style={{ marginTop: 8 }}>
+              {theme.name} · 应用于所有图表
+            </div>
+          </div>
+        </PropSection>
+      )}
+    </>
+  )
+}
+
+function ratioOf(w: number, h: number): string {
+  const r = w / h
+  if (Math.abs(r - 16 / 9) < 0.02) return '16:9'
+  if (Math.abs(r - 21 / 9) < 0.02) return '21:9'
+  if (Math.abs(r - 4 / 3) < 0.02) return '4:3'
+  return '自由'
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 图表 tab — widget-level config
+// ═══════════════════════════════════════════════════════════════════
+
+const WIDGET_TYPE_ICON: Record<string, React.ComponentType<{ size?: number }>> = {
+  'bar-chart': ChartBar,
+  'line-chart': ChartLine,
+  'pie-chart': ChartPie,
+  'donut-chart': ChartPie,
+  'radar-chart': Radar,
+  text: TextIcon,
+  number: Hash,
+  table: Table,
+}
+
+function ChartProps() {
   const editor = useDashboardEditor()
   const selectedIds = useEditorState((s) => s.selectedIds)
   const primaryId = useEditorState((s) => s.primarySelectionId)
-  const widget = useDocumentState((s) => (primaryId ? (selectWidget(primaryId)(s) ?? null) : null))
+  const widget = useDocumentState((s) =>
+    primaryId ? (selectWidget(primaryId)(s) ?? null) : null,
+  )
 
   if (selectedIds.length === 0) {
     return (
-      <PanelRoot className={className}>
-        <Empty hint="未选中组件" />
-      </PanelRoot>
+      <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-3)' }}>
+        <ChartBar size={28} stroke="var(--text-4)" />
+        <div style={{ marginTop: 10, fontSize: 13 }}>未选中图表</div>
+        <div className="t-4 t-xs" style={{ marginTop: 4 }}>
+          在画布中点击图表以查看属性
+        </div>
+      </div>
     )
   }
   if (selectedIds.length > 1) {
     return (
-      <PanelRoot className={className}>
-        <Empty hint={`已选中 ${selectedIds.length} 个组件\n（多选编辑暂未实现）`} />
-      </PanelRoot>
+      <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-3)' }}>
+        <div style={{ fontSize: 13 }}>已选中 {selectedIds.length} 个图表</div>
+        <div className="t-4 t-xs" style={{ marginTop: 4 }}>
+          多选批量编辑暂未实现
+        </div>
+      </div>
     )
   }
-  if (!widget) {
-    return (
-      <PanelRoot className={className}>
-        <Empty hint="组件不存在" />
-      </PanelRoot>
-    )
-  }
+  if (!widget) return null
 
   const meta = editor.registry.widgets.get(widget.type) as WidgetMeta | undefined
-  if (!meta) {
-    return (
-      <PanelRoot className={className}>
-        <Empty hint={`未注册的组件类型: ${widget.type}`} />
-      </PanelRoot>
-    )
-  }
+  const Icon = WIDGET_TYPE_ICON[widget.type] ?? ChartBar
 
   return (
-    <PanelRoot className={className}>
-      <Header widget={widget} />
-      <PropertyForm widget={widget} meta={meta} />
-    </PanelRoot>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────
-
-const Empty: React.FC<{ hint: string }> = ({ hint }) => (
-  <div className="flex flex-1 items-center justify-center whitespace-pre-wrap p-6 text-center text-xs text-muted-foreground">
-    {hint}
-  </div>
-)
-
-const Header: React.FC<{ widget: WidgetNode }> = ({ widget }) => {
-  const editor = useDashboardEditor()
-  const [name, setName] = React.useState(widget.name)
-  React.useEffect(() => setName(widget.name), [widget.name])
-
-  return (
-    <div className="shrink-0 space-y-1 border-b px-4 py-3">
-      <Input
-        type="text"
-        className="h-8 border-0 bg-transparent px-0 text-sm font-medium shadow-none focus-visible:ring-0"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onBlur={() => {
-          if (name !== widget.name) editor.renameWidget(widget.id, name)
+    <>
+      {/* 选中头部卡 */}
+      <div
+        style={{
+          padding: '10px 12px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          borderBottom: '1px solid var(--border)',
         }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-        }}
-      />
-      <p className="text-xs text-muted-foreground">{widget.type}</p>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────
-
-interface PropertyFormProps {
-  widget: WidgetNode
-  meta: WidgetMeta
-}
-
-const PropertyForm: React.FC<PropertyFormProps> = ({ widget, meta }) => {
-  const groups = React.useMemo(() => groupConfigs(meta.propsConfig), [meta.propsConfig])
-  const groupKeys = Object.keys(groups)
-  const [activeGroup, setActiveGroup] = React.useState(groupKeys[0] ?? '配置')
-
-  if (groupKeys.length === 0) {
-    return <Empty hint="该组件未声明可配置属性" />
-  }
-
-  // Single group → skip the Tabs chrome entirely (just render the fields).
-  if (groupKeys.length === 1) {
-    return (
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="space-y-3 p-3">
-          {(groups[groupKeys[0]] ?? []).map((cfg) => (
-            <PropertyField key={cfg.path} widget={widget} cfg={cfg} />
-          ))}
+      >
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 4,
+            background: 'var(--accent-soft)',
+            color: 'var(--accent)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon size={18} />
         </div>
-      </ScrollArea>
-    )
-  }
-
-  return (
-    <Tabs
-      value={activeGroup}
-      onValueChange={setActiveGroup}
-      className="flex min-h-0 flex-1 flex-col gap-0"
-    >
-      <TabsList className="w-full shrink-0 rounded-none border-b bg-transparent p-0">
-        {groupKeys.map((g) => (
-          <TabsTrigger
-            key={g}
-            value={g}
-            className="flex-1 rounded-none border-b-2 border-transparent bg-transparent text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            className="t-sm fw-5"
+            style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
           >
-            {g}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-      {groupKeys.map((g) => (
-        <TabsContent key={g} value={g} className="m-0 min-h-0 flex-1 data-[state=inactive]:hidden">
-          <ScrollArea className="h-full">
-            <div className="space-y-3 p-3">
-              {(groups[g] ?? []).map((cfg) => (
-                <PropertyField key={cfg.path} widget={widget} cfg={cfg} />
-              ))}
-            </div>
-          </ScrollArea>
-        </TabsContent>
-      ))}
-    </Tabs>
+            {widget.name}
+          </div>
+          <div className="t-xs t-3 t-mono">#{widget.id.slice(0, 8)}</div>
+        </div>
+        <button
+          className="btn btn-ghost-icon"
+          aria-label="复制"
+          onClick={() =>
+            editor.execute('widget.add', { type: widget.type, props: widget.props })
+          }
+        >
+          <Copy size={14} />
+        </button>
+        <button
+          className="btn btn-ghost-icon"
+          style={{ color: 'var(--danger)' }}
+          aria-label="删除"
+          onClick={() => editor.removeWidgets([widget.id])}
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {/* 位置和大小 */}
+      <PropSection title="位置和大小">
+        <PropRow label="X / Y">
+          <NumInput
+            value={Math.round(widget.layout.x)}
+            prefix="X"
+            onChange={(x) => editor.updateLayout(widget.id, { x })}
+          />
+          <NumInput
+            value={Math.round(widget.layout.y)}
+            prefix="Y"
+            onChange={(y) => editor.updateLayout(widget.id, { y })}
+          />
+        </PropRow>
+        <PropRow label="宽 / 高">
+          <NumInput
+            value={Math.round(widget.layout.width)}
+            prefix="W"
+            onChange={(width) => editor.updateLayout(widget.id, { width })}
+          />
+          <NumInput
+            value={Math.round(widget.layout.height)}
+            prefix="H"
+            onChange={(height) => editor.updateLayout(widget.id, { height })}
+          />
+        </PropRow>
+        <PropRow label="旋转">
+          <NumInput
+            value={Math.round(widget.layout.rotate)}
+            suffix="°"
+            onChange={(rotate) => editor.updateLayout(widget.id, { rotate })}
+          />
+        </PropRow>
+        <PropRow label="不透明度">
+          <NumInput
+            value={Math.round(widget.layout.opacity * 100)}
+            suffix="%"
+            min={0}
+            max={100}
+            onChange={(p) =>
+              editor.updateLayout(widget.id, {
+                opacity: Math.max(0, Math.min(1, p / 100)),
+              })
+            }
+          />
+        </PropRow>
+      </PropSection>
+
+      {/* 数据 (P8 占位) */}
+      <PropSection title="数据" defaultOpen={false}>
+        <PropRow label="数据源">
+          <div className="prop-input">
+            <Database size={12} style={{ color: 'var(--text-2)' }} />
+            <input defaultValue="未绑定" style={{ marginLeft: 4 }} disabled />
+            <ChevronDown size={12} style={{ color: 'var(--text-3)' }} />
+          </div>
+        </PropRow>
+        <PropRow label="提示">
+          <span className="t-xs t-3">数据源管理将在 P8 上线</span>
+        </PropRow>
+      </PropSection>
+
+      {/* 样式 / 配置 — driven by WidgetMeta.propsConfig */}
+      {meta && <MetaDrivenSections widget={widget} meta={meta} />}
+    </>
   )
 }
 
-function groupConfigs(configs: PropConfig[]): Record<string, PropConfig[]> {
+// ─── Schema-driven sections ────────────────────────────────────────
+
+function MetaDrivenSections({ widget, meta }: { widget: WidgetNode; meta: WidgetMeta }) {
+  const grouped = React.useMemo(
+    () => groupPropsByGroup(meta.propsConfig),
+    [meta.propsConfig],
+  )
+  return (
+    <>
+      {Object.entries(grouped).map(([groupName, configs]) => (
+        <PropSection
+          key={groupName}
+          title={groupName}
+          defaultOpen={groupName === '样式' || groupName === '配置'}
+        >
+          {configs.map((cfg) => (
+            <SchemaField key={cfg.path} widget={widget} cfg={cfg} />
+          ))}
+        </PropSection>
+      ))}
+    </>
+  )
+}
+
+function groupPropsByGroup(configs: PropConfig[]): Record<string, PropConfig[]> {
   const out: Record<string, PropConfig[]> = {}
   for (const c of configs) {
-    const g = c.group ?? '配置'
+    const g = c.group ?? '样式'
     if (!out[g]) out[g] = []
     out[g].push(c)
   }
   return out
 }
 
-// ─────────────────────────────────────────────────────────────────────
-
-interface PropertyFieldProps {
-  widget: WidgetNode
-  cfg: PropConfig
-}
-
-const PropertyField: React.FC<PropertyFieldProps> = ({ widget, cfg }) => {
+function SchemaField({ widget, cfg }: { widget: WidgetNode; cfg: PropConfig }) {
   const editor = useDashboardEditor()
   const setterDef = editor.registry.setters.get(cfg.setter)
-
   const visible = cfg.visible ? cfg.visible(widget.props) : true
   const disabled = cfg.disabled ? cfg.disabled(widget.props) : false
   if (!visible) return null
 
-  if (!setterDef) {
-    return (
-      <Field label={cfg.label} description={cfg.description}>
-        <span className="text-xs text-destructive">未注册的 setter: {cfg.setter}</span>
-      </Field>
-    )
-  }
-
-  const SetterComp = setterDef.component
   const value = getByPath(widget.props, cfg.path)
-
   const handleChange = (next: unknown) => {
     const nextProps = setByPath(widget.props, cfg.path, next)
     editor.updateProps(widget.id, nextProps)
   }
 
+  if (!setterDef) {
+    return (
+      <PropRow label={cfg.label}>
+        <span className="t-xs" style={{ color: 'var(--danger)' }}>
+          未注册的 setter: {cfg.setter}
+        </span>
+      </PropRow>
+    )
+  }
+  const SetterComp = setterDef.component
+
   return (
-    <Field label={cfg.label} description={cfg.description}>
+    <PropRow label={cfg.label}>
       <SetterComp
         value={value}
         onChange={handleChange}
@@ -219,18 +550,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({ widget, cfg }) => {
         context={{ node: widget, editor }}
         disabled={disabled}
       />
-    </Field>
+    </PropRow>
   )
 }
-
-const Field: React.FC<{
-  label: string
-  description?: string
-  children: React.ReactNode
-}> = ({ label, description, children }) => (
-  <div className="space-y-1.5">
-    <Label className="text-xs font-medium">{label}</Label>
-    {description && <p className="text-xs text-muted-foreground">{description}</p>}
-    {children}
-  </div>
-)

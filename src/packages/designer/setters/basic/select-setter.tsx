@@ -1,11 +1,5 @@
 import * as React from 'react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '~/components/ui/select'
+import { ChevronDown } from 'lucide-react'
 import type { SetterProps } from '../setter.interface'
 
 export interface SelectOption {
@@ -18,6 +12,12 @@ interface SelectSetterProps {
   placeholder?: string
 }
 
+/**
+ * Dropdown styled to match the design's `.prop-input` row. Uses the native
+ * `<select>` element so we get the OS-level keyboard + screen reader support
+ * for free — for longer lists or rich items we can later swap to a Popover
+ * implementation without changing the SetterRegistry contract.
+ */
 export const SelectSetter: React.FC<SetterProps<string>> = ({
   value,
   onChange,
@@ -26,19 +26,43 @@ export const SelectSetter: React.FC<SetterProps<string>> = ({
 }) => {
   const opts = (setterProps ?? {}) as SelectSetterProps
   const options = opts.options ?? []
-
   return (
-    <Select value={value ?? ''} disabled={disabled} onValueChange={(v) => onChange(v)}>
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder={opts.placeholder ?? '请选择'} />
-      </SelectTrigger>
-      <SelectContent>
+    <label
+      className="prop-input"
+      style={{
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        paddingRight: 4,
+      }}
+    >
+      <select
+        value={value ?? ''}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          appearance: 'none',
+          background: 'transparent',
+          border: 'none',
+          outline: 'none',
+          width: '100%',
+          fontFamily: 'inherit',
+          fontSize: 11,
+          color: 'var(--text-1)',
+          cursor: 'inherit',
+        }}
+      >
+        {opts.placeholder !== undefined && (
+          <option value="" disabled>
+            {opts.placeholder}
+          </option>
+        )}
         {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
+          <option key={o.value} value={o.value}>
             {o.label}
-          </SelectItem>
+          </option>
         ))}
-      </SelectContent>
-    </Select>
+      </select>
+      <ChevronDown size={12} style={{ color: 'var(--text-3)', pointerEvents: 'none' }} />
+    </label>
   )
 }

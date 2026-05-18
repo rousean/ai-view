@@ -13,10 +13,21 @@ import { DashboardEditor } from '../editor/dashboard-editor'
 import { EditorProvider } from '../editor/editor-context'
 import { registerBuiltinSetters } from '../setters'
 import { registerBuiltinTools } from '../tools'
+import '../styles/editor.css'
+import { FloatingTools } from './floating-tools'
+import { FloatingZoom } from './floating-zoom'
+import { IconRail, type RailKey } from './icon-rail'
 import { MaterialsPanel } from './materials-panel'
 import { PropertyPanel } from './property-panel'
+import {
+  AssetsPanel,
+  DataSourcesPanel,
+  HistoryPanel,
+  LayersPanel,
+  SecondaryPanel,
+} from './secondary-panels'
 import { ThemeStyleProvider } from './theme-style-provider'
-import { Toolbar } from './toolbar'
+import { TopBar } from './top-bar'
 
 interface EditorRootProps {
   /** Persistence adapter. Defaults to LocalStoragePersistence. */
@@ -27,26 +38,29 @@ interface EditorRootProps {
 }
 
 /**
- * Convenience root component — instantiates a DashboardEditor with built-in
- * widgets, setters, and tools registered, then renders the standard
- * three-pane layout.
+ * Convenience root — instantiates a DashboardEditor with built-in widgets,
+ * setters, and tools registered, then renders the Figma-style layout
+ * (variant B): TopBar / [IconRail · SecondaryPanel · Canvas · PropertyPanel].
+ *
+ * The canvas keeps the existing ruler + grid implementation; floating tool
+ * palette + zoom controls are overlayed on top per the design handoff.
  */
 export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, className }) => {
   const [editor, setEditor] = React.useState<DashboardEditor | null>(null)
   const [error, setError] = React.useState<string | null>(null)
 
   // Pickup offset inside the source card — measured at dragStart, applied
-  // at dragEnd. Hooks must run on every render path, so this ref lives
-  // above the early-return guards even though we only use it once the
-  // editor is loaded.
+  // at dragEnd. Hooks must run on every render path.
   const pickupOffsetRef = React.useRef({ x: 0, y: 0 })
+
+  // Active secondary panel (variant B). `mat` = materials by default.
+  const [rail, setRail] = React.useState<RailKey>('mat')
 
   React.useEffect(() => {
     let cancelled = false
     const _adapter = adapter ?? new LocalStoragePersistence()
     const ed = new DashboardEditor({ adapter: _adapter })
 
-    // Register built-ins.
     for (const meta of builtinWidgets) {
       ed.registry.widgets.register(meta as unknown as { type: string })
     }
@@ -115,9 +129,6 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
     const size = meta.defaultLayout
     const rect = viewportEl.getBoundingClientRect()
 
-    // Convert "screen position where the clone's top-left sits" → canvas
-    // space. That becomes the widget's top-left. Visual continuity: the
-    // widget materialises exactly where the drag clone was.
     const offset = pickupOffsetRef.current
     const cloneTopLeft = editor.screenToCanvas(
       {
@@ -142,16 +153,39 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
 
   return (
     <EditorProvider editor={editor}>
-      <ThemeStyleProvider className={`flex h-full flex-col ${className ?? ''}`}>
+      <ThemeStyleProvider className={`editor-root ${className ?? ''}`}>
         <TooltipProvider delayDuration={300}>
-          <Toolbar />
+          <TopBar />
           <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="flex min-h-0 flex-1">
-              <MaterialsPanel className="w-64 shrink-0" />
-              <main className="relative flex-1 min-w-0">
+            <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+              <IconRail active={rail} onChange={setRail} />
+              {rail === 'mat' && <MaterialsPanel />}
+              {rail === 'layers' && (
+                <SecondaryPanel title="图层">
+                  <LayersPanel />
+                </SecondaryPanel>
+              )}
+              {rail === 'data' && (
+                <SecondaryPanel title="数据源">
+                  <DataSourcesPanel />
+                </SecondaryPanel>
+              )}
+              {rail === 'assets' && (
+                <SecondaryPanel title="资源库">
+                  <AssetsPanel />
+                </SecondaryPanel>
+              )}
+              {rail === 'history' && (
+                <SecondaryPanel title="历史版本">
+                  <HistoryPanel />
+                </SecondaryPanel>
+              )}
+              <main style={{ flex: 1, position: 'relative', minWidth: 0 }}>
                 <CanvasViewport />
+                <FloatingTools />
+                <FloatingZoom />
               </main>
-              <PropertyPanel className="w-72 shrink-0 border-l bg-card" />
+              <PropertyPanel />
             </div>
           </DragDropProvider>
         </TooltipProvider>
@@ -159,5 +193,3 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
     </EditorProvider>
   )
 }
-
-void (null as unknown as WidgetMeta)

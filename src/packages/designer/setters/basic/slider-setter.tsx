@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { Input } from '~/components/ui/input'
 import { Slider } from '~/components/ui/slider'
+import { NumInput } from '../../ui/property-controls'
 import type { SetterProps } from '../setter.interface'
 
 interface SliderSetterProps {
@@ -9,9 +9,15 @@ interface SliderSetterProps {
   step?: number
   /** Show numeric input alongside the slider. Defaults to true. */
   showInput?: boolean
+  /** Suffix shown inside the numeric input (e.g. 'px', '%'). */
   unit?: string
 }
 
+/**
+ * Slider + small numeric input. The slider is shadcn (radix) — it has solid
+ * keyboard / pointer support out of the box. The number box uses the
+ * design-system NumInput so it visually pairs with other property fields.
+ */
 export const SliderSetter: React.FC<SetterProps<number>> = ({
   value,
   onChange,
@@ -23,9 +29,10 @@ export const SliderSetter: React.FC<SetterProps<number>> = ({
   const max = opts.max ?? 100
   const step = opts.step ?? 1
   const v = typeof value === 'number' ? value : min
+  const showInput = opts.showInput !== false
 
   return (
-    <div className="flex items-center gap-3">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
       <Slider
         className="flex-1"
         min={min}
@@ -38,22 +45,18 @@ export const SliderSetter: React.FC<SetterProps<number>> = ({
           if (Number.isFinite(n)) onChange(n)
         }}
       />
-      {opts.showInput !== false && (
-        <Input
-          type="number"
-          className="h-7 w-16 px-2 text-xs"
+      {showInput && (
+        <NumInput
           value={v}
+          onChange={onChange}
           min={min}
           max={max}
           step={step}
+          width={56}
+          suffix={opts.unit}
           disabled={disabled}
-          onChange={(e) => {
-            const n = Number(e.target.value)
-            if (Number.isFinite(n)) onChange(n)
-          }}
         />
       )}
-      {opts.unit && <span className="shrink-0 text-xs text-muted-foreground">{opts.unit}</span>}
     </div>
   )
 }

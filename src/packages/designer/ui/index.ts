@@ -1,5 +1,24 @@
-export { PropertyPanel } from './property-panel'
-export { MaterialsPanel } from './materials-panel'
-export { Toolbar } from './toolbar'
 export { EditorRoot } from './editor-root'
 export { ThemeStyleProvider } from './theme-style-provider'
+export { TopBar } from './top-bar'
+export { IconRail } from './icon-rail'
+export type { RailKey } from './icon-rail'
+export {
+  SecondaryPanel,
+  LayersPanel,
+  DataSourcesPanel,
+  AssetsPanel,
+  HistoryPanel,
+} from './secondary-panels'
+export { MaterialsPanel } from './materials-panel'
+export { PropertyPanel } from './property-panel'
+export { FloatingTools } from './floating-tools'
+export { FloatingZoom } from './floating-zoom'
+export {
+  PropSection,
+  PropRow,
+  NumInput,
+  ColorInput,
+  Toggle,
+  Segmented,
+} from './property-controls'

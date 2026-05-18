@@ -1,8 +1,16 @@
 import * as React from 'react'
-import { Button } from '~/components/ui/button'
-import { ColorArea, ColorPicker, ColorSlider, ColorThumb, SliderTrack } from '~/components/ui/color'
-import { Input } from '~/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
+import {
+  ColorArea,
+  ColorPicker,
+  ColorSlider,
+  ColorThumb,
+  SliderTrack,
+} from '~/components/ui/color'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '~/components/ui/popover'
 import type { SetterProps } from '../setter.interface'
 
 interface ColorSetterProps {
@@ -11,24 +19,28 @@ interface ColorSetterProps {
 }
 
 const DEFAULT_PRESETS = [
-  '#5b8def',
-  '#22d3ee',
-  '#34d399',
+  '#0d99ff',
+  '#00d4ff',
+  '#7c5cff',
+  '#ff5edd',
   '#fbbf24',
-  '#f97316',
-  '#f472b6',
-  '#a78bfa',
-  '#0b1220',
-  '#e6edf6',
+  '#14ae5c',
+  '#f24822',
+  '#1e1e1e',
+  '#8a8a8a',
   '#ffffff',
 ]
 
 /**
- * Colour setter:
- *  - Trigger is a small swatch button + a hex Input side-by-side.
- *  - Click the swatch → Popover with the react-aria ColorPicker
- *    (saturation/value area + hue slider + preset swatches).
- *  - The Input accepts hex like #rgb / #rrggbb / #rrggbbaa.
+ * Colour setter — styled as a single `.prop-input` row to match the rest
+ * of the property panel.
+ *
+ *   ┌────────────────────────────────┐
+ *   │ [swatch] ABCDEF       100%     │   ← whole row is .prop-input
+ *   └────────────────────────────────┘
+ *      ▲ clicking the swatch opens a Popover with the full picker
+ *
+ * Hex text is normalised on commit; invalid values revert.
  */
 export const ColorSetter: React.FC<SetterProps<string>> = ({
   value,
@@ -39,33 +51,43 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
   const opts = (setterProps ?? {}) as ColorSetterProps
   const v = typeof value === 'string' && value.length > 0 ? value : '#ffffff'
   const presets = opts.presets ?? DEFAULT_PRESETS
-  const [text, setText] = React.useState(v)
 
-  React.useEffect(() => setText(v), [v])
+  const [text, setText] = React.useState(hexLabel(v))
+  React.useEffect(() => setText(hexLabel(v)), [v])
 
-  const commitText = (raw: string) => {
-    const s = raw.trim()
-    if (/^#[0-9a-fA-F]{3,8}$/.test(s)) onChange(s)
+  const commit = (raw: string) => {
+    const s = raw.trim().replace(/^#/, '')
+    if (/^[0-9a-fA-F]{3,8}$/.test(s)) onChange('#' + s.toUpperCase())
     else if (s === '') onChange('')
-    else setText(v) // reject invalid, revert display
+    else setText(hexLabel(v)) // invalid → revert
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div
+      className="prop-input"
+      style={{ gap: 6, opacity: disabled ? 0.5 : undefined }}
+      data-disabled={disabled || undefined}
+    >
       <Popover>
         <PopoverTrigger asChild>
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="icon-sm"
             disabled={disabled}
-            className="shrink-0 p-0"
-            aria-label="选择颜色"
-          >
-            <span className="block size-5 rounded border border-border" style={{ background: v }} />
-          </Button>
+            className="swatch"
+            style={{ background: v, cursor: disabled ? 'not-allowed' : 'pointer' }}
+            aria-label="打开取色器"
+          />
         </PopoverTrigger>
-        <PopoverContent className="w-64" align="start">
+        <PopoverContent
+          align="start"
+          sideOffset={4}
+          className="w-64"
+          style={{
+            background: 'var(--panel-bg)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-popover)',
+          }}
+        >
           <ColorPicker
             value={v}
             onChange={(c) => onChange(typeof c === 'string' ? c : c.toString('hex'))}
@@ -85,14 +107,21 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
                 </SliderTrack>
               </ColorSlider>
               {presets.length > 0 && (
-                <div className="flex flex-wrap gap-1">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {presets.map((c) => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => onChange(c)}
-                      className="size-5 rounded border border-border ring-1 ring-inset ring-black/5 transition hover:scale-110"
-                      style={{ backgroundColor: c }}
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 4,
+                        background: c,
+                        border: '1px solid var(--border)',
+                        boxShadow: '0 0 0 1px rgba(0,0,0,.05) inset',
+                        cursor: 'pointer',
+                      }}
                       aria-label={c}
                     />
                   ))}
@@ -102,17 +131,22 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
           </ColorPicker>
         </PopoverContent>
       </Popover>
-      <Input
-        type="text"
-        className="h-8 flex-1 font-mono text-xs uppercase"
+      <input
         value={text}
         disabled={disabled}
         onChange={(e) => setText(e.target.value)}
-        onBlur={(e) => commitText(e.target.value)}
+        onBlur={(e) => commit(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') commitText((e.target as HTMLInputElement).value)
+          if (e.key === 'Enter') commit((e.target as HTMLInputElement).value)
         }}
+        style={{ flex: 1, textTransform: 'uppercase' }}
+        spellCheck={false}
       />
+      <span className="t-4 t-xs">100%</span>
     </div>
   )
+}
+
+function hexLabel(c: string) {
+  return c.replace('#', '').toUpperCase()
 }

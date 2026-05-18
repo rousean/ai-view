@@ -1,15 +1,19 @@
 import * as React from 'react'
-import { Input } from '~/components/ui/input'
+import { NumInput } from '../../ui/property-controls'
 import type { SetterProps } from '../setter.interface'
 
 interface NumberSetterProps {
   min?: number
   max?: number
   step?: number
+  /** Suffix shown inside the input (e.g. 'px', '%', 's'). */
   unit?: string
-  placeholder?: string
+  /** Prefix shown inside the input (e.g. 'W', 'H', 'X'). */
+  prefix?: string
 }
 
+/** Thin wrapper around the design-system NumInput so setter consumers
+ *  go through the same primitive as the canvas property panel. */
 export const NumberSetter: React.FC<SetterProps<number>> = ({
   value,
   onChange,
@@ -17,37 +21,18 @@ export const NumberSetter: React.FC<SetterProps<number>> = ({
   disabled,
 }) => {
   const opts = (setterProps ?? {}) as NumberSetterProps
-  const v = typeof value === 'number' ? value : ''
-  // Local text state so typing intermediate values (like "-" or "1.") doesn't
-  // immediately commit; commit on blur / Enter.
-  const [text, setText] = React.useState(String(v))
-
-  React.useEffect(() => {
-    setText(typeof value === 'number' ? String(value) : '')
-  }, [value])
-
-  const commit = (raw: string) => {
-    const n = Number(raw)
-    if (Number.isFinite(n)) onChange(n)
-  }
-
   return (
-    <div className="flex items-center gap-2">
-      <Input
-        type="number"
-        value={text}
-        min={opts.min}
-        max={opts.max}
-        step={opts.step ?? 1}
-        placeholder={opts.placeholder}
-        disabled={disabled}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={(e) => commit(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') commit(text)
-        }}
-      />
-      {opts.unit && <span className="shrink-0 text-xs text-muted-foreground">{opts.unit}</span>}
-    </div>
+    <NumInput
+      value={typeof value === 'number' ? value : 0}
+      onChange={onChange}
+      min={opts.min}
+      max={opts.max}
+      step={opts.step}
+      prefix={opts.prefix}
+      suffix={opts.unit}
+      disabled={disabled}
+    />
   )
 }
+
+export type { NumberSetterProps }

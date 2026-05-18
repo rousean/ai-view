@@ -8,35 +8,54 @@ import {
 import type { Page, Project, Theme } from '../types'
 import { SCHEMA_VERSION } from '../version'
 
-/** Create a sensible default theme. Light by default. */
+/**
+ * Default light theme — Figma-style palette per the handoff design.
+ * The token names mirror those in src/packages/designer/styles/editor.css.
+ */
 export function createDefaultTheme(): Theme {
   return {
     id: createThemeId(),
     name: 'Default',
     tokens: {
-      // Document colours
+      // Document
       '--bg': '#ffffff',
-      '--fg': '#1f2937',
-      '--primary': '#3b82f6',
-      '--accent': '#06b6d4',
-      // Designer chrome — grid, ruler, selection. Themed so dark /
-      // alternate palettes can override without touching components.
+      '--fg': '#1e1e1e',
+      '--primary': '#0d99ff',
+      '--accent': '#0d99ff',
+      // Designer chrome — these MIRROR editor.css :root for theming.
+      // Components prefer the editor.css fallback; theme overrides win.
+      '--panel-bg': '#ffffff',
+      '--panel-bg-2': '#fbfbfb',
+      '--pasteboard': '#f5f5f5',
+      '--canvas-bg': '#e5e5e5',
+      '--border': '#e6e6e6',
+      '--border-strong': '#d0d0d0',
+      '--border-subtle': '#ededed',
+      '--text-1': '#1e1e1e',
+      '--text-2': '#525252',
+      '--text-3': '#8a8a8a',
+      '--text-4': '#b3b3b3',
+      '--accent-hover': '#0a85e0',
+      '--accent-soft': '#e5f4ff',
+      '--hover-bg': '#f3f3f3',
+      '--selected-bg': '#e5f4ff',
+      '--danger': '#f24822',
+      // Canvas overlay chrome (still themed for widgets)
       '--grid-color': 'rgba(0,0,0,0.05)',
       '--grid-major-color': 'rgba(0,0,0,0.10)',
-      '--ruler-color': '#3b82f6',
-      '--selection-color': '#3b82f6',
+      '--ruler-color': '#0d99ff',
+      '--selection-color': '#0d99ff',
       '--selection-handle-bg': '#ffffff',
-      '--hover-color': 'rgba(59,130,246,0.55)',
-      '--alignment-color': '#db2777',
-      // Chart chrome (consumed by widgets via JS, not CSS — echarts
-      // option values must be concrete strings).
+      '--hover-color': 'rgba(13,153,255,0.55)',
+      '--alignment-color': '#f24822',
+      // Chart (consumed by widgets in JS)
       '--chart-axis-color': 'rgba(0,0,0,0.45)',
       '--chart-split-color': 'rgba(0,0,0,0.06)',
-      // Page artboard chrome (CSS-only).
-      '--page-ring': '0 0 0 1px rgba(0,0,0,0.08)',
-      '--page-shadow': '0 12px 36px rgba(0,0,0,0.18)',
+      // Page artboard
+      '--page-ring': '0 0 0 1px rgba(0,0,0,0.1)',
+      '--page-shadow': '0 16px 48px rgba(0,0,0,0.18)',
     },
-    palette: ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#f97316', '#ec4899'],
+    palette: ['#0d99ff', '#00d4ff', '#7c5cff', '#ff5edd', '#fbbf24', '#14ae5c', '#f24822'],
     extensions: {},
   }
 }
