@@ -1,10 +1,13 @@
 import * as React from 'react';
+import { Input } from '~/components/ui/input';
+import { Textarea } from '~/components/ui/textarea';
 import type { SetterProps } from '../setter.interface';
 
 interface StringSetterProps {
   placeholder?: string;
   multiline?: boolean;
   maxLength?: number;
+  rows?: number;
 }
 
 export const StringSetter: React.FC<SetterProps<string>> = ({
@@ -18,9 +21,8 @@ export const StringSetter: React.FC<SetterProps<string>> = ({
 
   if (opts.multiline) {
     return (
-      <textarea
-        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
-        rows={3}
+      <Textarea
+        rows={opts.rows ?? 3}
         value={v}
         placeholder={opts.placeholder}
         maxLength={opts.maxLength}
@@ -30,9 +32,8 @@ export const StringSetter: React.FC<SetterProps<string>> = ({
     );
   }
   return (
-    <input
+    <Input
       type="text"
-      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
       value={v}
       placeholder={opts.placeholder}
       maxLength={opts.maxLength}

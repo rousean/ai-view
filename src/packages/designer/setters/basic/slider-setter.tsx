@@ -1,11 +1,13 @@
 import * as React from 'react';
+import { Input } from '~/components/ui/input';
+import { Slider } from '~/components/ui/slider';
 import type { SetterProps } from '../setter.interface';
 
 interface SliderSetterProps {
   min?: number;
   max?: number;
   step?: number;
-  /** Show numeric input alongside the slider. */
+  /** Show numeric input alongside the slider. Defaults to true. */
   showInput?: boolean;
   unit?: string;
 }
@@ -24,20 +26,22 @@ export const SliderSetter: React.FC<SetterProps<number>> = ({
 
   return (
     <div className="flex items-center gap-3">
-      <input
-        type="range"
-        className="flex-1 accent-primary disabled:opacity-50"
+      <Slider
+        className="flex-1"
         min={min}
         max={max}
         step={step}
-        value={v}
+        value={[v]}
         disabled={disabled}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onValueChange={(next) => {
+          const n = next[0];
+          if (Number.isFinite(n)) onChange(n);
+        }}
       />
       {opts.showInput !== false && (
-        <input
+        <Input
           type="number"
-          className="w-16 rounded-md border border-input bg-background px-2 py-1 text-xs"
+          className="h-7 w-16 px-2 text-xs"
           value={v}
           min={min}
           max={max}
@@ -50,7 +54,9 @@ export const SliderSetter: React.FC<SetterProps<number>> = ({
         />
       )}
       {opts.unit && (
-        <span className="text-xs text-muted-foreground">{opts.unit}</span>
+        <span className="shrink-0 text-xs text-muted-foreground">
+          {opts.unit}
+        </span>
       )}
     </div>
   );

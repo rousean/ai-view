@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Input } from '~/components/ui/input';
 import type { SetterProps } from '../setter.interface';
 
 interface NumberSetterProps {
@@ -17,6 +18,8 @@ export const NumberSetter: React.FC<SetterProps<number>> = ({
 }) => {
   const opts = (setterProps ?? {}) as NumberSetterProps;
   const v = typeof value === 'number' ? value : '';
+  // Local text state so typing intermediate values (like "-" or "1.") doesn't
+  // immediately commit; commit on blur / Enter.
   const [text, setText] = React.useState(String(v));
 
   React.useEffect(() => {
@@ -30,9 +33,8 @@ export const NumberSetter: React.FC<SetterProps<number>> = ({
 
   return (
     <div className="flex items-center gap-2">
-      <input
+      <Input
         type="number"
-        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
         value={text}
         min={opts.min}
         max={opts.max}
@@ -46,7 +48,9 @@ export const NumberSetter: React.FC<SetterProps<number>> = ({
         }}
       />
       {opts.unit && (
-        <span className="text-xs text-muted-foreground">{opts.unit}</span>
+        <span className="shrink-0 text-xs text-muted-foreground">
+          {opts.unit}
+        </span>
       )}
     </div>
   );

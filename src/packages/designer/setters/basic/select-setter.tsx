@@ -1,4 +1,11 @@
 import * as React from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select';
 import type { SetterProps } from '../setter.interface';
 
 export interface SelectOption {
@@ -21,22 +28,21 @@ export const SelectSetter: React.FC<SetterProps<string>> = ({
   const options = opts.options ?? [];
 
   return (
-    <select
-      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+    <Select
       value={value ?? ''}
       disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
+      onValueChange={(v) => onChange(v)}
     >
-      {opts.placeholder && (
-        <option value="" disabled>
-          {opts.placeholder}
-        </option>
-      )}
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder={opts.placeholder ?? '请选择'} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((o) => (
+          <SelectItem key={o.value} value={o.value}>
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };
