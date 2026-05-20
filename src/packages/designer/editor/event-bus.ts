@@ -1,4 +1,4 @@
-import type { Asset, Camera, DataSource, Project, Theme, WidgetNode } from '@schema/types'
+import type { Asset, Camera, DataSource, Project, WidgetNode } from '@schema/types'
 
 /**
  * Strongly-typed event map. Plugin-defined events use the `plugin.*` prefix
@@ -38,8 +38,7 @@ export interface EditorEventMap {
   'dataSource.fetched': { sourceId: string; data: unknown }
   'dataSource.failed': { sourceId: string; error: Error }
 
-  // Theme / asset
-  'theme.changed': { themeId: string }
+  // Asset
   'asset.added': { asset: Asset }
 
   // Page

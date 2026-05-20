@@ -46,9 +46,6 @@ export interface Page {
    */
   widgets: WidgetNode[]
 
-  /** Override Project.currentThemeId if set. */
-  themeId?: string
-
   /** Transition into this page (used during page switching/carousels). */
   transition?: PageTransition
 

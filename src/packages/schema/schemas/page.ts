@@ -35,7 +35,6 @@ export const PageSchema = z.object({
   grid: GridConfigSchema,
   guides: z.array(GuideSchema),
   widgets: z.array(WidgetNodeSchema),
-  themeId: z.string().optional(),
   transition: PageTransitionSchema.optional(),
   extensions: ExtensionsSchema,
 })

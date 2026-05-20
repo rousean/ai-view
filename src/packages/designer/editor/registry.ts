@@ -1,7 +1,7 @@
 /**
  * Generic registry pattern. Used by every "this-list-can-grow" subsystem:
  * widgets, setters, tools, commands, data-source types, transforms,
- * triggers, actions, animations, exporters, panels, themes, shortcuts.
+ * triggers, actions, animations, exporters, panels, shortcuts.
  *
  * Items must carry a `type` (or compatible discriminator) — but the
  * registry doesn't enforce uniqueness on any other field.

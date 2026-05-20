@@ -3,6 +3,10 @@
  */
 
 :root {
+  /* ── 颜色 · 文档级 ── */
+  --bg: #ffffff;
+  --fg: #1e1e1e;
+
   /* ── 颜色 · 面板 ── */
   --panel-bg: #ffffff;
   --panel-bg-2: #fbfbfb;
@@ -29,6 +33,23 @@
   --hover-bg: #f3f3f3;
   --selected-bg: #e5f4ff;
   --danger: #f24822;
+
+  /* ── 画布覆盖层 ── */
+  --grid-color: rgba(0, 0, 0, 0.05);
+  --grid-major-color: rgba(0, 0, 0, 0.10);
+  --ruler-color: #0d99ff;
+  --selection-color: #0d99ff;
+  --selection-handle-bg: #ffffff;
+  --hover-color: rgba(13, 153, 255, 0.55);
+  --alignment-color: #f24822;
+
+  /* ── 图表 ── */
+  --chart-axis-color: rgba(0, 0, 0, 0.45);
+  --chart-split-color: rgba(0, 0, 0, 0.06);
+
+  /* ── 页面画板（artboard） ── */
+  --page-ring: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  --page-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
 
   /* ── 颜色 · 状态点 ── */
   --dot-green: #14ae5c;

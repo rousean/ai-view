@@ -1,7 +1,6 @@
 import type { Asset } from './asset'
 import type { DataSource } from './data-source'
 import type { Page } from './page'
-import type { Theme } from './theme'
 
 /**
  * Project — root document. Serializing this to JSON produces a complete
@@ -27,8 +26,6 @@ export interface Project {
 
   /** Shared resources used across pages. */
   dataSources: DataSource[]
-  themes: Theme[]
-  currentThemeId: string
   assets: Asset[]
 
   /** Plugin-private namespace. */

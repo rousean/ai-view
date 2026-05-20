@@ -41,11 +41,20 @@ function calcTranslate(d: PieArcDatum<PieDatum>, move: number): string {
   return `translate(${-move * Math.cos(mid + Math.PI / 2)}, ${-move * Math.sin(mid + Math.PI / 2)})`
 }
 
+const BASE_PALETTE = [
+  '#0d99ff',
+  '#00d4ff',
+  '#7c5cff',
+  '#ff5edd',
+  '#fbbf24',
+  '#14ae5c',
+  '#f24822',
+]
+
 export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> = ({
   props: rawProps,
   data,
   layout,
-  theme,
 }) => {
   const props = { ...DEFAULT_DONUT_PROPS, ...rawProps }
   const svgRef = React.useRef<SVGSVGElement | null>(null)
@@ -55,17 +64,16 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
     return normalized.length > 0 ? normalized : FALLBACK_DATA
   }, [data])
 
-  // Stable colour palette: prefer theme.palette; fall back to d3 rainbow.
+  // Use the built-in palette; synthesize extra colours from d3 rainbow when
+  // there are more slices than preset colours.
   const palette = React.useMemo(() => {
-    const fromTheme = theme?.palette ?? []
-    if (fromTheme.length >= rows.length) return fromTheme.slice(0, rows.length)
-    // Synthesize the missing slots from interpolateRainbow.
-    const out = [...fromTheme]
+    if (BASE_PALETTE.length >= rows.length) return BASE_PALETTE.slice(0, rows.length)
+    const out = [...BASE_PALETTE]
     for (let i = out.length; i < rows.length; i++) {
       out.push(interpolateRainbow(i / Math.max(rows.length, 1)))
     }
     return out
-  }, [theme, rows.length])
+  }, [rows.length])
 
   React.useEffect(() => {
     if (!svgRef.current) return
@@ -85,7 +93,7 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
         .attr('x', layout.width / 2)
         .attr('y', 16)
         .attr('text-anchor', 'middle')
-        .attr('fill', theme?.tokens['--fg'] ?? '#1f2937')
+        .attr('fill', '#1e1e1e')
         .attr('font-size', 14)
         .text(props.title)
     }
@@ -159,7 +167,6 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
     props.showLabels,
     rows,
     palette,
-    theme,
   ])
 
   return (

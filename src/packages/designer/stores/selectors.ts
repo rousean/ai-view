@@ -1,4 +1,4 @@
-import type { Page, Project, Theme, WidgetNode } from '@schema/types'
+import type { Page, Project, WidgetNode } from '@schema/types'
 import type { DocumentState } from './document-store'
 
 /**
@@ -27,13 +27,6 @@ export const selectWidget =
 
 export const selectDataSource = (id: string) => (s: DocumentState) =>
   s.project?.dataSources.find((ds) => ds.id === id)
-
-export const selectCurrentTheme = (s: DocumentState): Theme | null => {
-  if (!s.project) return null
-  const page = selectCurrentPage(s)
-  const id = page?.themeId ?? s.project.currentThemeId
-  return s.project.themes.find((t) => t.id === id) ?? null
-}
 
 export const selectAsset = (id: string) => (s: DocumentState) =>
   s.project?.assets.find((a) => a.id === id)

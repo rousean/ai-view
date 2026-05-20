@@ -22,7 +22,7 @@ export function FloatingZoom() {
       >
         <Minus size={14} />
       </button>
-      <span className="t-num t-sm w-[42px] text-center">
+      <span className="t-num t-sm w-10.5 text-center">
         {Math.round(scale * 100)}%
       </span>
       <button

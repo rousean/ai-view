@@ -6,7 +6,6 @@ import type {
   Page,
   Point,
   Project,
-  Theme,
   WidgetNode,
 } from '@schema/types'
 import type { PersistenceAdapter } from '@schema/persistence'
@@ -513,13 +512,5 @@ export class DashboardEditor {
   getSelectedWidgets(): WidgetNode[] {
     const ids = new Set(this.getSelectedIds())
     return this.getAllWidgets().filter((w) => ids.has(w.id))
-  }
-
-  getCurrentTheme(): Theme | null {
-    const project = this.getProject()
-    if (!project) return null
-    const page = this.getCurrentPage()
-    const id = page?.themeId ?? project.currentThemeId
-    return project.themes.find((t) => t.id === id) ?? null
   }
 }

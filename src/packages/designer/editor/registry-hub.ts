@@ -44,9 +44,6 @@ export class RegistryHub {
   /** Sidebar / overlay panels. */
   readonly panels = new Registry<RegistryKeyed>('panels')
 
-  /** Themes registry (project also stores them, but here for plugin presets). */
-  readonly themes = new Registry<RegistryKeyed>('themes')
-
   /** Slot fill registry (UI extension points). */
   readonly slots = new Registry<RegistryKeyed>('slots')
 }

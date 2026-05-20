@@ -16,8 +16,8 @@ export const PageBackground: React.FC = () => {
         width: page.canvas.width,
         height: page.canvas.height,
         ...backgroundStyle(page.canvas.background, page.canvas),
-        // Neutral hairline + soft drop shadow. Works on light and dark
-        // canvases; intensity comes from theme tokens so palettes can tune it.
+        // Neutral hairline + soft drop shadow driven by --page-ring /
+        // --page-shadow in editor.css.
         boxShadow:
           'var(--page-ring, 0 0 0 1px rgba(0,0,0,0.08)),' +
           ' var(--page-shadow, 0 12px 36px rgba(0,0,0,0.18))',

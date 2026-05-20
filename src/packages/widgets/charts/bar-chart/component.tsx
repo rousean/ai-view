@@ -40,7 +40,6 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
   props: rawProps,
   data,
   layout,
-  theme,
 }) => {
   const props = { ...DEFAULT_BAR_PROPS, ...rawProps }
 
@@ -51,12 +50,11 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
       : FALLBACK_DATA.map((d) => ({ x: d.category, y: d.value }))
   }, [data])
 
-  const color = props.barColor || theme?.palette?.[0] || '#5b8def'
-  // ECharts option needs concrete colour strings, so resolve theme tokens
-  // here rather than relying on CSS var() (which echarts can't read).
-  const fgColor = theme?.tokens['--fg'] ?? '#1f2937'
-  const axisColor = theme?.tokens['--chart-axis-color'] ?? 'rgba(0,0,0,0.45)'
-  const splitColor = theme?.tokens['--chart-split-color'] ?? 'rgba(0,0,0,0.06)'
+  const color = props.barColor || '#0d99ff'
+  // ECharts needs concrete colour strings; CSS var() is not readable from JS.
+  const fgColor = '#1e1e1e'
+  const axisColor = 'rgba(0,0,0,0.45)'
+  const splitColor = 'rgba(0,0,0,0.06)'
 
   const option = React.useMemo<EChartsOption>(() => {
     return {

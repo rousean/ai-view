@@ -27,9 +27,7 @@ export const GridLayer: React.FC = () => {
   const { width, height } = page.canvas
   const minor = page.grid.size
   const major = minor * MAJOR_EVERY
-  // Colours come from theme tokens that ThemeStyleProvider has injected
-  // onto a wrapping element. The fallback is a neutral mid-gray that
-  // survives on both dark and light canvases — never assume a palette.
+  // Colours come from --grid-color / --grid-major-color in editor.css.
   // page.grid.color (if explicitly set on the document) takes precedence.
   const minorStroke = page.grid.color ?? 'var(--grid-color, rgba(127,127,127,0.18))'
   const majorStroke = `var(--grid-major-color, ${page.grid.color ?? 'rgba(127,127,127,0.32)'})`

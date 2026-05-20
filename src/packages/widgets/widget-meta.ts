@@ -1,6 +1,6 @@
 import type * as React from 'react'
 import type { z } from 'zod'
-import type { Layout, ResizeInfo, Theme, WidgetNode } from '@schema/types'
+import type { Layout, ResizeInfo, WidgetNode } from '@schema/types'
 
 /** Tab bucket for the property panel. Convention follows DataV. */
 export type PropGroup = '配置' | '样式' | '数据' | '交互' | '动画' | string
@@ -76,7 +76,6 @@ export interface WidgetRenderProps<TProps extends object = Record<string, unknow
   /** Already mapped + transformed. May be undefined when no binding / loading. */
   data: unknown
   layout: Layout
-  theme: Theme | null
   /** True in the designer; false in the runtime renderer. */
   designMode: boolean
 }

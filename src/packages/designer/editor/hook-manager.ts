@@ -8,7 +8,7 @@
 
 export type ChangeKind = 'create' | 'update' | 'delete'
 
-export type ChangeTarget = 'widget' | 'page' | 'dataSource' | 'theme' | 'asset' | 'guide'
+export type ChangeTarget = 'widget' | 'page' | 'dataSource' | 'asset' | 'guide'
 
 export interface ChangePayload<T> {
   kind: ChangeKind

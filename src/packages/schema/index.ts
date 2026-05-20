@@ -22,7 +22,6 @@ export {
   LocalStoragePersistence,
   createEmptyProject,
   createDefaultPage,
-  createDefaultTheme,
   createSampleStaticDataSource,
 } from './persistence'
 
@@ -32,7 +31,6 @@ export {
   createWidgetId,
   createPageId,
   createDataSourceId,
-  createThemeId,
   createAssetId,
   createGuideId,
   createGroupId,

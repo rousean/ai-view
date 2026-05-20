@@ -5,7 +5,7 @@ export interface BarChartProps {
   /** Show / hide axes. */
   showXAxis: boolean
   showYAxis: boolean
-  /** Bar color (hex). Falls back to theme.palette[0] when empty. */
+  /** Bar color (hex). Falls back to a built-in default when empty. */
   barColor: string
   /** Show value labels on top of bars. */
   showLabels: boolean

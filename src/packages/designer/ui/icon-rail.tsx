@@ -28,8 +28,9 @@ const ITEMS: {
 export function IconRail({ active, onChange }: IconRailProps) {
   return (
     <div
-      className="flex w-[var(--rail-w)] shrink-0 flex-col items-center gap-0.5 border-r py-2"
+      className="flex shrink-0 flex-col items-center gap-0.5 border-r py-2"
       style={{
+        width: 'var(--rail-w)',
         background: 'var(--panel-bg)',
         borderColor: 'var(--border)',
       }}

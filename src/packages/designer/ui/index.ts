@@ -1,5 +1,4 @@
 export { EditorRoot } from './editor-root'
-export { ThemeStyleProvider } from './theme-style-provider'
 export { TopBar } from './top-bar'
 export { IconRail } from './icon-rail'
 export type { RailKey } from './icon-rail'

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import type { WidgetMeta } from '@widgets/widget-meta'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
-import { selectCurrentTheme, selectWidget } from '../stores/selectors'
+import { selectWidget } from '../stores/selectors'
 
 interface WidgetContainerProps {
   id: string
@@ -18,7 +18,6 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
 }) {
   const editor = useDashboardEditor()
   const widget = useDocumentState((s) => selectWidget(id)(s) ?? null)
-  const theme = useDocumentState((s) => selectCurrentTheme(s))
   const isSelected = useEditorState((s) => s.selectedIds.includes(id))
   const isHovered = useEditorState((s) => s.hoverId === id)
 
@@ -68,7 +67,6 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
           props={widget.props as never}
           data={undefined}
           layout={layout}
-          theme={theme}
           designMode
         />
       ) : (

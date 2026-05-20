@@ -18,7 +18,7 @@ import type { PropConfig, WidgetMeta } from '@widgets/widget-meta'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
 import { getByPath, setByPath } from '../setters/path-utils'
-import { selectCurrentPage, selectCurrentTheme, selectWidget } from '../stores/selectors'
+import { selectCurrentPage, selectWidget } from '../stores/selectors'
 import {
   ColorInput,
   NumInput,
@@ -30,7 +30,7 @@ import {
 
 /**
  * Right-side property panel — Figma-style with two top tabs (画布 / 图表).
- * 画布 tab edits page-level config (size, background, grid, theme, fit mode).
+ * 画布 tab edits page-level config (size, background, grid, fit mode).
  * 图表 tab edits the selected widget; sections come from WidgetMeta.propsConfig.
  */
 export function PropertyPanel() {
@@ -91,7 +91,6 @@ export function PropertyPanel() {
 function CanvasProps() {
   const editor = useDashboardEditor()
   const page = useDocumentState((s) => selectCurrentPage(s))
-  const theme = useDocumentState((s) => selectCurrentTheme(s))
   if (!page) return null
 
   const bg = page.canvas.background
@@ -258,29 +257,6 @@ function CanvasProps() {
           <Toggle on={page.grid.snap} onChange={(on) => editor.setGrid({ snap: on })} />
         </PropRow>
       </PropSection>
-
-      {theme && (
-        <PropSection title="主题色">
-          <div className="px-3 pt-1 pb-2">
-            <div className="grid grid-cols-7 gap-1.5">
-              {theme.palette.map((c, i) => (
-                <div
-                  key={c + i}
-                  className="aspect-square cursor-pointer rounded"
-                  style={{
-                    background: c,
-                    boxShadow:
-                      i === 0
-                        ? '0 0 0 2px var(--panel-bg), 0 0 0 4px var(--accent)'
-                        : '0 0 0 1px rgba(0,0,0,.1)',
-                  }}
-                />
-              ))}
-            </div>
-            <div className="t-3 t-xs mt-2">{theme.name} · 应用于所有图表</div>
-          </div>
-        </PropSection>
-      )}
     </>
   )
 }

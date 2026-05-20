@@ -3,7 +3,6 @@ import { AssetSchema } from './asset'
 import { ExtensionsSchema } from './common'
 import { DataSourceSchema } from './data-source'
 import { PageSchema } from './page'
-import { ThemeSchema } from './theme'
 
 export const ProjectSchema = z.object({
   version: z.string(),
@@ -15,8 +14,6 @@ export const ProjectSchema = z.object({
   pages: z.array(PageSchema).min(1),
   currentPageId: z.string(),
   dataSources: z.array(DataSourceSchema),
-  themes: z.array(ThemeSchema),
-  currentThemeId: z.string(),
   assets: z.array(AssetSchema),
   extensions: ExtensionsSchema,
 })

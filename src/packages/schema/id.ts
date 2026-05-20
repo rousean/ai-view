@@ -32,7 +32,6 @@ export function createId(prefix?: string): string {
 export const createWidgetId = () => createId('w')
 export const createPageId = () => createId('p')
 export const createDataSourceId = () => createId('ds')
-export const createThemeId = () => createId('th')
 export const createAssetId = () => createId('as')
 export const createGuideId = () => createId('g')
 export const createGroupId = () => createId('grp')

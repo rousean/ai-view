@@ -26,7 +26,6 @@ import {
   LayersPanel,
   SecondaryPanel,
 } from './secondary-panels'
-import { ThemeStyleProvider } from './theme-style-provider'
 import { TopBar } from './top-bar'
 
 interface EditorRootProps {
@@ -153,7 +152,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
 
   return (
     <EditorProvider editor={editor}>
-      <ThemeStyleProvider className={`editor-root ${className ?? ''}`}>
+      <div className={`editor-root ${className ?? ''}`}>
         <TooltipProvider delayDuration={300}>
           <TopBar />
           <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -189,7 +188,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
             </div>
           </DragDropProvider>
         </TooltipProvider>
-      </ThemeStyleProvider>
+      </div>
     </EditorProvider>
   )
 }
