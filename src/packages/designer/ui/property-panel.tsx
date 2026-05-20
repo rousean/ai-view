@@ -44,16 +44,13 @@ export function PropertyPanel() {
 
   return (
     <aside
+      className="flex w-[var(--panel-w-right)] shrink-0 flex-col border-l"
       style={{
-        width: 'var(--panel-w-right)',
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
         background: 'var(--panel-bg)',
-        borderLeft: '1px solid var(--border)',
+        borderColor: 'var(--border)',
       }}
     >
-      <div className="tabs" style={{ flexShrink: 0 }}>
+      <div className="tabs shrink-0">
         <button
           className={'tab ' + (tab === 'canvas' ? 'active' : '')}
           onClick={() => setTab('canvas')}
@@ -67,28 +64,20 @@ export function PropertyPanel() {
           图表
           {selectedIds.length === 1 && (
             <span
-              style={{
-                marginLeft: 4,
-                display: 'inline-block',
-                width: 6,
-                height: 6,
-                borderRadius: 3,
-                background: 'var(--accent)',
-                verticalAlign: 'middle',
-              }}
+              className="ml-1 inline-block h-1.5 w-1.5 rounded-full align-middle"
+              style={{ background: 'var(--accent)' }}
             />
           )}
         </button>
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
         <button
-          className="btn btn-ghost-icon"
-          style={{ alignSelf: 'center', marginRight: 4 }}
+          className="btn btn-ghost-icon mr-1 self-center"
           aria-label="更多"
         >
           <MoreHorizontal size={14} />
         </button>
       </div>
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="min-h-0 flex-1">
         {tab === 'canvas' ? <CanvasProps /> : <ChartProps />}
       </ScrollArea>
     </aside>
@@ -272,27 +261,23 @@ function CanvasProps() {
 
       {theme && (
         <PropSection title="主题色">
-          <div style={{ padding: '4px 12px 8px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+          <div className="px-3 pt-1 pb-2">
+            <div className="grid grid-cols-7 gap-1.5">
               {theme.palette.map((c, i) => (
                 <div
                   key={c + i}
+                  className="aspect-square cursor-pointer rounded"
                   style={{
-                    aspectRatio: '1',
-                    borderRadius: 4,
                     background: c,
                     boxShadow:
                       i === 0
                         ? '0 0 0 2px var(--panel-bg), 0 0 0 4px var(--accent)'
                         : '0 0 0 1px rgba(0,0,0,.1)',
-                    cursor: 'pointer',
                   }}
                 />
               ))}
             </div>
-            <div className="t-3 t-xs" style={{ marginTop: 8 }}>
-              {theme.name} · 应用于所有图表
-            </div>
+            <div className="t-3 t-xs mt-2">{theme.name} · 应用于所有图表</div>
           </div>
         </PropSection>
       )}
@@ -333,22 +318,24 @@ function ChartProps() {
 
   if (selectedIds.length === 0) {
     return (
-      <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-3)' }}>
+      <div
+        className="p-6 text-center"
+        style={{ color: 'var(--text-3)' }}
+      >
         <ChartBar size={28} stroke="var(--text-4)" />
-        <div style={{ marginTop: 10, fontSize: 13 }}>未选中图表</div>
-        <div className="t-4 t-xs" style={{ marginTop: 4 }}>
-          在画布中点击图表以查看属性
-        </div>
+        <div className="mt-2.5 text-[13px]">未选中图表</div>
+        <div className="t-4 t-xs mt-1">在画布中点击图表以查看属性</div>
       </div>
     )
   }
   if (selectedIds.length > 1) {
     return (
-      <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-3)' }}>
-        <div style={{ fontSize: 13 }}>已选中 {selectedIds.length} 个图表</div>
-        <div className="t-4 t-xs" style={{ marginTop: 4 }}>
-          多选批量编辑暂未实现
-        </div>
+      <div
+        className="p-6 text-center"
+        style={{ color: 'var(--text-3)' }}
+      >
+        <div className="text-[13px]">已选中 {selectedIds.length} 个图表</div>
+        <div className="t-4 t-xs mt-1">多选批量编辑暂未实现</div>
       </div>
     )
   }
@@ -361,39 +348,20 @@ function ChartProps() {
     <>
       {/* 选中头部卡 */}
       <div
-        style={{
-          padding: '10px 12px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          borderBottom: '1px solid var(--border)',
-        }}
+        className="flex items-center gap-2 border-b px-3 pt-2.5 pb-3"
+        style={{ borderColor: 'var(--border)' }}
       >
         <div
+          className="flex h-8 w-8 items-center justify-center rounded"
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 4,
             background: 'var(--accent-soft)',
             color: 'var(--accent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
           }}
         >
           <Icon size={18} />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            className="t-sm fw-5"
-            style={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {widget.name}
-          </div>
+        <div className="min-w-0 flex-1">
+          <div className="t-sm fw-5 truncate">{widget.name}</div>
           <div className="t-xs t-3 t-mono">#{widget.id.slice(0, 8)}</div>
         </div>
         <button
@@ -468,7 +436,7 @@ function ChartProps() {
         <PropRow label="数据源">
           <div className="prop-input">
             <Database size={12} style={{ color: 'var(--text-2)' }} />
-            <input defaultValue="未绑定" style={{ marginLeft: 4 }} disabled />
+            <input defaultValue="未绑定" className="ml-1" disabled />
             <ChevronDown size={12} style={{ color: 'var(--text-3)' }} />
           </div>
         </PropRow>

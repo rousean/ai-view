@@ -16,31 +16,19 @@ export function PropSection({
     <div>
       <button
         onClick={() => setOpen((o) => !o)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          width: '100%',
-          padding: '10px 12px 8px',
-          border: 'none',
-          background: 'transparent',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-        }}
+        className="flex w-full cursor-pointer items-center justify-between border-none bg-transparent px-3 pt-2.5 pb-2 font-[inherit]"
       >
-        <span className="section-label" style={{ padding: 0 }}>
-          {title}
-        </span>
+        <span className="section-label p-0">{title}</span>
         <ChevronDown
           size={12}
+          className="transition-transform duration-150"
           style={{
             color: 'var(--text-3)',
             transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-            transition: 'transform .15s',
           }}
         />
       </button>
-      {open && <div style={{ paddingBottom: 8 }}>{children}</div>}
+      {open && <div className="pb-2">{children}</div>}
       <div className="divider-h" />
     </div>
   )
@@ -93,8 +81,9 @@ export function NumInput({
   }
   return (
     <div
-      className="prop-input"
-      style={{ width, opacity: disabled ? 0.5 : undefined }}
+      className={'prop-input ' + (disabled ? 'opacity-50' : '')}
+      // `width` is a per-row dynamic value, stays inline.
+      style={{ width }}
       data-disabled={disabled || undefined}
     >
       {prefix && <span className="prop-prefix">{prefix}</span>}
@@ -129,14 +118,17 @@ export function ColorInput({
   const [text, setText] = React.useState(hexLabel(v))
   React.useEffect(() => setText(hexLabel(v)), [v])
   return (
-    <div className="prop-input" style={{ gap: 6 }}>
-      <label className="swatch" style={{ background: v, cursor: onChange ? 'pointer' : 'default' }}>
+    <div className="prop-input gap-1.5">
+      <label
+        className={'swatch ' + (onChange ? 'cursor-pointer' : 'cursor-default')}
+        style={{ background: v }}
+      >
         {onChange && (
           <input
             type="color"
             value={v.startsWith('#') ? v.slice(0, 7) : v}
             onChange={(e) => onChange(e.target.value)}
-            style={{ width: 0, height: 0, opacity: 0, position: 'absolute' }}
+            className="absolute h-0 w-0 opacity-0"
           />
         )}
       </label>
@@ -147,7 +139,7 @@ export function ColorInput({
           if (/^[0-9a-fA-F]{3,8}$/.test(text)) onChange?.('#' + text.toUpperCase())
           else setText(hexLabel(v))
         }}
-        style={{ flex: 1 }}
+        className="flex-1"
       />
     </div>
   )
@@ -180,30 +172,17 @@ export function Toggle({
       aria-checked={on}
       disabled={disabled}
       onClick={() => onChange?.(!on)}
+      className={
+        'flex h-4 w-7 items-center rounded-lg border-none p-0.5 transition-colors duration-150 ' +
+        (disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer')
+      }
       style={{
-        width: 28,
-        height: 16,
-        borderRadius: 8,
-        border: 'none',
-        padding: 2,
-        cursor: disabled ? 'not-allowed' : 'pointer',
         background: on ? 'var(--accent)' : 'var(--border-strong)',
-        transition: 'background .15s',
-        display: 'flex',
-        alignItems: 'center',
-        opacity: disabled ? 0.5 : 1,
       }}
     >
       <span
-        style={{
-          width: 12,
-          height: 12,
-          borderRadius: 6,
-          background: '#fff',
-          transform: on ? 'translateX(12px)' : 'translateX(0)',
-          transition: 'transform .15s',
-          boxShadow: '0 1px 2px rgba(0,0,0,.2)',
-        }}
+        className="block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-150"
+        style={{ transform: on ? 'translateX(12px)' : 'translateX(0)' }}
       />
     </button>
   )
@@ -220,18 +199,15 @@ export function Segmented<T extends string>({
   options: { value: T; label: string }[]
 }) {
   return (
-    <div style={{ display: 'flex', gap: 4 }}>
+    <div className="flex gap-1">
       {options.map((o) => {
         const isSel = value === o.value
         return (
           <button
             key={o.value}
-            className="btn"
+            className="btn h-6 px-2 text-[11px]"
             onClick={() => onChange?.(o.value)}
             style={{
-              height: 24,
-              fontSize: 11,
-              padding: '0 8px',
               background: isSel ? 'var(--accent-soft)' : 'transparent',
               color: isSel ? 'var(--accent)' : 'var(--text-2)',
             }}

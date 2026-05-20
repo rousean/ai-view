@@ -157,7 +157,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
         <TooltipProvider delayDuration={300}>
           <TopBar />
           <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+            <div className="flex min-h-0 flex-1">
               <IconRail active={rail} onChange={setRail} />
               {rail === 'mat' && <MaterialsPanel />}
               {rail === 'layers' && (
@@ -180,7 +180,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
                   <HistoryPanel />
                 </SecondaryPanel>
               )}
-              <main style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+              <main className="relative min-w-0 flex-1">
                 <CanvasViewport />
                 <FloatingTools />
                 <FloatingZoom />
