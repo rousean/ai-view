@@ -9,18 +9,10 @@ export function FloatingZoom() {
 
   return (
     <div
+      className="absolute right-4 bottom-4 z-20 flex items-center rounded-md p-0.5"
       style={{
-        position: 'absolute',
-        right: 16,
-        bottom: 16,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0,
         background: 'var(--panel-bg)',
-        borderRadius: 6,
         boxShadow: 'var(--shadow-popover)',
-        padding: 2,
-        zIndex: 20,
       }}
     >
       <button
@@ -30,10 +22,7 @@ export function FloatingZoom() {
       >
         <Minus size={14} />
       </button>
-      <span
-        className="t-num t-sm"
-        style={{ width: 42, textAlign: 'center' }}
-      >
+      <span className="t-num t-sm w-[42px] text-center">
         {Math.round(scale * 100)}%
       </span>
       <button
@@ -43,7 +32,7 @@ export function FloatingZoom() {
       >
         <Plus size={14} />
       </button>
-      <div className="divider-v" style={{ height: 16, alignSelf: 'center' }} />
+      <div className="divider-v h-4 self-center" />
       <button
         className="btn btn-ghost-icon"
         onClick={() => editor.resetView()}

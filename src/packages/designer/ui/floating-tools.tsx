@@ -29,20 +29,11 @@ export function FloatingTools() {
 
   return (
     <div
+      className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-px rounded-lg border p-1"
       style={{
-        position: 'absolute',
-        top: 12,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 20,
-        display: 'flex',
-        alignItems: 'center',
-        padding: 4,
         background: 'var(--panel-bg)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--r-lg)',
+        borderColor: 'var(--border)',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
-        gap: 1,
       }}
     >
       <ToolButton
@@ -88,22 +79,19 @@ function ToolButton({ label, icon: Icon, onClick, active, placeholder }: ToolBut
         <button
           onClick={placeholder ? undefined : onClick}
           disabled={placeholder}
-          style={{
-            width: 28,
-            height: 28,
-            padding: 0,
-            border: 'none',
-            borderRadius: 'var(--r-sm)',
-            background: active ? 'var(--accent-soft)' : 'transparent',
-            color: active ? 'var(--accent)' : placeholder ? 'var(--text-4)' : 'var(--text-1)',
-            cursor: placeholder ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            opacity: placeholder ? 0.7 : 1,
-          }}
           aria-label={label}
+          className={
+            'flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border-none p-0 ' +
+            (placeholder ? 'cursor-not-allowed opacity-70' : 'cursor-pointer')
+          }
+          style={{
+            background: active ? 'var(--accent-soft)' : 'transparent',
+            color: active
+              ? 'var(--accent)'
+              : placeholder
+                ? 'var(--text-4)'
+                : 'var(--text-1)',
+          }}
         >
           <Icon size={14} />
         </button>
@@ -119,7 +107,8 @@ function Divider() {
   return (
     <div
       aria-hidden
-      style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 3px' }}
+      className="mx-[3px] h-4 w-px"
+      style={{ background: 'var(--border)' }}
     />
   )
 }

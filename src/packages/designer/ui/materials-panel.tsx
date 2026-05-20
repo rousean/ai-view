@@ -47,19 +47,20 @@ export function MaterialsPanel() {
 
   return (
     <div
+      className="flex w-[var(--panel-w-left)] shrink-0 flex-col border-r"
       style={{
-        width: 'var(--panel-w-left)',
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
         background: 'var(--panel-bg)',
-        borderRight: '1px solid var(--border)',
+        borderColor: 'var(--border)',
       }}
     >
       {/* Search */}
-      <div style={{ padding: '10px 10px 0' }}>
-        <div className="prop-input" style={{ height: 28, padding: '0 8px' }}>
-          <Search size={13} style={{ color: 'var(--text-3)', marginRight: 6 }} />
+      <div className="px-2.5 pt-2.5">
+        <div className="prop-input h-7 px-2">
+          <Search
+            size={13}
+            className="mr-1.5"
+            style={{ color: 'var(--text-3)' }}
+          />
           <input
             placeholder="搜索物料"
             value={query}
@@ -69,20 +70,13 @@ export function MaterialsPanel() {
         </div>
       </div>
 
-      {/* Category tabs (horizontal scroll) */}
+      {/* Category tabs (horizontal scroll). Tabs grey out + become inert
+          while a search is active, signalling that results span all categories. */}
       <div
-        className="tabs scroll-y"
-        style={{
-          marginTop: 8,
-          padding: '0 6px',
-          flexShrink: 0,
-          overflowX: 'auto',
-          overflowY: 'hidden',
-          // Category tabs become inert / muted while a search is active to
-          // signal that the displayed results span ALL categories.
-          opacity: isSearching ? 0.4 : 1,
-          pointerEvents: isSearching ? 'none' : 'auto',
-        }}
+        className={
+          'tabs scroll-y mt-2 shrink-0 overflow-x-auto overflow-y-hidden px-1.5 ' +
+          (isSearching ? 'pointer-events-none opacity-40' : '')
+        }
       >
         {categoryIds.map((cat) => (
           <button
@@ -96,19 +90,17 @@ export function MaterialsPanel() {
       </div>
 
       {/* Grid */}
-      <ScrollArea className="flex-1 min-h-0">
-        <div style={{ padding: 8 }}>
-          <div className="section-label" style={{ padding: '6px 4px 8px' }}>
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="p-2">
+          <div className="section-label px-1 pt-1.5 pb-2">
             {isSearching
               ? `搜索结果 · ${items.length}`
               : `${categoryLabel(activeCat)} · ${items.length}`}
           </div>
           {items.length === 0 ? (
-            <p className="t-3 t-xs" style={{ padding: '16px 4px', textAlign: 'center' }}>
-              没有匹配的物料
-            </p>
+            <p className="t-3 t-xs px-1 py-4 text-center">没有匹配的物料</p>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <div className="grid grid-cols-2 gap-1.5">
               {items.map((meta) => (
                 <MaterialCard key={meta.type} meta={meta} />
               ))}
@@ -119,22 +111,15 @@ export function MaterialsPanel() {
 
       {/* Footer — data source indicator (placeholder for P8) */}
       <button
+        className="flex cursor-pointer items-center gap-1.5 border-0 border-t px-2.5 py-2 text-left text-xs"
         style={{
-          borderTop: '1px solid var(--border)',
-          padding: '8px 10px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
+          borderTopColor: 'var(--border)',
           color: 'var(--text-2)',
-          fontSize: 12,
           background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          textAlign: 'left',
         }}
       >
         <Database size={14} />
-        <span style={{ flex: 1 }}>数据源</span>
+        <span className="flex-1">数据源</span>
         <span className="t-4 t-xs">0 个已连接</span>
         <ChevronRight size={12} />
       </button>

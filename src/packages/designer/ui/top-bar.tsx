@@ -3,9 +3,9 @@ import {
   ChevronDown,
   Eye,
   History,
+  Minus,
   MoreHorizontal,
   Plus,
-  Minus,
   Redo2,
   Send,
   Share2,
@@ -17,7 +17,11 @@ import {
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
-import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
+import {
+  useDashboardEditor,
+  useDocumentState,
+  useEditorState,
+} from '../editor/editor-context'
 
 /**
  * Top toolbar — Figma-style.
@@ -39,31 +43,22 @@ export function TopBar() {
 
   return (
     <div
+      className="flex h-[var(--topbar-h)] shrink-0 items-center gap-1.5 border-b pr-2 pl-3"
       style={{
-        height: 'var(--topbar-h)',
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 8px 0 12px',
         background: 'var(--panel-bg)',
-        borderBottom: '1px solid var(--border)',
-        gap: 6,
+        borderColor: 'var(--border)',
       }}
     >
       {/* Left: logo + project name + auto-save */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+      <div className="flex min-w-0 items-center gap-2.5">
         <Logo size={20} />
-        <span className="t-3" style={{ fontSize: 12 }}>
-          /
-        </span>
+        <span className="t-3 text-xs">/</span>
         <ProjectNameEditor name={projectName} />
-        <span className="t-4 t-xs" style={{ marginLeft: 4 }}>
-          ● 已自动保存
-        </span>
+        <span className="t-4 t-xs ml-1">● 已自动保存</span>
       </div>
 
       {/* Center: undo / redo / zoom / history */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 2 }}>
+      <div className="flex flex-1 justify-center gap-0.5">
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -88,9 +83,9 @@ export function TopBar() {
           </TooltipTrigger>
           <TooltipContent>重做 ⌘⇧Z</TooltipContent>
         </Tooltip>
-        <div className="divider-v" style={{ height: 18, alignSelf: 'center' }} />
+        <div className="divider-v h-[18px] self-center" />
         <ZoomMenu scale={scale} />
-        <div className="divider-v" style={{ height: 18, alignSelf: 'center' }} />
+        <div className="divider-v h-[18px] self-center" />
         <Tooltip>
           <TooltipTrigger asChild>
             <button className="btn btn-ghost-icon" disabled>
@@ -105,7 +100,7 @@ export function TopBar() {
            Preview / Share / More are visual-only placeholders right now —
            disabled with explanatory tooltips so it's clear they exist on
            purpose but aren't wired yet. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="flex items-center gap-2">
         <Avatars />
         <Tooltip>
           <TooltipTrigger asChild>
@@ -178,8 +173,7 @@ function ProjectNameEditor({ name }: { name: string }) {
         // autoFocus is the right UX. Suppressing the generic a11y rule.
         // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus
-        className="input"
-        style={{ width: 220, fontSize: 13, fontWeight: 500, height: 28 }}
+        className="input h-7 w-[220px] text-[13px] font-medium"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
@@ -196,8 +190,7 @@ function ProjectNameEditor({ name }: { name: string }) {
   return (
     <button
       onClick={() => setEditing(true)}
-      className="btn"
-      style={{ height: 28, fontSize: 13, fontWeight: 500, padding: '0 8px' }}
+      className="btn h-7 px-2 text-[13px] font-medium"
       title="点击重命名"
     >
       {name || '未命名'}
@@ -211,7 +204,7 @@ function ZoomMenu({ scale }: { scale: number }) {
   const editor = useDashboardEditor()
   const presets = [0.25, 0.5, 0.75, 1, 1.5, 2]
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+    <div className="flex items-center gap-0.5">
       <button
         className="btn btn-ghost-icon"
         onClick={() => editor.zoomBy(-0.1)}
@@ -221,7 +214,7 @@ function ZoomMenu({ scale }: { scale: number }) {
       </button>
       <Popover>
         <PopoverTrigger asChild>
-          <button className="btn" style={{ width: 64, padding: 0 }}>
+          <button className="btn w-16 p-0">
             <span className="t-num">{Math.round(scale * 100)}%</span>
             <ChevronDown size={12} />
           </button>
@@ -229,39 +222,25 @@ function ZoomMenu({ scale }: { scale: number }) {
         <PopoverContent
           align="center"
           sideOffset={4}
-          className="w-40 rounded-md p-1"
+          className="w-40 rounded-md border p-1"
           style={{
             background: 'var(--panel-bg)',
-            border: '1px solid var(--border)',
+            borderColor: 'var(--border)',
             boxShadow: 'var(--shadow-popover)',
           }}
         >
           {presets.map((z) => (
             <button
               key={z}
-              className="btn"
-              style={{
-                display: 'flex',
-                width: '100%',
-                justifyContent: 'space-between',
-                padding: '0 8px',
-                height: 28,
-              }}
+              className="btn flex h-7 w-full justify-between px-2"
               onClick={() => editor.setCamera({ scale: z })}
             >
               <span>缩放至 {Math.round(z * 100)}%</span>
             </button>
           ))}
-          <div className="divider-h" style={{ margin: '4px 0' }} />
+          <div className="divider-h my-1" />
           <button
-            className="btn"
-            style={{
-              display: 'flex',
-              width: '100%',
-              justifyContent: 'space-between',
-              padding: '0 8px',
-              height: 28,
-            }}
+            className="btn flex h-7 w-full justify-between px-2"
             onClick={() => editor.resetView()}
           >
             <span>适应屏幕</span>
@@ -289,22 +268,14 @@ function Avatars() {
     ['+2', '#8a8a8a'],
   ]
   return (
-    <div style={{ display: 'flex', marginRight: 4 }}>
+    <div className="mr-1 flex">
       {stack.map(([label, bg], i) => (
         <div
           key={i}
+          className="flex h-6 w-6 items-center justify-center rounded-full border-2 text-[11px] font-medium text-white"
           style={{
-            width: 24,
-            height: 24,
-            borderRadius: 12,
             background: bg,
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 11,
-            fontWeight: 500,
-            border: '2px solid var(--panel-bg)',
+            borderColor: 'var(--panel-bg)',
             marginLeft: i === 0 ? 0 : -6,
           }}
         >

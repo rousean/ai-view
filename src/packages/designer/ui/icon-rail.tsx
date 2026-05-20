@@ -9,7 +9,11 @@ interface IconRailProps {
   onChange: (next: RailKey) => void
 }
 
-const ITEMS: { id: Exclude<RailKey, null>; label: string; Icon: React.ComponentType<{ size?: number }> }[] = [
+const ITEMS: {
+  id: Exclude<RailKey, null>
+  label: string
+  Icon: React.ComponentType<{ size?: number }>
+}[] = [
   { id: 'mat', label: '物料', Icon: Plus },
   { id: 'layers', label: '图层', Icon: Layers },
   { id: 'data', label: '数据', Icon: Database },
@@ -24,16 +28,10 @@ const ITEMS: { id: Exclude<RailKey, null>; label: string; Icon: React.ComponentT
 export function IconRail({ active, onChange }: IconRailProps) {
   return (
     <div
+      className="flex w-[var(--rail-w)] shrink-0 flex-col items-center gap-0.5 border-r py-2"
       style={{
-        width: 'var(--rail-w)',
-        flexShrink: 0,
         background: 'var(--panel-bg)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '8px 0',
-        gap: 2,
+        borderColor: 'var(--border)',
       }}
     >
       {ITEMS.map((it) => {
@@ -44,17 +42,10 @@ export function IconRail({ active, onChange }: IconRailProps) {
               <button
                 onClick={() => onChange(isActive ? null : it.id)}
                 aria-pressed={isActive}
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border-none"
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 6,
-                  border: 'none',
                   background: isActive ? 'var(--accent-soft)' : 'transparent',
                   color: isActive ? 'var(--accent)' : 'var(--text-2)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
                 }}
               >
                 <it.Icon size={18} />
@@ -64,10 +55,10 @@ export function IconRail({ active, onChange }: IconRailProps) {
           </Tooltip>
         )
       })}
-      <div style={{ flex: 1 }} />
+      <div className="flex-1" />
       <Tooltip>
         <TooltipTrigger asChild>
-          <button className="btn btn-ghost-icon" style={{ marginBottom: 6 }}>
+          <button className="btn btn-ghost-icon mb-1.5">
             <Settings size={16} />
           </button>
         </TooltipTrigger>

@@ -33,34 +33,25 @@ interface SecondaryPanelProps {
 export function SecondaryPanel({ title, action, children }: SecondaryPanelProps) {
   return (
     <div
+      className="flex w-[var(--panel-w-left)] shrink-0 flex-col border-r"
       style={{
-        width: 'var(--panel-w-left)',
-        flexShrink: 0,
         background: 'var(--panel-bg)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
+        borderColor: 'var(--border)',
       }}
     >
       <div
-        style={{
-          height: 36,
-          padding: '0 12px',
-          display: 'flex',
-          alignItems: 'center',
-          borderBottom: '1px solid var(--border)',
-          gap: 8,
-        }}
+        className="flex h-9 items-center gap-2 border-b px-3"
+        style={{ borderColor: 'var(--border)' }}
       >
         <span className="t-md fw-5">{title}</span>
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
         {action ?? (
           <button className="btn btn-ghost-icon" aria-label="新增">
             <Plus size={14} />
           </button>
         )}
       </div>
-      <ScrollArea className="flex-1 min-h-0">{children}</ScrollArea>
+      <ScrollArea className="min-h-0 flex-1">{children}</ScrollArea>
     </div>
   )
 }
@@ -88,11 +79,9 @@ export function LayersPanel() {
   const ordered = [...widgets].reverse()
 
   return (
-    <div style={{ padding: '4px 0' }}>
+    <div className="py-1">
       {ordered.length === 0 && (
-        <p className="t-3 t-xs" style={{ padding: 16, textAlign: 'center' }}>
-          画布上还没有任何组件
-        </p>
+        <p className="t-3 t-xs p-4 text-center">画布上还没有任何组件</p>
       )}
       {ordered.map((w) => {
         const isSel = selectedIds.includes(w.id)
@@ -105,20 +94,15 @@ export function LayersPanel() {
                 ? editor.toggleSelect(w.id)
                 : editor.selectOne(w.id)
             }
+            className="flex cursor-pointer items-center gap-1.5 px-3 py-[5px] text-xs"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '5px 12px',
-              fontSize: 12,
               background: isSel ? 'var(--accent-soft)' : 'transparent',
               color: isSel ? 'var(--accent)' : 'var(--text-1)',
-              cursor: 'pointer',
             }}
           >
             <button
-              className="btn btn-ghost-icon"
-              style={{ width: 16, height: 16, color: 'var(--text-3)' }}
+              className="btn btn-ghost-icon h-4 w-4"
+              style={{ color: 'var(--text-3)' }}
               onClick={(e) => {
                 e.stopPropagation()
                 editor.setHidden([w.id], !w.flags.hidden)
@@ -128,16 +112,7 @@ export function LayersPanel() {
               {w.flags.hidden ? <EyeOff size={11} /> : <Eye size={11} />}
             </button>
             <Icon size={13} />
-            <span
-              style={{
-                flex: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {w.name}
-            </span>
+            <span className="flex-1 truncate">{w.name}</span>
           </div>
         )
       })}
@@ -156,40 +131,23 @@ const DEMO_DATA_SOURCES: [string, string, string][] = [
 
 export function DataSourcesPanel() {
   return (
-    <div style={{ padding: 8 }}>
+    <div className="p-2">
       {DEMO_DATA_SOURCES.map(([n, t, c]) => (
         <div
           key={n}
-          className="mat-item"
-          style={{
-            flexDirection: 'row',
-            padding: '8px 10px',
-            alignItems: 'center',
-          }}
+          className="mat-item flex flex-row items-center px-2.5 py-2"
         >
           <Database size={16} stroke="var(--text-2)" />
-          <div style={{ flex: 1, marginLeft: 8 }}>
+          <div className="ml-2 flex-1">
             <div className="t-sm fw-5">{n}</div>
             <div className="t-xs t-3">{t}</div>
           </div>
-          <div
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              background: c,
-            }}
-          />
+          <div className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />
         </div>
       ))}
       <button
-        className="btn"
-        style={{
-          width: '100%',
-          marginTop: 8,
-          justifyContent: 'flex-start',
-          color: 'var(--accent)',
-        }}
+        className="btn mt-2 w-full justify-start"
+        style={{ color: 'var(--accent)' }}
       >
         <Plus size={14} /> 添加数据源
       </button>
@@ -213,21 +171,13 @@ const DEMO_PALETTES = [
 
 export function AssetsPanel() {
   return (
-    <div style={{ padding: 8 }}>
-      <div className="section-label" style={{ padding: '6px 4px 8px' }}>
-        背景图
-      </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 6,
-        }}
-      >
+    <div className="p-2">
+      <div className="section-label px-1 pt-1.5 pb-2">背景图</div>
+      <div className="grid grid-cols-2 gap-1.5">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="mat-item" style={{ padding: 4 }}>
+          <div key={i} className="mat-item p-1">
             <div
-              className="mat-thumb"
+              className="mat-thumb border-0"
               style={{
                 background:
                   i === 0
@@ -237,30 +187,20 @@ export function AssetsPanel() {
                       : i === 2
                         ? 'linear-gradient(180deg, #0d1e36, #00d4ff20)'
                         : 'linear-gradient(180deg, #0a1929, #7c5cff20)',
-                border: 'none',
               }}
             />
           </div>
         ))}
       </div>
       <div className="section-label">主题色板</div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: 6,
-          padding: '0 4px 8px',
-        }}
-      >
+      <div className="grid grid-cols-5 gap-1.5 px-1 pb-2">
         {DEMO_PALETTES.map((c) => (
           <div
             key={c}
+            className="aspect-square cursor-pointer rounded"
             style={{
-              aspectRatio: '1',
-              borderRadius: 4,
               background: c,
               boxShadow: '0 0 0 1px rgba(0,0,0,.1)',
-              cursor: 'pointer',
             }}
           />
         ))}
@@ -281,30 +221,21 @@ const DEMO_HISTORY: [string, string, string, boolean?][] = [
 
 export function HistoryPanel() {
   return (
-    <div style={{ padding: '4px 0' }}>
+    <div className="py-1">
       {DEMO_HISTORY.map(([t, u, m, cur], i) => (
         <div
           key={i}
+          className="flex cursor-pointer gap-2 border-l-2 px-3 py-2"
           style={{
-            padding: '8px 12px',
-            display: 'flex',
-            gap: 8,
-            borderLeft: cur ? '2px solid var(--accent)' : '2px solid transparent',
+            borderLeftColor: cur ? 'var(--accent)' : 'transparent',
             background: cur ? 'var(--accent-soft)' : 'transparent',
-            cursor: 'pointer',
           }}
         >
           <div
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              background: cur ? 'var(--accent)' : 'var(--text-4)',
-              marginTop: 6,
-              flexShrink: 0,
-            }}
+            className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+            style={{ background: cur ? 'var(--accent)' : 'var(--text-4)' }}
           />
-          <div style={{ flex: 1 }}>
+          <div className="flex-1">
             <div className="t-sm">{m}</div>
             <div className="t-xs t-3">
               {u} · {t}
