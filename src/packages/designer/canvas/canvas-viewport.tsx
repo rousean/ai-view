@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useDroppable } from '@dnd-kit/react'
+import { cn } from '~/lib/utils'
 import { useDashboardEditor, useEditorState } from '../editor/editor-context'
 import type { Tool, ToolContext } from '../tools/tool.interface'
 import { CameraTransformLayer } from './camera-transform-layer'
@@ -204,29 +205,17 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
 
   return (
     <div
-      className={className}
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        // Rulers + axes inherit this via currentColor.
-        color: 'var(--ruler-color, #5b8def)',
-      }}
+      className={cn('text-primary relative h-full w-full', className)}
     >
       {/* Viewport — fills the frame, reserves space for rulers via inset */}
       <div
         ref={setContainerRef}
         data-canvas-viewport
+        className="absolute right-0 bottom-0 touch-none overflow-hidden"
         style={{
-          position: 'absolute',
           top: rulerOffset,
           left: rulerOffset,
-          right: 0,
-          bottom: 0,
-          overflow: 'hidden',
-          // background: '#0e1422',
           cursor: getActiveTool()?.cursor as string | undefined,
-          touchAction: 'none',
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -248,35 +237,17 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
       {showRulers && (
         <>
           <AxisX
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: RULER_SIZE,
-              right: 0,
-              height: RULER_SIZE,
-              pointerEvents: 'none',
-            }}
+            className="pointer-events-none absolute top-0 right-0"
+            style={{ left: RULER_SIZE, height: RULER_SIZE }}
           />
           <AxisY
-            style={{
-              position: 'absolute',
-              top: RULER_SIZE,
-              left: 0,
-              bottom: 0,
-              width: RULER_SIZE,
-              pointerEvents: 'none',
-            }}
+            className="pointer-events-none absolute bottom-0 left-0"
+            style={{ top: RULER_SIZE, width: RULER_SIZE }}
           />
           {/* Top-left corner */}
           <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: RULER_SIZE,
-              height: RULER_SIZE,
-              pointerEvents: 'none',
-            }}
+            className="pointer-events-none absolute top-0 left-0"
+            style={{ width: RULER_SIZE, height: RULER_SIZE }}
           />
         </>
       )}

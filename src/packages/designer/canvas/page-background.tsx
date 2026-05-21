@@ -9,18 +9,11 @@ export const PageBackground: React.FC = () => {
   if (!page) return null
   return (
     <div
+      className="absolute top-0 left-0 shadow-[0_0_0_1px_rgba(0,0,0,0.10),0_16px_48px_rgba(0,0,0,0.18)]"
       style={{
-        position: 'absolute',
-        left: 0,
-        top: 0,
         width: page.canvas.width,
         height: page.canvas.height,
         ...backgroundStyle(page.canvas.background, page.canvas),
-        // Neutral hairline + soft drop shadow driven by --page-ring /
-        // --page-shadow in editor.css.
-        boxShadow:
-          'var(--page-ring, 0 0 0 1px rgba(0,0,0,0.08)),' +
-          ' var(--page-shadow, 0 12px 36px rgba(0,0,0,0.18))',
       }}
     />
   )
@@ -45,8 +38,7 @@ function backgroundStyle(bg: Background, canvas: CanvasConfig): React.CSSPropert
       const fit = bg.fit === 'cover' ? 'cover' : bg.fit === 'contain' ? 'contain' : '100% 100%'
       // We need the asset URL; fall back to a placeholder if absent.
       return {
-        background: 'var(--page-image-fallback, rgba(127,127,127,0.06))',
-        backgroundImage: `var(--bg-image, none)`,
+        background: 'rgba(127,127,127,0.06)',
         backgroundSize: fit,
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -72,16 +64,11 @@ export const PageBackgroundWithAssets: React.FC = () => {
   }
   return (
     <div
+      className="absolute top-0 left-0 shadow-[0_0_0_1px_rgba(0,0,0,0.10),0_16px_48px_rgba(0,0,0,0.18)]"
       style={{
-        position: 'absolute',
-        left: 0,
-        top: 0,
         width: page.canvas.width,
         height: page.canvas.height,
         ...style,
-        boxShadow:
-          'var(--page-ring, 0 0 0 1px rgba(0,0,0,0.08)),' +
-          ' var(--page-shadow, 0 12px 36px rgba(0,0,0,0.18))',
       }}
     />
   )

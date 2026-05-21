@@ -17,7 +17,8 @@ export function createDefaultPage(name = '页面 1'): Page {
       enabled: true,
       size: 20,
       snap: false,
-      color: 'rgba(0,0,0,0.05)',
+      // Leave `color` unset so GridLayer falls back to the brand --primary
+      // tint. Set explicitly on a page only when overriding the brand grid.
     },
     guides: [],
     widgets: [],

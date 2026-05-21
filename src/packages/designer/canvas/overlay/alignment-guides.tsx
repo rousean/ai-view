@@ -5,9 +5,9 @@ import { selectCurrentPage } from '../../stores/selectors'
 import { useSnapGuidesStore } from '../../snap/snap-store'
 
 /**
- * Magenta dashed lines drawn through every active snap target during a
- * gesture. Lives inside the camera-transformed layer so its positions
- * are canvas-space. Strokes counter-scale to stay 1px on screen.
+ * Destructive-coloured dashed lines drawn through every active snap target
+ * during a gesture. Lives inside the camera-transformed layer so its
+ * positions are canvas-space. Strokes counter-scale to stay 1px on screen.
  *
  * Lines extend across the whole page artboard for now — good enough
  * for a first pass; we can shorten them to "between involved widgets"
@@ -23,20 +23,14 @@ export const AlignmentGuidesOverlay: React.FC = () => {
 
   const stroke = Math.max(1 / scale, 0.5)
   const dash = `${4 / scale} ${4 / scale}`
-  // Themed via --alignment-color (default magenta, distinct from selection blue).
-  const color = 'var(--alignment-color, #ec4899)'
+  // Distinct from selection blue — use destructive (orange-red) so alignment
+  // guides stand out against the selection chrome.
+  const color = 'var(--destructive)'
 
   return (
     <svg
-      style={{
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        width: page.canvas.width,
-        height: page.canvas.height,
-        pointerEvents: 'none',
-        overflow: 'visible',
-      }}
+      className="pointer-events-none absolute top-0 left-0 overflow-visible"
+      style={{ width: page.canvas.width, height: page.canvas.height }}
     >
       {guides.map((g, i) =>
         g.orientation === 'v' ? (

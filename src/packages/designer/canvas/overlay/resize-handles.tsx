@@ -67,18 +67,15 @@ export const ResizeHandles: React.FC<Props> = ({ bbox, rotation = 0 }) => {
         <div
           key={h.handle}
           onPointerDown={(e) => start(h.handle, e)}
+          className="bg-primary pointer-events-auto absolute touch-none"
           style={{
-            position: 'absolute',
             left: h.cx - half,
             top: h.cy - half,
             width: sz,
             height: sz,
-            background: 'var(--selection-color, #5b8def)',
-            border: `${1 / scale}px solid var(--selection-handle-bg, white)`,
+            border: `${1 / scale}px solid var(--card)`,
             borderRadius: 1.5 / scale,
             cursor: cursorForAngle(HANDLE_BASE_ANGLE[h.handle] + rotation),
-            pointerEvents: 'auto',
-            touchAction: 'none',
           }}
         />
       ))}

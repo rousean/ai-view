@@ -19,15 +19,12 @@ export const MarqueeOverlay: React.FC = () => {
   if (!rect) return null
   return (
     <div
+      className="bg-primary/10 border-primary pointer-events-none absolute border border-dashed"
       style={{
-        position: 'absolute',
         left: rect.x,
         top: rect.y,
         width: rect.width,
         height: rect.height,
-        background: 'rgba(91,141,239,0.08)',
-        border: '1px dashed #5b8def',
-        pointerEvents: 'none',
       }}
     />
   )

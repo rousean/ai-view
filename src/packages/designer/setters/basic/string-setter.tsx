@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { PropInput } from '../../ui/property-controls'
 import type { SetterProps } from '../setter.interface'
 
 interface StringSetterProps {
@@ -9,8 +10,8 @@ interface StringSetterProps {
 }
 
 /**
- * String input. Uses the Figma-style `.prop-input` class (defined in
- * designer/styles/editor.css) so it matches the property-panel chrome.
+ * String input. Uses the shared `PropInput` chrome so it matches the
+ * property-panel row treatment.
  */
 export const StringSetter: React.FC<SetterProps<string>> = ({
   value,
@@ -24,13 +25,7 @@ export const StringSetter: React.FC<SetterProps<string>> = ({
   if (opts.multiline) {
     return (
       <textarea
-        className="prop-input"
-        style={{
-          height: 'auto',
-          padding: '6px 8px',
-          resize: 'vertical',
-          minHeight: 60,
-        }}
+        className="bg-muted hover:bg-muted/80 focus:bg-card focus:border-primary text-foreground min-h-[60px] w-full resize-y rounded-sm border border-transparent px-2 py-1.5 text-[11px] outline-none"
         rows={opts.rows ?? 3}
         value={v}
         placeholder={opts.placeholder}
@@ -41,14 +36,15 @@ export const StringSetter: React.FC<SetterProps<string>> = ({
     )
   }
   return (
-    <div className="prop-input">
+    <PropInput disabled={disabled}>
       <input
         value={v}
         placeholder={opts.placeholder}
         maxLength={opts.maxLength}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
+        className="text-foreground w-full border-none bg-transparent text-[11px] outline-none"
       />
-    </div>
+    </PropInput>
   )
 }

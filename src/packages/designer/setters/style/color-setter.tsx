@@ -11,6 +11,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
+import { cn } from '~/lib/utils'
+import { PropInput } from '../../ui/property-controls'
 import type { SetterProps } from '../setter.interface'
 
 interface ColorSetterProps {
@@ -32,11 +34,11 @@ const DEFAULT_PRESETS = [
 ]
 
 /**
- * Colour setter — styled as a single `.prop-input` row to match the rest
- * of the property panel.
+ * Colour setter — styled as a single property row to match the rest of
+ * the property panel.
  *
  *   ┌────────────────────────────────┐
- *   │ [swatch] ABCDEF       100%     │   ← whole row is .prop-input
+ *   │ [swatch] ABCDEF       100%     │   ← whole row uses PropInput chrome
  *   └────────────────────────────────┘
  *      ▲ clicking the swatch opens a Popover with the full picker
  *
@@ -63,31 +65,21 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
   }
 
   return (
-    <div
-      className="prop-input"
-      style={{ gap: 6, opacity: disabled ? 0.5 : undefined }}
-      data-disabled={disabled || undefined}
-    >
+    <PropInput className="gap-1.5" disabled={disabled}>
       <Popover>
         <PopoverTrigger asChild>
           <button
             type="button"
             disabled={disabled}
-            className="swatch"
-            style={{ background: v, cursor: disabled ? 'not-allowed' : 'pointer' }}
             aria-label="打开取色器"
+            className={cn(
+              'h-3.5 w-3.5 shrink-0 rounded-[3px] ring-1 ring-black/10',
+              disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+            )}
+            style={{ background: v }}
           />
         </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          sideOffset={4}
-          className="w-64"
-          style={{
-            background: 'var(--panel-bg)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-popover)',
-          }}
-        >
+        <PopoverContent align="start" sideOffset={4} className="w-64">
           <ColorPicker
             value={v}
             onChange={(c) => onChange(typeof c === 'string' ? c : c.toString('hex'))}
@@ -107,22 +99,15 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
                 </SliderTrack>
               </ColorSlider>
               {presets.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                <div className="flex flex-wrap gap-1">
                   {presets.map((c) => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => onChange(c)}
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 4,
-                        background: c,
-                        border: '1px solid var(--border)',
-                        boxShadow: '0 0 0 1px rgba(0,0,0,.05) inset',
-                        cursor: 'pointer',
-                      }}
                       aria-label={c}
+                      className="border-border h-5 w-5 cursor-pointer rounded-sm border shadow-[inset_0_0_0_1px_rgba(0,0,0,.05)]"
+                      style={{ background: c }}
                     />
                   ))}
                 </div>
@@ -139,11 +124,11 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
         onKeyDown={(e) => {
           if (e.key === 'Enter') commit((e.target as HTMLInputElement).value)
         }}
-        style={{ flex: 1, textTransform: 'uppercase' }}
         spellCheck={false}
+        className="text-foreground flex-1 border-none bg-transparent text-[11px] uppercase outline-none"
       />
-      <span className="t-4 t-xs">100%</span>
-    </div>
+      <span className="text-muted-foreground/60 text-[11px]">100%</span>
+    </PropInput>
   )
 }
 

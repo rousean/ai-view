@@ -1,9 +1,10 @@
 import * as React from 'react'
+import { cn } from '~/lib/utils'
 import { useEditorStore } from '../stores/editor-store'
 
 interface CameraTransformLayerProps {
-  /** Style applied to the inner transformed div. */
-  style?: React.CSSProperties
+  /** Extra classes applied to the inner transformed div. */
+  innerClassName?: string
   children: React.ReactNode
   className?: string
 }
@@ -17,7 +18,7 @@ interface CameraTransformLayerProps {
  * A subscription to editorStore.camera writes the inline style imperatively.
  */
 export const CameraTransformLayer: React.FC<CameraTransformLayerProps> = ({
-  style,
+  innerClassName,
   children,
   className,
 }) => {
@@ -36,24 +37,13 @@ export const CameraTransformLayer: React.FC<CameraTransformLayerProps> = ({
   }, [])
 
   return (
-    <div
-      className={className}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        overflow: 'hidden',
-        ...style,
-      }}
-    >
+    <div className={cn('absolute inset-0 overflow-hidden', className)}>
       <div
         ref={innerRef}
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          transformOrigin: '0 0',
-          willChange: 'transform',
-        }}
+        // `willChange: transform` is not expressible as a Tailwind utility
+        // and is essential for keeping the camera transform on the GPU.
+        style={{ willChange: 'transform' }}
+        className={cn('absolute top-0 left-0 origin-top-left', innerClassName)}
       >
         {children}
       </div>

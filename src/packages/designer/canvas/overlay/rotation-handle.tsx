@@ -20,30 +20,23 @@ export const RotationHandle: React.FC<Props> = ({ bbox }) => {
     <>
       {/* Connector line */}
       <div
+        className="bg-primary pointer-events-none absolute"
         style={{
-          position: 'absolute',
           left: bbox.x + bbox.width / 2 - 0.5 / scale,
           top: bbox.y - offset,
           width: 1 / scale,
           height: offset,
-          background: 'var(--selection-color, #5b8def)',
-          pointerEvents: 'none',
         }}
       />
       <div
         onPointerDown={start}
+        className="bg-card pointer-events-auto absolute cursor-grab touch-none rounded-full"
         style={{
-          position: 'absolute',
           left: bbox.x + bbox.width / 2 - sz / 2,
           top: bbox.y - offset - sz / 2,
           width: sz,
           height: sz,
-          borderRadius: '50%',
-          background: 'var(--selection-handle-bg, white)',
-          border: `${1.5 / scale}px solid var(--selection-color, #5b8def)`,
-          cursor: 'grab',
-          pointerEvents: 'auto',
-          touchAction: 'none',
+          border: `${1.5 / scale}px solid var(--primary)`,
         }}
       />
     </>

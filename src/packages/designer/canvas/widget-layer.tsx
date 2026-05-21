@@ -25,14 +25,8 @@ export const WidgetLayer: React.FC = () => {
 
   return (
     <div
-      style={{
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        width: canvas.width,
-        height: canvas.height,
-        overflow: 'hidden',
-      }}
+      className="absolute top-0 left-0 overflow-hidden"
+      style={{ width: canvas.width, height: canvas.height }}
     >
       {ids.map((id) => (
         <WidgetContainer key={id} id={id} />

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import type { WidgetMeta } from '@widgets/widget-meta'
+import { cn } from '~/lib/utils'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
 import { selectWidget } from '../stores/selectors'
 
@@ -45,20 +46,17 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
       data-widget-type={widget.type}
       data-selected={isSelected || undefined}
       data-hover={isHovered || undefined}
+      className={cn(
+        'absolute origin-center',
+        widget.flags.locked ? 'pointer-events-none cursor-default' : 'pointer-events-auto cursor-move',
+      )}
       style={{
-        position: 'absolute',
         left: layout.x,
         top: layout.y,
         width: layout.width,
         height: layout.height,
         transform: `rotate(${layout.rotate}deg) scale(${layout.flipX ? -1 : 1}, ${layout.flipY ? -1 : 1})`,
-        transformOrigin: 'center',
         opacity: layout.opacity,
-        pointerEvents: widget.flags.locked ? 'none' : 'auto',
-        // Signal interactivity. The handle cursors (set per-handle on
-        // ResizeHandles / RotationHandle) win over this when the chrome
-        // is rendered, so this only shows when hovering the widget body.
-        cursor: widget.flags.locked ? 'default' : 'move',
       }}
     >
       {meta ? (
@@ -77,18 +75,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
 })
 
 const UnknownWidgetFallback: React.FC<{ type: string }> = ({ type }) => (
-  <div
-    style={{
-      width: '100%',
-      height: '100%',
-      display: 'grid',
-      placeItems: 'center',
-      background: 'rgba(255,0,0,0.06)',
-      border: '1px dashed rgba(255,0,0,0.4)',
-      color: '#f87171',
-      fontSize: 12,
-    }}
-  >
+  <div className="bg-destructive/10 border-destructive/40 text-destructive grid h-full w-full place-items-center border border-dashed text-xs">
     未注册组件: {type}
   </div>
 )

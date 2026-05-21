@@ -1,5 +1,7 @@
 import * as React from 'react'
 import { ChevronDown } from 'lucide-react'
+import { Separator } from '~/components/ui/separator'
+import { cn } from '~/lib/utils'
 
 /** Collapsible section in the property panel. Mirrors the design's PropSection. */
 export function PropSection({
@@ -16,20 +18,19 @@ export function PropSection({
     <div>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full cursor-pointer items-center justify-between border-none bg-transparent px-3 pt-2.5 pb-2 font-[inherit]"
+        className="flex w-full cursor-pointer items-center justify-between bg-transparent px-3 pt-2.5 pb-2 font-[inherit]"
       >
-        <span className="section-label p-0">{title}</span>
+        <span className="text-muted-foreground/80 text-[11px] font-semibold tracking-wide uppercase">
+          {title}
+        </span>
         <ChevronDown
           size={12}
-          className="transition-transform duration-150"
-          style={{
-            color: 'var(--text-3)',
-            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-          }}
+          className="text-muted-foreground/80 transition-transform duration-150"
+          style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}
         />
       </button>
       {open && <div className="pb-2">{children}</div>}
-      <div className="divider-h" />
+      <Separator />
     </div>
   )
 }
@@ -43,9 +44,39 @@ export function PropRow({
   children: React.ReactNode
 }) {
   return (
-    <div className="prop-row">
-      <div className="prop-label">{label}</div>
-      <div className="prop-control">{children}</div>
+    <div className="flex min-h-7 items-center gap-2 px-3 py-1">
+      <div className="text-muted-foreground/80 w-14 shrink-0 text-[11px]">{label}</div>
+      <div className="flex min-w-0 flex-1 items-center gap-1">{children}</div>
+    </div>
+  )
+}
+
+/**
+ * Shared chrome for a single-row inline property input. Matches the height
+ * + background + focus treatment used by NumInput / ColorInput / setters.
+ */
+export function PropInput({
+  className,
+  style,
+  children,
+  disabled,
+}: {
+  className?: string
+  style?: React.CSSProperties
+  children: React.ReactNode
+  disabled?: boolean
+}) {
+  return (
+    <div
+      data-disabled={disabled || undefined}
+      className={cn(
+        'bg-muted hover:bg-muted/80 focus-within:bg-card focus-within:border-primary flex h-[26px] min-w-0 items-center rounded-sm border border-transparent px-1.5 text-[11px] transition-colors',
+        disabled && 'opacity-50',
+        className,
+      )}
+      style={style}
+    >
+      {children}
     </div>
   )
 }
@@ -80,13 +111,10 @@ export function NumInput({
     else setText(formatNumber(value))
   }
   return (
-    <div
-      className={'prop-input ' + (disabled ? 'opacity-50' : '')}
-      // `width` is a per-row dynamic value, stays inline.
-      style={{ width }}
-      data-disabled={disabled || undefined}
-    >
-      {prefix && <span className="prop-prefix">{prefix}</span>}
+    <PropInput disabled={disabled} style={{ width }}>
+      {prefix && (
+        <span className="text-muted-foreground/80 shrink-0 text-[11px]">{prefix}</span>
+      )}
       <input
         type="text"
         inputMode="decimal"
@@ -100,9 +128,12 @@ export function NumInput({
         min={min}
         max={max}
         step={step}
+        className="text-foreground w-full border-none bg-transparent text-[11px] tabular-nums outline-none"
       />
-      {suffix && <span className="prop-prefix">{suffix}</span>}
-    </div>
+      {suffix && (
+        <span className="text-muted-foreground/80 shrink-0 text-[11px]">{suffix}</span>
+      )}
+    </PropInput>
   )
 }
 
@@ -118,9 +149,12 @@ export function ColorInput({
   const [text, setText] = React.useState(hexLabel(v))
   React.useEffect(() => setText(hexLabel(v)), [v])
   return (
-    <div className="prop-input gap-1.5">
+    <PropInput className="gap-1.5">
       <label
-        className={'swatch ' + (onChange ? 'cursor-pointer' : 'cursor-default')}
+        className={cn(
+          'h-3.5 w-3.5 shrink-0 rounded-[3px] ring-1 ring-black/10',
+          onChange ? 'cursor-pointer' : 'cursor-default',
+        )}
         style={{ background: v }}
       >
         {onChange && (
@@ -139,9 +173,9 @@ export function ColorInput({
           if (/^[0-9a-fA-F]{3,8}$/.test(text)) onChange?.('#' + text.toUpperCase())
           else setText(hexLabel(v))
         }}
-        className="flex-1"
+        className="text-foreground flex-1 border-none bg-transparent text-[11px] outline-none"
       />
-    </div>
+    </PropInput>
   )
 }
 
@@ -172,13 +206,11 @@ export function Toggle({
       aria-checked={on}
       disabled={disabled}
       onClick={() => onChange?.(!on)}
-      className={
-        'flex h-4 w-7 items-center rounded-lg border-none p-0.5 transition-colors duration-150 ' +
-        (disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer')
-      }
-      style={{
-        background: on ? 'var(--accent)' : 'var(--border-strong)',
-      }}
+      className={cn(
+        'flex h-4 w-7 items-center rounded-lg p-0.5 transition-colors duration-150',
+        on ? 'bg-primary' : 'bg-input',
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+      )}
     >
       <span
         className="block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-150"
@@ -205,12 +237,13 @@ export function Segmented<T extends string>({
         return (
           <button
             key={o.value}
-            className="btn h-6 px-2 text-[11px]"
             onClick={() => onChange?.(o.value)}
-            style={{
-              background: isSel ? 'var(--accent-soft)' : 'transparent',
-              color: isSel ? 'var(--accent)' : 'var(--text-2)',
-            }}
+            className={cn(
+              'h-6 cursor-pointer rounded-sm px-2 text-[11px] transition-colors',
+              isSel
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
           >
             {o.label}
           </button>

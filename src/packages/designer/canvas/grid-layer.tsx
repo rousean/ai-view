@@ -27,10 +27,17 @@ export const GridLayer: React.FC = () => {
   const { width, height } = page.canvas
   const minor = page.grid.size
   const major = minor * MAJOR_EVERY
-  // Colours come from --grid-color / --grid-major-color in editor.css.
-  // page.grid.color (if explicitly set on the document) takes precedence.
-  const minorStroke = page.grid.color ?? 'var(--grid-color, rgba(127,127,127,0.18))'
-  const majorStroke = `var(--grid-major-color, ${page.grid.color ?? 'rgba(127,127,127,0.32)'})`
+  // Stroke colours carry their own alpha — we never compound with
+  // `strokeOpacity` because `page.grid.color` is usually an `rgba(...)`
+  // string already (default light artboard uses ~5% black) and a second
+  // multiplication would render the grid invisible.
+  //
+  // When the document doesn't pin a colour, fall back to the brand
+  // `--primary` mixed with transparency so it reads as a subtle blue tint.
+  const minorStroke =
+    page.grid.color ?? 'color-mix(in oklch, var(--primary) 30%, transparent)'
+  const majorStroke =
+    page.grid.color ?? 'color-mix(in oklch, var(--primary) 40%, transparent)'
 
   return (
     <svg

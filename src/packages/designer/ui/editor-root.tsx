@@ -13,7 +13,6 @@ import { DashboardEditor } from '../editor/dashboard-editor'
 import { EditorProvider } from '../editor/editor-context'
 import { registerBuiltinSetters } from '../setters'
 import { registerBuiltinTools } from '../tools'
-import '../styles/editor.css'
 import { FloatingTools } from './floating-tools'
 import { FloatingZoom } from './floating-zoom'
 import { IconRail, type RailKey } from './icon-rail'
@@ -152,7 +151,9 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
 
   return (
     <EditorProvider editor={editor}>
-      <div className={`editor-root ${className ?? ''}`}>
+      <div
+        className={`flex h-full w-full flex-col overflow-hidden bg-muted font-sans text-xs leading-tight text-foreground antialiased ${className ?? ''}`}
+      >
         <TooltipProvider delayDuration={300}>
           <TopBar />
           <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>

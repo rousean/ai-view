@@ -96,24 +96,20 @@ export const SelectionBounds: React.FC = () => {
 
   return (
     <div
+      className="pointer-events-none absolute origin-center"
       style={{
-        position: 'absolute',
         left: bbox.x,
         top: bbox.y,
         width: bbox.width,
         height: bbox.height,
         transform: chromeTransform,
-        transformOrigin: 'center',
-        pointerEvents: 'none',
       }}
     >
       <div
+        className="pointer-events-none absolute inset-0"
         style={{
-          position: 'absolute',
-          inset: 0,
-          outline: `${stroke}px solid var(--selection-color, #5b8def)`,
+          outline: `${stroke}px solid var(--primary)`,
           outlineOffset: `-${stroke}px`,
-          pointerEvents: 'none',
         }}
       />
       {!isMarquee && (
@@ -149,17 +145,15 @@ export const HoverIndicator: React.FC = () => {
 
   return (
     <div
+      className="pointer-events-none absolute origin-center"
       style={{
-        position: 'absolute',
         left: widget.layout.x,
         top: widget.layout.y,
         width: widget.layout.width,
         height: widget.layout.height,
-        outline: `${stroke}px dashed var(--hover-color, rgba(91,141,239,0.6))`,
+        outline: `${stroke}px dashed color-mix(in oklch, var(--primary) 55%, transparent)`,
         outlineOffset: `-${stroke}px`,
         transform,
-        transformOrigin: 'center',
-        pointerEvents: 'none',
       }}
     />
   )

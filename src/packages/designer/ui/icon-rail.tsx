@@ -1,6 +1,8 @@
 import * as React from 'react'
 import { Database, History, Image, Layers, Plus, Settings } from 'lucide-react'
+import { Button } from '~/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { cn } from '~/lib/utils'
 
 export type RailKey = 'mat' | 'layers' | 'data' | 'assets' | 'history' | null
 
@@ -27,14 +29,7 @@ const ITEMS: {
  */
 export function IconRail({ active, onChange }: IconRailProps) {
   return (
-    <div
-      className="flex shrink-0 flex-col items-center gap-0.5 border-r py-2"
-      style={{
-        width: 'var(--rail-w)',
-        background: 'var(--panel-bg)',
-        borderColor: 'var(--border)',
-      }}
-    >
+    <div className="flex w-12 shrink-0 flex-col items-center gap-0.5 border-r border-border bg-card py-2">
       {ITEMS.map((it) => {
         const isActive = it.id === active
         return (
@@ -43,11 +38,12 @@ export function IconRail({ active, onChange }: IconRailProps) {
               <button
                 onClick={() => onChange(isActive ? null : it.id)}
                 aria-pressed={isActive}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border-none"
-                style={{
-                  background: isActive ? 'var(--accent-soft)' : 'transparent',
-                  color: isActive ? 'var(--accent)' : 'var(--text-2)',
-                }}
+                className={cn(
+                  'flex h-9 w-9 cursor-pointer items-center justify-center rounded-md transition-colors',
+                  isActive
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
               >
                 <it.Icon size={18} />
               </button>
@@ -59,9 +55,9 @@ export function IconRail({ active, onChange }: IconRailProps) {
       <div className="flex-1" />
       <Tooltip>
         <TooltipTrigger asChild>
-          <button className="btn btn-ghost-icon mb-1.5">
+          <Button variant="ghost" size="icon-sm" className="mb-1.5">
             <Settings size={16} />
-          </button>
+          </Button>
         </TooltipTrigger>
         <TooltipContent side="right">设置</TooltipContent>
       </Tooltip>

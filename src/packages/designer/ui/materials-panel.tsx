@@ -3,7 +3,9 @@ import { ChartBar, ChevronRight, Database, Search } from 'lucide-react'
 import { Feedback } from '@dnd-kit/dom'
 import { useDraggable } from '@dnd-kit/react'
 import type { WidgetMeta } from '@widgets/widget-meta'
+import { Input } from '~/components/ui/input'
 import { ScrollArea } from '~/components/ui/scroll-area'
+import { cn } from '~/lib/utils'
 import { useDashboardEditor } from '../editor/editor-context'
 
 /**
@@ -46,59 +48,63 @@ export function MaterialsPanel() {
   }, [all, grouped, activeCat, isSearching, q])
 
   return (
-    <div
-      className="flex w-[var(--panel-w-left)] shrink-0 flex-col border-r"
-      style={{
-        background: 'var(--panel-bg)',
-        borderColor: 'var(--border)',
-      }}
-    >
+    <div className="border-border bg-card flex w-60 shrink-0 flex-col border-r">
       {/* Search */}
-      <div className="px-2.5 pt-2.5">
-        <div className="prop-input h-7 px-2">
-          <Search
-            size={13}
-            className="mr-1.5"
-            style={{ color: 'var(--text-3)' }}
-          />
-          <input
-            placeholder="搜索物料"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <span className="t-4 t-xs">⌘K</span>
-        </div>
+      <div className="relative px-2.5 pt-2.5">
+        <Search
+          size={13}
+          className="text-muted-foreground/80 absolute top-1/2 left-5 -translate-y-px"
+        />
+        <Input
+          placeholder="搜索物料"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="h-7 px-7 text-xs"
+        />
+        <span className="text-muted-foreground/60 absolute top-1/2 right-5 -translate-y-px text-[11px]">
+          ⌘K
+        </span>
       </div>
 
       {/* Category tabs (horizontal scroll). Tabs grey out + become inert
           while a search is active, signalling that results span all categories. */}
       <div
-        className={
-          'tabs scroll-y mt-2 shrink-0 overflow-x-auto overflow-y-hidden px-1.5 ' +
-          (isSearching ? 'pointer-events-none opacity-40' : '')
-        }
+        className={cn(
+          'border-border mt-2 flex shrink-0 items-stretch gap-0.5 overflow-x-auto overflow-y-hidden border-b px-2.5 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]',
+          isSearching && 'pointer-events-none opacity-40',
+        )}
       >
-        {categoryIds.map((cat) => (
-          <button
-            key={cat}
-            className={'tab ' + (cat === activeCat ? 'active' : '')}
-            onClick={() => setActiveCat(cat)}
-          >
-            {categoryLabel(cat)}
-          </button>
-        ))}
+        {categoryIds.map((cat) => {
+          const isActive = cat === activeCat
+          return (
+            <button
+              key={cat}
+              onClick={() => setActiveCat(cat)}
+              className={cn(
+                'relative flex-shrink-0 cursor-pointer px-2 py-2 text-xs whitespace-nowrap select-none',
+                isActive
+                  ? "text-foreground font-medium after:bg-primary after:absolute after:right-2 after:-bottom-px after:left-2 after:h-0.5 after:rounded-[1px] after:content-['']"
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {categoryLabel(cat)}
+            </button>
+          )
+        })}
       </div>
 
       {/* Grid */}
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-2">
-          <div className="section-label px-1 pt-1.5 pb-2">
+          <div className="text-muted-foreground/80 flex items-center gap-1.5 px-1 pt-1.5 pb-2 text-[11px] font-semibold tracking-wide uppercase">
             {isSearching
               ? `搜索结果 · ${items.length}`
               : `${categoryLabel(activeCat)} · ${items.length}`}
           </div>
           {items.length === 0 ? (
-            <p className="t-3 t-xs px-1 py-4 text-center">没有匹配的物料</p>
+            <p className="text-muted-foreground/80 px-1 py-4 text-center text-[11px]">
+              没有匹配的物料
+            </p>
           ) : (
             <div className="grid grid-cols-2 gap-1.5">
               {items.map((meta) => (
@@ -110,17 +116,10 @@ export function MaterialsPanel() {
       </ScrollArea>
 
       {/* Footer — data source indicator (placeholder for P8) */}
-      <button
-        className="flex cursor-pointer items-center gap-1.5 border-0 border-t px-2.5 py-2 text-left text-xs"
-        style={{
-          borderTopColor: 'var(--border)',
-          color: 'var(--text-2)',
-          background: 'transparent',
-        }}
-      >
+      <button className="border-border text-muted-foreground hover:bg-muted flex cursor-pointer items-center gap-1.5 border-t px-2.5 py-2 text-left text-xs transition-colors">
         <Database size={14} />
         <span className="flex-1">数据源</span>
-        <span className="t-4 t-xs">0 个已连接</span>
+        <span className="text-muted-foreground/60 text-[11px]">0 个已连接</span>
         <ChevronRight size={12} />
       </button>
     </div>
@@ -139,11 +138,17 @@ const MaterialCard: React.FC<{ meta: WidgetMeta }> = ({ meta }) => {
   })
   const Icon = meta.icon ?? ChartBar
   return (
-    <div ref={ref} className="mat-item" title={meta.description ?? meta.title}>
-      <div className="mat-thumb">
-        <Icon size={28} stroke="var(--text-2)" />
+    <div
+      ref={ref}
+      title={meta.description ?? meta.title}
+      className="hover:bg-muted flex cursor-grab flex-col items-center gap-1 rounded-sm px-1 py-2 transition-colors select-none active:cursor-grabbing"
+    >
+      <div className="bg-muted border-border/60 text-muted-foreground flex aspect-[1.4/1] w-full items-center justify-center rounded-sm border">
+        <Icon size={28} />
       </div>
-      <div className="mat-label">{meta.title}</div>
+      <div className="text-muted-foreground text-center text-[11px] leading-tight">
+        {meta.title}
+      </div>
     </div>
   )
 }

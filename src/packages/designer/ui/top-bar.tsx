@@ -11,11 +11,14 @@ import {
   Share2,
   Undo2,
 } from 'lucide-react'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
+import { Separator } from '~/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import {
   useDashboardEditor,
@@ -26,9 +29,6 @@ import {
 /**
  * Top toolbar — Figma-style.
  *   [Logo] / [Project Name] ● 已自动保存  ｜ undo redo zoom history ｜ avatars 预览 分享 发布 more
- *
- * Uses the design system's `.btn / .btn-ghost-icon / .btn-primary` classes
- * (defined in `designer/styles/editor.css`).
  */
 export function TopBar() {
   const editor = useDashboardEditor()
@@ -42,55 +42,51 @@ export function TopBar() {
   React.useEffect(() => editor.bus.on('history.redone', () => force()), [editor])
 
   return (
-    <div
-      className="flex h-[var(--topbar-h)] shrink-0 items-center gap-1.5 border-b pr-2 pl-3"
-      style={{
-        background: 'var(--panel-bg)',
-        borderColor: 'var(--border)',
-      }}
-    >
+    <div className="flex h-11 shrink-0 items-center gap-1.5 border-b border-border bg-card pr-2 pl-3">
       {/* Left: logo + project name + auto-save */}
       <div className="flex min-w-0 items-center gap-2.5">
         <Logo size={20} />
-        <span className="t-3 text-xs">/</span>
+        <span className="text-muted-foreground/80 text-xs">/</span>
         <ProjectNameEditor name={projectName} />
-        <span className="t-4 t-xs ml-1">● 已自动保存</span>
+        <span className="text-muted-foreground/60 ml-1 text-[11px]">● 已自动保存</span>
       </div>
 
       {/* Center: undo / redo / zoom / history */}
       <div className="flex flex-1 justify-center gap-0.5">
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
-              className="btn btn-ghost-icon"
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={() => editor.undo()}
               disabled={!editor.canUndo()}
             >
               <Undo2 size={14} />
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>撤销 ⌘Z</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
-              className="btn btn-ghost-icon"
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={() => editor.redo()}
               disabled={!editor.canRedo()}
             >
               <Redo2 size={14} />
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>重做 ⌘⇧Z</TooltipContent>
         </Tooltip>
-        <div className="divider-v h-[18px] self-center" />
+        <Separator orientation="vertical" className="mx-1 h-4 self-center" />
         <ZoomMenu scale={scale} />
-        <div className="divider-v h-[18px] self-center" />
+        <Separator orientation="vertical" className="mx-1 h-4 self-center" />
         <Tooltip>
           <TooltipTrigger asChild>
-            <button className="btn btn-ghost-icon" disabled>
+            <Button variant="ghost" size="icon-sm" disabled>
               <History size={14} />
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>历史版本 · 即将上线</TooltipContent>
         </Tooltip>
@@ -104,33 +100,33 @@ export function TopBar() {
         <Avatars />
         <Tooltip>
           <TooltipTrigger asChild>
-            <button className="btn" disabled>
+            <Button variant="ghost" size="sm" disabled>
               <Eye size={14} /> 预览
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>预览 · 即将上线</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button className="btn" disabled>
+            <Button variant="ghost" size="sm" disabled>
               <Share2 size={14} /> 分享
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>分享 · 即将上线</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button className="btn btn-primary" onClick={() => editor.save()}>
+            <Button size="sm" onClick={() => editor.save()}>
               <Send size={14} /> 发布
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>保存当前项目到 localStorage</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button className="btn btn-ghost-icon" disabled>
+            <Button variant="ghost" size="icon-sm" disabled>
               <MoreHorizontal size={14} />
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>更多 · 即将上线</TooltipContent>
         </Tooltip>
@@ -168,12 +164,12 @@ function ProjectNameEditor({ name }: { name: string }) {
 
   if (editing) {
     return (
-      <input
+      <Input
         // Inline-edit input is user-initiated (click to start editing), so
         // autoFocus is the right UX. Suppressing the generic a11y rule.
         // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus
-        className="input h-7 w-[220px] text-[13px] font-medium"
+        className="h-7 w-[220px] text-[13px] font-medium"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
@@ -188,13 +184,15 @@ function ProjectNameEditor({ name }: { name: string }) {
     )
   }
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="sm"
       onClick={() => setEditing(true)}
-      className="btn h-7 px-2 text-[13px] font-medium"
+      className="px-2 text-[13px] font-medium"
       title="点击重命名"
     >
       {name || '未命名'}
-    </button>
+    </Button>
   )
 }
 
@@ -205,56 +203,53 @@ function ZoomMenu({ scale }: { scale: number }) {
   const presets = [0.25, 0.5, 0.75, 1, 1.5, 2]
   return (
     <div className="flex items-center gap-0.5">
-      <button
-        className="btn btn-ghost-icon"
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={() => editor.zoomBy(-0.1)}
         aria-label="缩小"
       >
         <Minus size={14} />
-      </button>
+      </Button>
       <Popover>
         <PopoverTrigger asChild>
-          <button className="btn w-16 p-0">
-            <span className="t-num">{Math.round(scale * 100)}%</span>
+          <Button variant="ghost" size="sm" className="w-16 gap-1 px-1">
+            <span className="tabular-nums">{Math.round(scale * 100)}%</span>
             <ChevronDown size={12} />
-          </button>
+          </Button>
         </PopoverTrigger>
-        <PopoverContent
-          align="center"
-          sideOffset={4}
-          className="w-40 rounded-md border p-1"
-          style={{
-            background: 'var(--panel-bg)',
-            borderColor: 'var(--border)',
-            boxShadow: 'var(--shadow-popover)',
-          }}
-        >
+        <PopoverContent align="center" sideOffset={4} className="w-40 p-1">
           {presets.map((z) => (
-            <button
+            <Button
               key={z}
-              className="btn flex h-7 w-full justify-between px-2"
+              variant="ghost"
+              size="sm"
+              className="w-full justify-between"
               onClick={() => editor.setCamera({ scale: z })}
             >
               <span>缩放至 {Math.round(z * 100)}%</span>
-            </button>
+            </Button>
           ))}
-          <div className="divider-h my-1" />
-          <button
-            className="btn flex h-7 w-full justify-between px-2"
+          <Separator className="my-1" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-between"
             onClick={() => editor.resetView()}
           >
             <span>适应屏幕</span>
-            <span className="t-4">⌘1</span>
-          </button>
+            <span className="text-muted-foreground/60">⌘1</span>
+          </Button>
         </PopoverContent>
       </Popover>
-      <button
-        className="btn btn-ghost-icon"
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={() => editor.zoomBy(0.1)}
         aria-label="放大"
       >
         <Plus size={14} />
-      </button>
+      </Button>
     </div>
   )
 }
@@ -272,10 +267,9 @@ function Avatars() {
       {stack.map(([label, bg], i) => (
         <div
           key={i}
-          className="flex h-6 w-6 items-center justify-center rounded-full border-2 text-[11px] font-medium text-white"
+          className="border-card flex h-6 w-6 items-center justify-center rounded-full border-2 text-[11px] font-medium text-white"
           style={{
             background: bg,
-            borderColor: 'var(--panel-bg)',
             marginLeft: i === 0 ? 0 : -6,
           }}
         >

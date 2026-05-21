@@ -9,6 +9,7 @@ import {
   Type as TextIcon,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { cn } from '~/lib/utils'
 import { useDashboardEditor, useEditorState } from '../editor/editor-context'
 
 /**
@@ -28,14 +29,7 @@ export function FloatingTools() {
   const tool = useEditorState((s) => s.tool)
 
   return (
-    <div
-      className="absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-px rounded-lg border p-1"
-      style={{
-        background: 'var(--panel-bg)',
-        borderColor: 'var(--border)',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
-      }}
-    >
+    <div className="bg-card border-border absolute top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-px rounded-lg border p-1 shadow-md">
       <ToolButton
         label="选择 · V"
         icon={MousePointer2}
@@ -60,9 +54,6 @@ export function FloatingTools() {
   )
 }
 
-// Defined at module scope (not inside FloatingTools) — react-hooks/
-// static-components disallows component definitions inside components
-// because each render produces a new identity, breaking memoization.
 interface ToolButtonProps {
   label: string
   icon: React.ComponentType<{ size?: number }>
@@ -80,18 +71,14 @@ function ToolButton({ label, icon: Icon, onClick, active, placeholder }: ToolBut
           onClick={placeholder ? undefined : onClick}
           disabled={placeholder}
           aria-label={label}
-          className={
-            'flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border-none p-0 ' +
-            (placeholder ? 'cursor-not-allowed opacity-70' : 'cursor-pointer')
-          }
-          style={{
-            background: active ? 'var(--accent-soft)' : 'transparent',
-            color: active
-              ? 'var(--accent)'
-              : placeholder
-                ? 'var(--text-4)'
-                : 'var(--text-1)',
-          }}
+          className={cn(
+            'flex h-7 w-7 shrink-0 items-center justify-center rounded-sm transition-colors',
+            placeholder
+              ? 'text-muted-foreground/40 cursor-not-allowed opacity-70'
+              : active
+                ? 'bg-primary/10 text-primary cursor-pointer'
+                : 'text-foreground hover:bg-muted cursor-pointer',
+          )}
         >
           <Icon size={14} />
         </button>
@@ -104,11 +91,5 @@ function ToolButton({ label, icon: Icon, onClick, active, placeholder }: ToolBut
 }
 
 function Divider() {
-  return (
-    <div
-      aria-hidden
-      className="mx-[3px] h-4 w-px"
-      style={{ background: 'var(--border)' }}
-    />
-  )
+  return <div aria-hidden className="bg-border mx-[3px] h-4 w-px" />
 }

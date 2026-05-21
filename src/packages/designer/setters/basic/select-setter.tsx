@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { ChevronDown } from 'lucide-react'
+import { cn } from '~/lib/utils'
 import type { SetterProps } from '../setter.interface'
 
 export interface SelectOption {
@@ -13,10 +14,10 @@ interface SelectSetterProps {
 }
 
 /**
- * Dropdown styled to match the design's `.prop-input` row. Uses the native
- * `<select>` element so we get the OS-level keyboard + screen reader support
- * for free — for longer lists or rich items we can later swap to a Popover
- * implementation without changing the SetterRegistry contract.
+ * Dropdown styled to match the rest of the property panel rows. Uses the
+ * native `<select>` element so we get the OS-level keyboard + screen reader
+ * support for free — for longer lists or rich items we can later swap to a
+ * Popover implementation without changing the SetterRegistry contract.
  */
 export const SelectSetter: React.FC<SetterProps<string>> = ({
   value,
@@ -28,28 +29,17 @@ export const SelectSetter: React.FC<SetterProps<string>> = ({
   const options = opts.options ?? []
   return (
     <label
-      className="prop-input"
-      style={{
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        paddingRight: 4,
-      }}
+      data-disabled={disabled || undefined}
+      className={cn(
+        'bg-muted hover:bg-muted/80 focus-within:bg-card focus-within:border-primary flex h-[26px] min-w-0 items-center rounded-sm border border-transparent px-1.5 pr-1 text-[11px] transition-colors',
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+      )}
     >
       <select
         value={value ?? ''}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        style={{
-          appearance: 'none',
-          background: 'transparent',
-          border: 'none',
-          outline: 'none',
-          width: '100%',
-          fontFamily: 'inherit',
-          fontSize: 11,
-          color: 'var(--text-1)',
-          cursor: 'inherit',
-        }}
+        className="text-foreground w-full cursor-[inherit] appearance-none border-none bg-transparent text-[11px] outline-none"
       >
         {opts.placeholder !== undefined && (
           <option value="" disabled>
@@ -62,7 +52,7 @@ export const SelectSetter: React.FC<SetterProps<string>> = ({
           </option>
         ))}
       </select>
-      <ChevronDown size={12} style={{ color: 'var(--text-3)', pointerEvents: 'none' }} />
+      <ChevronDown size={12} className="text-muted-foreground/80 pointer-events-none" />
     </label>
   )
 }

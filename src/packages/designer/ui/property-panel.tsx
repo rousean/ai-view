@@ -10,12 +10,14 @@ import {
   MoreHorizontal,
   Radar,
   Table,
-  Trash2,
   Type as TextIcon,
+  Trash2,
 } from 'lucide-react'
 import type { Background, WidgetNode } from '@schema/types'
 import type { PropConfig, WidgetMeta } from '@widgets/widget-meta'
+import { Button } from '~/components/ui/button'
 import { ScrollArea } from '~/components/ui/scroll-area'
+import { cn } from '~/lib/utils'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
 import { getByPath, setByPath } from '../setters/path-utils'
 import { selectCurrentPage, selectWidget } from '../stores/selectors'
@@ -43,44 +45,50 @@ export function PropertyPanel() {
   }, [selectedIds.length])
 
   return (
-    <aside
-      className="flex w-[var(--panel-w-right)] shrink-0 flex-col border-l"
-      style={{
-        background: 'var(--panel-bg)',
-        borderColor: 'var(--border)',
-      }}
-    >
-      <div className="tabs shrink-0">
-        <button
-          className={'tab ' + (tab === 'canvas' ? 'active' : '')}
-          onClick={() => setTab('canvas')}
-        >
+    <aside className="border-border bg-card flex w-[280px] shrink-0 flex-col border-l">
+      <div className="border-border flex items-stretch gap-0.5 border-b px-1">
+        <TabButton active={tab === 'canvas'} onClick={() => setTab('canvas')}>
           画布
-        </button>
-        <button
-          className={'tab ' + (tab === 'chart' ? 'active' : '')}
-          onClick={() => setTab('chart')}
-        >
+        </TabButton>
+        <TabButton active={tab === 'chart'} onClick={() => setTab('chart')}>
           图表
           {selectedIds.length === 1 && (
-            <span
-              className="ml-1 inline-block h-1.5 w-1.5 rounded-full align-middle"
-              style={{ background: 'var(--accent)' }}
-            />
+            <span className="bg-primary ml-1 inline-block h-1.5 w-1.5 rounded-full align-middle" />
           )}
-        </button>
+        </TabButton>
         <div className="flex-1" />
-        <button
-          className="btn btn-ghost-icon mr-1 self-center"
-          aria-label="更多"
-        >
+        <Button variant="ghost" size="icon-sm" className="mr-1 self-center" aria-label="更多">
           <MoreHorizontal size={14} />
-        </button>
+        </Button>
       </div>
       <ScrollArea className="min-h-0 flex-1">
         {tab === 'canvas' ? <CanvasProps /> : <ChartProps />}
       </ScrollArea>
     </aside>
+  )
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'relative cursor-pointer bg-transparent px-2 py-2 text-xs whitespace-nowrap select-none',
+        active
+          ? "text-foreground font-medium after:bg-primary after:absolute after:right-2 after:-bottom-px after:left-2 after:h-0.5 after:rounded-[1px] after:content-['']"
+          : 'text-muted-foreground hover:text-foreground',
+      )}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -118,7 +126,7 @@ function CanvasProps() {
             value={page.canvas.width}
             onChange={(w) => editor.setCanvasSize(w, page.canvas.height)}
           />
-          <span className="t-4">×</span>
+          <span className="text-muted-foreground/60">×</span>
           <NumInput
             value={page.canvas.height}
             onChange={(h) => editor.setCanvasSize(page.canvas.width, h)}
@@ -294,24 +302,20 @@ function ChartProps() {
 
   if (selectedIds.length === 0) {
     return (
-      <div
-        className="p-6 text-center"
-        style={{ color: 'var(--text-3)' }}
-      >
-        <ChartBar size={28} stroke="var(--text-4)" />
+      <div className="text-muted-foreground/80 p-6 text-center">
+        <ChartBar size={28} className="text-muted-foreground/40 mx-auto" />
         <div className="mt-2.5 text-[13px]">未选中图表</div>
-        <div className="t-4 t-xs mt-1">在画布中点击图表以查看属性</div>
+        <div className="text-muted-foreground/60 mt-1 text-[11px]">
+          在画布中点击图表以查看属性
+        </div>
       </div>
     )
   }
   if (selectedIds.length > 1) {
     return (
-      <div
-        className="p-6 text-center"
-        style={{ color: 'var(--text-3)' }}
-      >
+      <div className="text-muted-foreground/80 p-6 text-center">
         <div className="text-[13px]">已选中 {selectedIds.length} 个图表</div>
-        <div className="t-4 t-xs mt-1">多选批量编辑暂未实现</div>
+        <div className="text-muted-foreground/60 mt-1 text-[11px]">多选批量编辑暂未实现</div>
       </div>
     )
   }
@@ -323,40 +327,33 @@ function ChartProps() {
   return (
     <>
       {/* 选中头部卡 */}
-      <div
-        className="flex items-center gap-2 border-b px-3 pt-2.5 pb-3"
-        style={{ borderColor: 'var(--border)' }}
-      >
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded"
-          style={{
-            background: 'var(--accent-soft)',
-            color: 'var(--accent)',
-          }}
-        >
+      <div className="border-border flex items-center gap-2 border-b px-3 pt-2.5 pb-3">
+        <div className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded">
           <Icon size={18} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="t-sm fw-5 truncate">{widget.name}</div>
-          <div className="t-xs t-3 t-mono">#{widget.id.slice(0, 8)}</div>
+          <div className="truncate text-xs font-medium">{widget.name}</div>
+          <div className="text-muted-foreground/80 font-mono text-[11px]">
+            #{widget.id.slice(0, 8)}
+          </div>
         </div>
-        <button
-          className="btn btn-ghost-icon"
+        <Button
+          variant="ghost"
+          size="icon-sm"
           aria-label="复制"
-          onClick={() =>
-            editor.execute('widget.add', { type: widget.type, props: widget.props })
-          }
+          onClick={() => editor.execute('widget.add', { type: widget.type, props: widget.props })}
         >
           <Copy size={14} />
-        </button>
-        <button
-          className="btn btn-ghost-icon"
-          style={{ color: 'var(--danger)' }}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-destructive hover:text-destructive"
           aria-label="删除"
           onClick={() => editor.removeWidgets([widget.id])}
         >
           <Trash2 size={14} />
-        </button>
+        </Button>
       </div>
 
       {/* 位置和大小 */}
@@ -410,14 +407,14 @@ function ChartProps() {
       {/* 数据 (P8 占位) */}
       <PropSection title="数据" defaultOpen={false}>
         <PropRow label="数据源">
-          <div className="prop-input">
-            <Database size={12} style={{ color: 'var(--text-2)' }} />
-            <input defaultValue="未绑定" className="ml-1" disabled />
-            <ChevronDown size={12} style={{ color: 'var(--text-3)' }} />
+          <div className="bg-muted flex h-[26px] min-w-0 flex-1 items-center gap-1 rounded-sm px-1.5 text-[11px]">
+            <Database size={12} className="text-muted-foreground" />
+            <input defaultValue="未绑定" className="ml-1 flex-1 bg-transparent outline-none" disabled />
+            <ChevronDown size={12} className="text-muted-foreground/80" />
           </div>
         </PropRow>
         <PropRow label="提示">
-          <span className="t-xs t-3">数据源管理将在 P8 上线</span>
+          <span className="text-muted-foreground/80 text-[11px]">数据源管理将在 P8 上线</span>
         </PropRow>
       </PropSection>
 
@@ -477,9 +474,7 @@ function SchemaField({ widget, cfg }: { widget: WidgetNode; cfg: PropConfig }) {
   if (!setterDef) {
     return (
       <PropRow label={cfg.label}>
-        <span className="t-xs" style={{ color: 'var(--danger)' }}>
-          未注册的 setter: {cfg.setter}
-        </span>
+        <span className="text-destructive text-[11px]">未注册的 setter: {cfg.setter}</span>
       </PropRow>
     )
   }
