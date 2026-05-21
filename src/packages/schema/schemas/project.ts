@@ -11,6 +11,7 @@ export const ProjectSchema = z.object({
   description: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  status: z.enum(['published', 'draft', 'review', 'archived']).optional(),
   pages: z.array(PageSchema).min(1),
   currentPageId: z.string(),
   dataSources: z.array(DataSourceSchema),

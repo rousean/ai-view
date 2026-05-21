@@ -2,6 +2,8 @@ import type { Asset } from './asset'
 import type { DataSource } from './data-source'
 import type { Page } from './page'
 
+export type ProjectStatus = 'published' | 'draft' | 'review' | 'archived'
+
 /**
  * Project — root document. Serializing this to JSON produces a complete
  * standalone large-screen artifact. Loaded by PersistenceAdapter.load().
@@ -17,6 +19,13 @@ export interface Project {
   /** ISO 8601 timestamps. */
   createdAt: string
   updatedAt: string
+
+  /**
+   * Publication status. Drives the management list's tabs/badges and any
+   * gating around preview/share/publish. Omitted on legacy projects;
+   * treat absent as `'draft'`.
+   */
+  status?: ProjectStatus
 
   /** Pages in display order. Always non-empty. */
   pages: Page[]

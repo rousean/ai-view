@@ -46,6 +46,7 @@ export function createEmptyProject(
     description: opts.description,
     createdAt: now,
     updatedAt: now,
+    status: 'draft',
     pages: [page],
     currentPageId: page.id,
     dataSources: [],

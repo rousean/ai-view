@@ -6,6 +6,7 @@ import { NotFound } from '~/components/NotFound'
 import appCss from '~/styles/app.css?url'
 import { seo } from '~/utils/seo'
 import { TooltipProvider } from '~/components/ui/tooltip'
+import { ThemeProvider, THEME_INIT_SCRIPT } from '~/lib/theme-provider'
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -58,18 +59,31 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <RootDocument>
-      <TooltipProvider>
-        <Outlet />
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Outlet />
+        </TooltipProvider>
+      </ThemeProvider>
     </RootDocument>
   )
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN">
+    // `suppressHydrationWarning` is required because the inline theme init
+    // script below mutates <html>'s className + style.colorScheme *before*
+    // React hydrates. Without this, React's hydration check sees the
+    // mismatch (server rendered no class, client already has `.dark`) and
+    // warns. Same approach used by next-themes / shadcn docs.
+    <html lang="zh-CN" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/*
+          Pre-hydration theme init — sets `.dark` + `color-scheme` on <html>
+          before React boots. Without this the page would always paint as
+          light and then flash to dark when the provider's effect runs.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body>
         {children}

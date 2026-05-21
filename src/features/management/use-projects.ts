@@ -1,0 +1,138 @@
+import * as React from 'react'
+import type { Project, ProjectSummary, ProjectStatus } from '@schema/types'
+import { LocalStoragePersistence } from '@schema/index'
+
+/**
+ * Tiny event bus to keep the management surface in sync without pulling in
+ * a query library.
+ *
+ *   - any mutation (create / delete / status change / editor save) fires
+ *     `aiview:projects-changed`
+ *   - any view that reads the project list subscribes and re-fetches
+ *   - `storage` is also subscribed so cross-tab edits propagate
+ */
+const PROJECTS_CHANGED_EVENT = 'aiview:projects-changed'
+
+export function notifyProjectsChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(PROJECTS_CHANGED_EVENT))
+  }
+}
+
+/** Extended summary with management-specific bits computed once at list time. */
+export interface ScreenListItem extends ProjectSummary {
+  status: ProjectStatus
+}
+
+const adapter = new LocalStoragePersistence()
+
+async function loadList(): Promise<ScreenListItem[]> {
+  const summaries = await adapter.list()
+  // Pull each project to read its status (not in summary). This is fine for
+  // localStorage — synchronous & small. With a real backend we'd extend the
+  // list endpoint to include status.
+  const items: ScreenListItem[] = []
+  for (const s of summaries) {
+    try {
+      const p = await adapter.load(s.id)
+      items.push({ ...s, status: p.status ?? 'draft' })
+    } catch {
+      // Skip corrupt/missing entries silently — they're filtered out of
+      // the UI but remain in the index until something explicitly cleans up.
+    }
+  }
+  return items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+}
+
+/**
+ * Returns the current project list, sorted most-recently-updated first.
+ * Refetches when:
+ *   1. another part of the app fires `notifyProjectsChanged()`
+ *   2. localStorage changes in another tab (`storage` event)
+ *   3. the consumer calls `refresh()` explicitly
+ */
+export function useProjects() {
+  const [items, setItems] = React.useState<ScreenListItem[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
+
+  const refresh = React.useCallback(async () => {
+    try {
+      const list = await loadList()
+      setItems(list)
+      setError(null)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    void refresh()
+    const handler = () => {
+      void refresh()
+    }
+    window.addEventListener(PROJECTS_CHANGED_EVENT, handler)
+    window.addEventListener('storage', handler)
+    return () => {
+      window.removeEventListener(PROJECTS_CHANGED_EVENT, handler)
+      window.removeEventListener('storage', handler)
+    }
+  }, [refresh])
+
+  return { items, loading, error, refresh }
+}
+
+/** Convenience: just the count, used by the sidebar badge. */
+export function useProjectCount(): number | undefined {
+  const { items, loading } = useProjects()
+  return loading ? undefined : items.length
+}
+
+// ─── Mutations (each one fires `notifyProjectsChanged`) ─────────────────────
+
+export async function createNewProject(name?: string): Promise<Project> {
+  const project = await adapter.create({ name: name ?? '未命名大屏' })
+  notifyProjectsChanged()
+  return project
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  await adapter.delete(id)
+  notifyProjectsChanged()
+}
+
+export async function duplicateProject(id: string): Promise<Project> {
+  const src = await adapter.load(id)
+  const copy = await adapter.create({
+    name: `${src.name} - 副本`,
+    description: src.description,
+  })
+  // Replace the empty pages with the source's content (preserves widgets).
+  await adapter.save({
+    ...copy,
+    pages: src.pages,
+    currentPageId: src.currentPageId,
+    dataSources: src.dataSources,
+    assets: src.assets,
+    status: src.status ?? 'draft',
+    extensions: src.extensions,
+  })
+  notifyProjectsChanged()
+  return copy
+}
+
+export async function renameProject(id: string, name: string): Promise<void> {
+  const project = await adapter.load(id)
+  await adapter.save({ ...project, name })
+  notifyProjectsChanged()
+}
+
+export async function setProjectStatus(id: string, status: ProjectStatus): Promise<void> {
+  const project = await adapter.load(id)
+  await adapter.save({ ...project, status })
+  notifyProjectsChanged()
+}
+
+export { adapter as projectsAdapter }

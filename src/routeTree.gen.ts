@@ -9,12 +9,27 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ManagementRouteImport } from './routes/management'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EditorV2RouteImport } from './routes/editor-v2'
 import { Route as DesignerRouteImport } from './routes/designer'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ManagementIndexRouteImport } from './routes/management/index'
 import { Route as LayoutIndexRouteImport } from './routes/layout/index'
+import { Route as ManagementTemplatesRouteImport } from './routes/management/templates'
+import { Route as ManagementSettingsRouteImport } from './routes/management/settings'
+import { Route as ManagementScreensRouteImport } from './routes/management/screens'
+import { Route as ManagementMembersRouteImport } from './routes/management/members'
+import { Route as ManagementLogsRouteImport } from './routes/management/logs'
+import { Route as ManagementDataRouteImport } from './routes/management/data'
+import { Route as ManagementDashboardRouteImport } from './routes/management/dashboard'
+import { Route as ManagementAssetsRouteImport } from './routes/management/assets'
 
+const ManagementRoute = ManagementRouteImport.update({
+  id: '/management',
+  path: '/management',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -35,10 +50,55 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManagementIndexRoute = ManagementIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ManagementRoute,
+} as any)
 const LayoutIndexRoute = LayoutIndexRouteImport.update({
   id: '/layout/',
   path: '/layout/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ManagementTemplatesRoute = ManagementTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => ManagementRoute,
+} as any)
+const ManagementSettingsRoute = ManagementSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => ManagementRoute,
+} as any)
+const ManagementScreensRoute = ManagementScreensRouteImport.update({
+  id: '/screens',
+  path: '/screens',
+  getParentRoute: () => ManagementRoute,
+} as any)
+const ManagementMembersRoute = ManagementMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => ManagementRoute,
+} as any)
+const ManagementLogsRoute = ManagementLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => ManagementRoute,
+} as any)
+const ManagementDataRoute = ManagementDataRouteImport.update({
+  id: '/data',
+  path: '/data',
+  getParentRoute: () => ManagementRoute,
+} as any)
+const ManagementDashboardRoute = ManagementDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => ManagementRoute,
+} as any)
+const ManagementAssetsRoute = ManagementAssetsRouteImport.update({
+  id: '/assets',
+  path: '/assets',
+  getParentRoute: () => ManagementRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -46,14 +106,33 @@ export interface FileRoutesByFullPath {
   '/designer': typeof DesignerRoute
   '/editor-v2': typeof EditorV2Route
   '/login': typeof LoginRoute
+  '/management': typeof ManagementRouteWithChildren
+  '/management/assets': typeof ManagementAssetsRoute
+  '/management/dashboard': typeof ManagementDashboardRoute
+  '/management/data': typeof ManagementDataRoute
+  '/management/logs': typeof ManagementLogsRoute
+  '/management/members': typeof ManagementMembersRoute
+  '/management/screens': typeof ManagementScreensRoute
+  '/management/settings': typeof ManagementSettingsRoute
+  '/management/templates': typeof ManagementTemplatesRoute
   '/layout/': typeof LayoutIndexRoute
+  '/management/': typeof ManagementIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/designer': typeof DesignerRoute
   '/editor-v2': typeof EditorV2Route
   '/login': typeof LoginRoute
+  '/management/assets': typeof ManagementAssetsRoute
+  '/management/dashboard': typeof ManagementDashboardRoute
+  '/management/data': typeof ManagementDataRoute
+  '/management/logs': typeof ManagementLogsRoute
+  '/management/members': typeof ManagementMembersRoute
+  '/management/screens': typeof ManagementScreensRoute
+  '/management/settings': typeof ManagementSettingsRoute
+  '/management/templates': typeof ManagementTemplatesRoute
   '/layout': typeof LayoutIndexRoute
+  '/management': typeof ManagementIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -61,14 +140,69 @@ export interface FileRoutesById {
   '/designer': typeof DesignerRoute
   '/editor-v2': typeof EditorV2Route
   '/login': typeof LoginRoute
+  '/management': typeof ManagementRouteWithChildren
+  '/management/assets': typeof ManagementAssetsRoute
+  '/management/dashboard': typeof ManagementDashboardRoute
+  '/management/data': typeof ManagementDataRoute
+  '/management/logs': typeof ManagementLogsRoute
+  '/management/members': typeof ManagementMembersRoute
+  '/management/screens': typeof ManagementScreensRoute
+  '/management/settings': typeof ManagementSettingsRoute
+  '/management/templates': typeof ManagementTemplatesRoute
   '/layout/': typeof LayoutIndexRoute
+  '/management/': typeof ManagementIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/designer' | '/editor-v2' | '/login' | '/layout/'
+  fullPaths:
+    | '/'
+    | '/designer'
+    | '/editor-v2'
+    | '/login'
+    | '/management'
+    | '/management/assets'
+    | '/management/dashboard'
+    | '/management/data'
+    | '/management/logs'
+    | '/management/members'
+    | '/management/screens'
+    | '/management/settings'
+    | '/management/templates'
+    | '/layout/'
+    | '/management/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/designer' | '/editor-v2' | '/login' | '/layout'
-  id: '__root__' | '/' | '/designer' | '/editor-v2' | '/login' | '/layout/'
+  to:
+    | '/'
+    | '/designer'
+    | '/editor-v2'
+    | '/login'
+    | '/management/assets'
+    | '/management/dashboard'
+    | '/management/data'
+    | '/management/logs'
+    | '/management/members'
+    | '/management/screens'
+    | '/management/settings'
+    | '/management/templates'
+    | '/layout'
+    | '/management'
+  id:
+    | '__root__'
+    | '/'
+    | '/designer'
+    | '/editor-v2'
+    | '/login'
+    | '/management'
+    | '/management/assets'
+    | '/management/dashboard'
+    | '/management/data'
+    | '/management/logs'
+    | '/management/members'
+    | '/management/screens'
+    | '/management/settings'
+    | '/management/templates'
+    | '/layout/'
+    | '/management/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,11 +210,19 @@ export interface RootRouteChildren {
   DesignerRoute: typeof DesignerRoute
   EditorV2Route: typeof EditorV2Route
   LoginRoute: typeof LoginRoute
+  ManagementRoute: typeof ManagementRouteWithChildren
   LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/management': {
+      id: '/management'
+      path: '/management'
+      fullPath: '/management'
+      preLoaderRoute: typeof ManagementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -109,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/management/': {
+      id: '/management/'
+      path: '/'
+      fullPath: '/management/'
+      preLoaderRoute: typeof ManagementIndexRouteImport
+      parentRoute: typeof ManagementRoute
+    }
     '/layout/': {
       id: '/layout/'
       path: '/layout'
@@ -116,14 +265,99 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/management/templates': {
+      id: '/management/templates'
+      path: '/templates'
+      fullPath: '/management/templates'
+      preLoaderRoute: typeof ManagementTemplatesRouteImport
+      parentRoute: typeof ManagementRoute
+    }
+    '/management/settings': {
+      id: '/management/settings'
+      path: '/settings'
+      fullPath: '/management/settings'
+      preLoaderRoute: typeof ManagementSettingsRouteImport
+      parentRoute: typeof ManagementRoute
+    }
+    '/management/screens': {
+      id: '/management/screens'
+      path: '/screens'
+      fullPath: '/management/screens'
+      preLoaderRoute: typeof ManagementScreensRouteImport
+      parentRoute: typeof ManagementRoute
+    }
+    '/management/members': {
+      id: '/management/members'
+      path: '/members'
+      fullPath: '/management/members'
+      preLoaderRoute: typeof ManagementMembersRouteImport
+      parentRoute: typeof ManagementRoute
+    }
+    '/management/logs': {
+      id: '/management/logs'
+      path: '/logs'
+      fullPath: '/management/logs'
+      preLoaderRoute: typeof ManagementLogsRouteImport
+      parentRoute: typeof ManagementRoute
+    }
+    '/management/data': {
+      id: '/management/data'
+      path: '/data'
+      fullPath: '/management/data'
+      preLoaderRoute: typeof ManagementDataRouteImport
+      parentRoute: typeof ManagementRoute
+    }
+    '/management/dashboard': {
+      id: '/management/dashboard'
+      path: '/dashboard'
+      fullPath: '/management/dashboard'
+      preLoaderRoute: typeof ManagementDashboardRouteImport
+      parentRoute: typeof ManagementRoute
+    }
+    '/management/assets': {
+      id: '/management/assets'
+      path: '/assets'
+      fullPath: '/management/assets'
+      preLoaderRoute: typeof ManagementAssetsRouteImport
+      parentRoute: typeof ManagementRoute
+    }
   }
 }
+
+interface ManagementRouteChildren {
+  ManagementAssetsRoute: typeof ManagementAssetsRoute
+  ManagementDashboardRoute: typeof ManagementDashboardRoute
+  ManagementDataRoute: typeof ManagementDataRoute
+  ManagementLogsRoute: typeof ManagementLogsRoute
+  ManagementMembersRoute: typeof ManagementMembersRoute
+  ManagementScreensRoute: typeof ManagementScreensRoute
+  ManagementSettingsRoute: typeof ManagementSettingsRoute
+  ManagementTemplatesRoute: typeof ManagementTemplatesRoute
+  ManagementIndexRoute: typeof ManagementIndexRoute
+}
+
+const ManagementRouteChildren: ManagementRouteChildren = {
+  ManagementAssetsRoute: ManagementAssetsRoute,
+  ManagementDashboardRoute: ManagementDashboardRoute,
+  ManagementDataRoute: ManagementDataRoute,
+  ManagementLogsRoute: ManagementLogsRoute,
+  ManagementMembersRoute: ManagementMembersRoute,
+  ManagementScreensRoute: ManagementScreensRoute,
+  ManagementSettingsRoute: ManagementSettingsRoute,
+  ManagementTemplatesRoute: ManagementTemplatesRoute,
+  ManagementIndexRoute: ManagementIndexRoute,
+}
+
+const ManagementRouteWithChildren = ManagementRoute._addFileChildren(
+  ManagementRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DesignerRoute: DesignerRoute,
   EditorV2Route: EditorV2Route,
   LoginRoute: LoginRoute,
+  ManagementRoute: ManagementRouteWithChildren,
   LayoutIndexRoute: LayoutIndexRoute,
 }
 export const routeTree = rootRouteImport
