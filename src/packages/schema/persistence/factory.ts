@@ -11,7 +11,10 @@ export function createDefaultPage(name = '页面 1'): Page {
       width: 1920,
       height: 1080,
       orientation: 'landscape',
-      background: { type: 'color', color: '#ffffff' },
+      // CSS var instead of a hard-coded white so the artboard follows the
+      // shell theme — light = white, dark = near-black. Pin a literal hex
+      // here only when a project should override that behaviour.
+      background: { type: 'color', color: 'var(--background)' },
     },
     grid: {
       enabled: true,

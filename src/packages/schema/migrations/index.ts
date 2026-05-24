@@ -14,14 +14,36 @@ export interface Migration {
 /**
  * Migration registry — append in chronological order.
  *
- * MVP: empty. Add entries here when introducing breaking schema changes.
- * Pattern:
- *
- *   { from: '1.0.0', to: '1.1.0', up: (proj) => { ... } }
- *
- * See `migrate()` for how the chain is executed.
+ * Each entry is applied automatically when a project is loaded; the chain
+ * runs until `current.version === SCHEMA_VERSION`. See `migrate()` below.
  */
-const migrations: Migration[] = []
+const migrations: Migration[] = [
+  /**
+   * v1.0.0 → v1.1.0
+   * Replace the hard-coded `#ffffff` artboard fill that older projects
+   * shipped with by a CSS var that follows the app theme. Projects that
+   * deliberately picked any other colour are untouched.
+   */
+  {
+    from: '1.0.0',
+    to: '1.1.0',
+    up(project) {
+      const p = project as {
+        version: string
+        pages: Array<{
+          canvas: { background: { type: string; color?: string } }
+        }>
+      }
+      for (const page of p.pages ?? []) {
+        const bg = page.canvas?.background
+        if (bg && bg.type === 'color' && bg.color === '#ffffff') {
+          bg.color = 'var(--background)'
+        }
+      }
+      return p
+    },
+  },
+]
 
 /**
  * Compare semver-ish version strings. Returns -1 / 0 / 1.

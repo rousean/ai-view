@@ -20,6 +20,7 @@ import {
 import type { ProjectStatus } from '@schema/types'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
+import { Card, CardContent, CardFooter, CardHeader } from '~/components/ui/card'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Input } from '~/components/ui/input'
 import {
@@ -52,14 +53,12 @@ const STATUS_META: Record<
     dot: string
   }
 > = {
-  published: { label: '已发布', variant: 'default', dot: 'bg-green-500' },
+  published: { label: '已发布', variant: 'default', dot: 'bg-emerald-500' },
   draft: { label: '草稿', variant: 'secondary', dot: 'bg-muted-foreground/60' },
-  review: { label: '审核中', variant: 'outline', dot: 'bg-orange-500' },
+  review: { label: '审核中', variant: 'outline', dot: 'bg-amber-500' },
   archived: { label: '已归档', variant: 'destructive', dot: 'bg-destructive' },
 }
 
-// Deterministic but varied thumbnail picker — same project always gets the
-// same colour without storing anything on the schema.
 const THUMB_THEMES: MiniThumbTheme[] = [
   'cyan',
   'purple',
@@ -74,7 +73,6 @@ function thumbFor(id: string): MiniThumbTheme {
   return THUMB_THEMES[Math.abs(hash) % THUMB_THEMES.length]
 }
 
-/** Convert "2 hours ago" to a Chinese relative-time string. */
 function timeAgo(iso: string): string {
   const then = new Date(iso).getTime()
   const diff = Date.now() - then
@@ -86,14 +84,11 @@ function timeAgo(iso: string): string {
   if (diff < hr) return `${Math.floor(diff / min)} 分钟前`
   if (diff < day) return `${Math.floor(diff / hr)} 小时前`
   if (diff < 7 * day) return `${Math.floor(diff / day)} 天前`
-  return new Date(iso).toLocaleDateString('zh-CN', {
-    month: 'numeric',
-    day: 'numeric',
-  })
+  return new Date(iso).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Column definitions
+// Columns
 // ─────────────────────────────────────────────────────────────────────
 
 const ch = createColumnHelper<ScreenListItem>()
@@ -258,8 +253,8 @@ export function ScreensPage() {
         </div>
       </div>
 
-      <div className="border-border bg-card overflow-hidden rounded-lg border">
-        <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b p-3">
+      <Card className="gap-0 py-0">
+        <CardHeader className="flex flex-wrap items-center gap-3 border-b py-3">
           <Tabs value={tab} onValueChange={(v) => setTab(v as 'all' | ProjectStatus)}>
             <TabsList>
               {TABS.map((t) => (
@@ -272,7 +267,7 @@ export function ScreensPage() {
               ))}
             </TabsList>
           </Tabs>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <div className="relative">
               <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2" />
               <Input
@@ -291,81 +286,85 @@ export function ScreensPage() {
               列
             </Button>
           </div>
-        </div>
+        </CardHeader>
 
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id}>
-                {hg.headers.map((h) => (
-                  <TableHead
-                    key={h.id}
-                    style={{ width: h.column.columnDef.size }}
-                    className="text-muted-foreground h-10 px-4 text-xs font-medium"
-                  >
-                    {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-muted-foreground py-10 text-center text-sm"
-                >
-                  加载中…
-                </TableCell>
-              </TableRow>
-            ) : error ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-destructive py-10 text-center text-sm"
-                >
-                  加载失败：{error}
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-muted-foreground py-16 text-center text-sm"
-                >
-                  {items.length === 0 ? (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="text-base font-medium">还没有任何大屏</div>
-                      <Button size="sm" onClick={() => void onCreate()} disabled={creating}>
-                        <Plus />
-                        新建第一个大屏
-                      </Button>
-                    </div>
-                  ) : (
-                    '没有匹配的大屏'
-                  )}
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() ? 'selected' : undefined}
-                  className="group/row"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-4 py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+        <CardContent className="px-0">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((hg) => (
+                <TableRow key={hg.id}>
+                  {hg.headers.map((h) => (
+                    <TableHead
+                      key={h.id}
+                      style={{ width: h.column.columnDef.size }}
+                      className="text-muted-foreground h-10 px-4 text-xs font-medium"
+                    >
+                      {h.isPlaceholder
+                        ? null
+                        : flexRender(h.column.columnDef.header, h.getContext())}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="text-muted-foreground py-10 text-center text-sm"
+                  >
+                    加载中…
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="text-destructive py-10 text-center text-sm"
+                  >
+                    加载失败：{error}
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="text-muted-foreground py-16 text-center text-sm"
+                  >
+                    {items.length === 0 ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="text-base font-medium">还没有任何大屏</div>
+                        <Button size="sm" onClick={() => void onCreate()} disabled={creating}>
+                          <Plus />
+                          新建第一个大屏
+                        </Button>
+                      </div>
+                    ) : (
+                      '没有匹配的大屏'
+                    )}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() ? 'selected' : undefined}
+                    className="group/row"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="px-4 py-3">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
 
-        <div className="border-border text-muted-foreground flex items-center justify-between border-t px-5 py-3 text-sm">
+        <CardFooter className="text-muted-foreground justify-between text-sm">
           <div>
             显示 <strong className="text-foreground">{filtered.length}</strong> 共{' '}
             <strong className="text-foreground">{items.length}</strong> 个大屏
@@ -404,8 +403,8 @@ export function ScreensPage() {
               <ChevronRight />
             </Button>
           </div>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   )
 }
