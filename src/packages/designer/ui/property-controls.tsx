@@ -92,8 +92,10 @@ export function NumInput({
   max,
   step,
   disabled,
+  placeholder = '—',
 }: {
-  value: number
+  /** `undefined` renders blank with the placeholder — used for "mixed" values in batch edit. */
+  value?: number
   onChange?: (n: number) => void
   prefix?: string
   suffix?: string
@@ -102,6 +104,7 @@ export function NumInput({
   max?: number
   step?: number
   disabled?: boolean
+  placeholder?: string
 }) {
   const [text, setText] = React.useState(formatNumber(value))
   React.useEffect(() => setText(formatNumber(value)), [value])
@@ -119,6 +122,7 @@ export function NumInput({
         type="text"
         inputMode="decimal"
         value={text}
+        placeholder={placeholder}
         disabled={disabled}
         onChange={(e) => setText(e.target.value)}
         onBlur={(e) => commit(e.target.value)}
@@ -128,7 +132,7 @@ export function NumInput({
         min={min}
         max={max}
         step={step}
-        className="text-foreground w-full border-none bg-transparent text-[11px] tabular-nums outline-none"
+        className="text-foreground placeholder:text-muted-foreground/60 w-full border-none bg-transparent text-[11px] tabular-nums outline-none"
       />
       {suffix && (
         <span className="text-muted-foreground/80 shrink-0 text-[11px]">{suffix}</span>
@@ -183,8 +187,8 @@ function hexLabel(c: string) {
   return c.replace('#', '').toUpperCase()
 }
 
-function formatNumber(n: number): string {
-  if (!Number.isFinite(n)) return ''
+function formatNumber(n: number | undefined): string {
+  if (n === undefined || !Number.isFinite(n)) return ''
   // Cap to 2 decimal places without trailing zeros.
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '')
 }

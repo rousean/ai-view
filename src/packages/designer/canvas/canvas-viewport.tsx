@@ -2,9 +2,12 @@ import * as React from 'react'
 import { useDroppable } from '@dnd-kit/react'
 import { cn } from '~/lib/utils'
 import { useDashboardEditor, useEditorState } from '../editor/editor-context'
+import { runShortcut } from '../editor/keyboard-shortcuts'
 import type { Tool, ToolContext } from '../tools/tool.interface'
 import { CameraTransformLayer } from './camera-transform-layer'
 import { GridLayer } from './grid-layer'
+import { GuidesOverlay } from './guides-overlay'
+import { useCreateGuideGesture } from './interaction/use-create-guide-gesture'
 import { AlignmentGuidesOverlay } from './overlay/alignment-guides'
 import { MarqueeOverlay } from './overlay/marquee'
 import { HoverIndicator, SelectionBounds } from './overlay/selection-bounds'
@@ -35,6 +38,7 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
   const tool = useEditorState((s) => s.tool)
   const showRulers = useEditorState((s) => s.view.showRulers)
   const containerRef = React.useRef<HTMLDivElement | null>(null)
+  const { start: startGuide } = useCreateGuideGesture(containerRef)
 
   // Register the inner viewport div as a drop target for material drags
   // from the left panel. The actual drop handler lives in EditorRoot;
@@ -170,22 +174,17 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
   // Keyboard events
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-        e.preventDefault()
-        if (e.shiftKey) editor.redo()
-        else editor.undo()
-        return
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
-        e.preventDefault()
-        editor.redo()
-        return
-      }
-
+      // 1. Active tool gets first dibs — a tool can fully consume an
+      //    event (it should call e.preventDefault() if so) and block
+      //    the global shortcut dispatcher.
       const t = getActiveTool()
-      if (!t?.onKeyDown) return
-      const ctx = getToolContext(e)
-      if (ctx) t.onKeyDown(e, ctx)
+      if (t?.onKeyDown) {
+        const ctx = getToolContext(e)
+        if (ctx) t.onKeyDown(e, ctx)
+        if (e.defaultPrevented) return
+      }
+      // 2. Global shortcuts — undo/redo/select/delete/zoom/toggles/…
+      runShortcut(e, editor)
     }
     const onKeyUp = (e: KeyboardEvent) => {
       const t = getActiveTool()
@@ -229,20 +228,47 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
           <HoverIndicator />
           <SelectionBounds />
           <AlignmentGuidesOverlay />
+          <GuidesOverlay viewportRef={containerRef} />
           <MarqueeOverlay />
         </CameraTransformLayer>
       </div>
 
-      {/* Rulers — absolute overlay; self-measuring */}
+      {/* Rulers — absolute overlay; self-measuring. Drag-from-ruler
+          spawns a guide via the gesture hook below; pointer events on
+          the rulers themselves are intentionally enabled (their inner
+          SVG sets pointer-events:none so only the bare div catches the
+          pointer-down — keeping hit detection cheap). */}
       {showRulers && (
         <>
           <AxisX
-            className="pointer-events-none absolute top-0 right-0"
+            className="absolute top-0 right-0"
             style={{ left: RULER_SIZE, height: RULER_SIZE }}
+            onStartGuide={(e) => {
+              const rect = containerRef.current?.getBoundingClientRect()
+              if (!rect) return
+              e.preventDefault()
+              startGuide({
+                orientation: 'vertical', // top ruler → vertical guide
+                clientX: e.clientX,
+                clientY: e.clientY,
+                viewportRect: rect,
+              })
+            }}
           />
           <AxisY
-            className="pointer-events-none absolute bottom-0 left-0"
+            className="absolute bottom-0 left-0"
             style={{ top: RULER_SIZE, width: RULER_SIZE }}
+            onStartGuide={(e) => {
+              const rect = containerRef.current?.getBoundingClientRect()
+              if (!rect) return
+              e.preventDefault()
+              startGuide({
+                orientation: 'horizontal', // left ruler → horizontal guide
+                clientX: e.clientX,
+                clientY: e.clientY,
+                viewportRect: rect,
+              })
+            }}
           />
           {/* Top-left corner */}
           <div

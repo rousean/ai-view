@@ -21,6 +21,7 @@ import { cn } from '~/lib/utils'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
 import { getByPath, setByPath } from '../setters/path-utils'
 import { selectCurrentPage, selectWidget } from '../stores/selectors'
+import { MultiSelectProps } from './multi-select-props'
 import {
   ColorInput,
   NumInput,
@@ -312,12 +313,7 @@ function ChartProps() {
     )
   }
   if (selectedIds.length > 1) {
-    return (
-      <div className="text-muted-foreground/80 p-6 text-center">
-        <div className="text-[13px]">已选中 {selectedIds.length} 个图表</div>
-        <div className="text-muted-foreground/60 mt-1 text-[11px]">多选批量编辑暂未实现</div>
-      </div>
-    )
+    return <MultiSelectProps />
   }
   if (!widget) return null
 

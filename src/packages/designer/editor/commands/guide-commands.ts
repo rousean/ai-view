@@ -12,6 +12,11 @@ export interface GuideRemovePayload {
   id: string
 }
 
+export interface GuideUpdatePayload {
+  id: string
+  position: number
+}
+
 export interface GuideClearPayload {
   noop?: never
 }
@@ -40,6 +45,20 @@ export const guideRemoveCommand: Command<GuideRemovePayload> = {
   },
 }
 
+export const guideUpdateCommand: Command<GuideUpdatePayload> = {
+  type: 'guide.update',
+  label: '移动参考线',
+  undoable: true,
+  apply: (draft, _ctx, payload) => {
+    const page = getCurrentPage(draft)
+    const g = page.guides.find((x) => x.id === payload.id)
+    if (g) g.position = payload.position
+  },
+  // A continuous drag of a single guide should collapse to one undo
+  // entry; HistoryManager's window does the rest.
+  mergeKey: (p) => `guide:${p.id}`,
+}
+
 export const guideClearCommand: Command<GuideClearPayload> = {
   type: 'guide.clear',
   label: '清除所有参考线',
@@ -53,5 +72,6 @@ export const guideClearCommand: Command<GuideClearPayload> = {
 export const guideCommands: Command<any>[] = [
   guideAddCommand,
   guideRemoveCommand,
+  guideUpdateCommand,
   guideClearCommand,
 ]

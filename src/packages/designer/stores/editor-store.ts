@@ -10,6 +10,16 @@ export type Interaction =
   | { kind: 'rotating'; ids: string[]; pivot: Point }
   | { kind: 'marquee'; rect: Rect }
   | { kind: 'panning' }
+  /**
+   * User is dragging a fresh guide out of a ruler. `position` is the
+   * live canvas-space coordinate the preview line should sit at.
+   */
+  | { kind: 'creating-guide'; orientation: 'horizontal' | 'vertical'; position: number }
+  /**
+   * User is dragging an existing guide. Used to suppress widget
+   * selection and to keep the preview rendering pipeline simple.
+   */
+  | { kind: 'moving-guide'; id: string; orientation: 'horizontal' | 'vertical'; position: number }
 
 export interface EditorViewOptions {
   showGrid: boolean

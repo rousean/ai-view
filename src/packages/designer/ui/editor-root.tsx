@@ -8,6 +8,7 @@ import {
   type Project,
 } from '@schema/index'
 import { TooltipProvider } from '~/components/ui/tooltip'
+import { CanvasContextMenu } from '../canvas/canvas-context-menu'
 import { CanvasViewport } from '../canvas/canvas-viewport'
 import { DashboardEditor } from '../editor/dashboard-editor'
 import { EditorProvider } from '../editor/editor-context'
@@ -17,6 +18,7 @@ import { FloatingTools } from './floating-tools'
 import { FloatingZoom } from './floating-zoom'
 import { IconRail, type RailKey } from './icon-rail'
 import { MaterialsPanel } from './materials-panel'
+import { PagesTabBar } from './pages-tab-bar'
 import { PropertyPanel } from './property-panel'
 import {
   AssetsPanel,
@@ -180,10 +182,21 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
                   <HistoryPanel />
                 </SecondaryPanel>
               )}
-              <main className="relative min-w-0 flex-1">
-                <CanvasViewport />
-                <FloatingTools />
-                <FloatingZoom />
+              <main className="relative flex min-w-0 flex-1 flex-col">
+                <div className="relative min-h-0 flex-1">
+                  {/*
+                    Only the viewport is wrapped — floating tools / zoom
+                    stay outside so right-clicking those still gets the
+                    native context menu (and doesn't trigger the canvas
+                    menu via event bubbling).
+                  */}
+                  <CanvasContextMenu>
+                    <CanvasViewport />
+                  </CanvasContextMenu>
+                  <FloatingTools />
+                  <FloatingZoom />
+                </div>
+                <PagesTabBar />
               </main>
               <PropertyPanel />
             </div>

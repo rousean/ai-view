@@ -9,6 +9,7 @@ import type {
   WidgetNode,
 } from '@schema/types'
 import type { PersistenceAdapter } from '@schema/persistence'
+import { createGroupId, createWidgetId } from '@schema/index'
 
 import { useDocumentStore } from '../stores/document-store'
 import {
@@ -20,6 +21,10 @@ import {
 import { useEditorStore } from '../stores/editor-store'
 import { useRuntimeStore } from '../stores/runtime-store'
 
+import {
+  deserializeWidgetsFromClipboard,
+  serializeWidgetsForClipboard,
+} from './clipboard'
 import type { Command, CommandContext } from './command-registry'
 import { registerBuiltinCommands } from './commands'
 import { EventBus } from './event-bus'
@@ -277,6 +282,98 @@ export class DashboardEditor {
     this.execute('widget.ungroup', { groupId })
   }
 
+  // Clipboard ──────────────────────────────────────────────────────
+  // copy/cut/paste keep two layers of state:
+  //   - EditorStore.clipboard for instant same-tab paste
+  //   - navigator.clipboard text for cross-tab paste
+  // System-clipboard ops are async (and may be denied) — facade methods
+  // return Promises so callers (shortcut handlers) can `void` them.
+
+  /** Cmd+D — clone the current selection in-place with a +10/+10 offset. */
+  duplicateSelection(opts: { offset?: Point } = {}): void {
+    const ids = this.getSelectedIds()
+    if (ids.length === 0) return
+    const newIds = ids.map(() => createWidgetId())
+    this.execute('widget.duplicate', { ids, newIds, offset: opts.offset })
+    this.select(newIds)
+  }
+
+  async copySelection(): Promise<void> {
+    const widgets = this.getSelectedWidgets()
+    if (widgets.length === 0) return
+    useEditorStore.getState().actions.setClipboard({
+      // Deep-clone so later edits to the source don't mutate the cached
+      // copy. `structuredClone` is available everywhere we run (modern
+      // browsers + Node 17+).
+      widgets: widgets.map((w) => structuredClone(w)),
+      copiedAt: Date.now(),
+    })
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(serializeWidgetsForClipboard(widgets))
+      } catch {
+        // Permission denied / no secure context — in-memory clipboard still works.
+      }
+    }
+  }
+
+  async cutSelection(): Promise<void> {
+    const ids = this.getSelectedIds()
+    if (ids.length === 0) return
+    await this.copySelection()
+    this.removeWidgets(ids)
+  }
+
+  /**
+   * Paste widgets from the system clipboard if it holds one of our
+   * payloads, otherwise from the in-memory clipboard. Pasted widgets get
+   * fresh ids, fresh groupIds (so a paste in the same page doesn't
+   * collide with the source), and an offset (defaulting to +10/+10) so
+   * they're visually distinct from the source.
+   */
+  async pasteFromClipboard(opts: { offset?: Point } = {}): Promise<void> {
+    // Try system clipboard first (cross-tab parity).
+    let nodes: Array<Omit<WidgetNode, 'id'>> | null = null
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try {
+        const text = await navigator.clipboard.readText()
+        nodes = deserializeWidgetsFromClipboard(text)
+      } catch {
+        // Permission denied — fall back below.
+      }
+    }
+    // Fallback: in-memory clipboard (same-tab copy-paste path).
+    if (!nodes || nodes.length === 0) {
+      const cb = useEditorStore.getState().clipboard
+      if (cb && cb.widgets.length > 0) {
+        nodes = cb.widgets.map(({ id: _id, ...rest }) => rest)
+      }
+    }
+    if (!nodes || nodes.length === 0) return
+
+    // Remap groupIds: every distinct old groupId in the paste set maps
+    // to a freshly allocated one. Keeps "paste a group" → "still a group"
+    // semantics without leaking the source page's groupIds into ours.
+    const groupRemap = new Map<string, string>()
+    for (const n of nodes) {
+      if (n.groupId && !groupRemap.has(n.groupId)) {
+        groupRemap.set(n.groupId, createGroupId())
+      }
+    }
+
+    const offset = opts.offset ?? { x: 10, y: 10 }
+    const newIds = nodes.map(() => createWidgetId())
+    this.execute('widget.addMany', {
+      nodes: nodes.map((n, i) => ({
+        ...n,
+        id: newIds[i],
+        layout: { ...n.layout, x: n.layout.x + offset.x, y: n.layout.y + offset.y },
+        groupId: n.groupId ? groupRemap.get(n.groupId) : undefined,
+      })),
+    })
+    this.select(newIds)
+  }
+
   // Selection (volatile, no undo) ──────────────────────────────────
 
   select(ids: string[]): void {
@@ -431,6 +528,10 @@ export class DashboardEditor {
     this.execute('guide.remove', { id })
   }
 
+  updateGuide(id: string, position: number): void {
+    this.execute('guide.update', { id, position })
+  }
+
   clearGuides(): void {
     this.execute('guide.clear', {})
   }
@@ -455,6 +556,101 @@ export class DashboardEditor {
     const prev = useEditorStore.getState().tool
     useEditorStore.getState().actions.setTool(tool, ctx)
     if (prev !== tool) this.bus.emit('tool.changed', { from: prev, to: tool })
+  }
+
+  /** Flip one boolean view option (showGrid / showGuides / showRulers / …). */
+  toggleView(
+    key: 'showGrid' | 'showGuides' | 'showRulers' | 'showAlignmentGuides' | 'snapToGrid' | 'snapToElements' | 'snapToGuides',
+  ): void {
+    const s = useEditorStore.getState()
+    s.actions.setView({ [key]: !s.view[key] } as Record<typeof key, boolean>)
+  }
+
+  /**
+   * Toggle the `locked` flag on every currently-selected widget.
+   * "All locked" → unlock all; otherwise → lock all (matches Figma's
+   * keystroke behaviour on a mixed selection).
+   */
+  toggleLockedOnSelection(): void {
+    const widgets = this.getSelectedWidgets()
+    if (widgets.length === 0) return
+    const allLocked = widgets.every((w) => w.flags.locked)
+    this.setLocked(
+      widgets.map((w) => w.id),
+      !allLocked,
+    )
+  }
+
+  /** Same idea for the `hidden` flag. */
+  toggleHiddenOnSelection(): void {
+    const widgets = this.getSelectedWidgets()
+    if (widgets.length === 0) return
+    const allHidden = widgets.every((w) => w.flags.hidden)
+    this.setHidden(
+      widgets.map((w) => w.id),
+      !allHidden,
+    )
+  }
+
+  /**
+   * Translate every selected widget by `(dx * step, dy * step)` pixels.
+   * Used by the arrow-key shortcuts (1px / 10px with Shift). Goes
+   * through `widget.updateLayoutBatch` so HistoryManager's merge window
+   * collapses a continuous burst of arrow presses into one undo entry.
+   */
+  nudgeSelection(dx: number, dy: number, step = 1): void {
+    const ids = this.getSelectedIds()
+    if (ids.length === 0) return
+    const updates: Array<{ id: string; layout: Partial<Layout> }> = []
+    for (const id of ids) {
+      const w = this.getWidget(id)
+      if (!w) continue
+      updates.push({
+        id,
+        layout: { x: w.layout.x + dx * step, y: w.layout.y + dy * step },
+      })
+    }
+    if (updates.length === 0) return
+    this.execute('widget.updateLayoutBatch', { updates })
+  }
+
+  /**
+   * Align the current selection. Single-selection defaults to anchoring
+   * against the page (so "centre this on the page" works); multi-selection
+   * defaults to the union bbox of the selection — same idiom as Figma.
+   */
+  alignSelection(
+    mode: 'left' | 'right' | 'top' | 'bottom' | 'h-center' | 'v-center',
+    anchor?: 'selection' | 'page',
+  ): void {
+    const ids = this.getSelectedIds()
+    if (ids.length === 0) return
+    const resolvedAnchor = anchor ?? (ids.length === 1 ? 'page' : 'selection')
+    this.execute('widget.align', { ids, mode, anchor: resolvedAnchor })
+  }
+
+  /**
+   * Tidy-up: re-space ≥ 3 selected widgets so neighbour gaps are equal.
+   * Endpoints stay where they are. No-ops on <3 selection or when the
+   * widgets overlap (negative total gap).
+   */
+  distributeSelection(axis: 'horizontal' | 'vertical'): void {
+    const ids = this.getSelectedIds()
+    if (ids.length < 3) return
+    this.execute('widget.distribute', { ids, axis })
+  }
+
+  /**
+   * Cycle selection forward through the current page's widget list.
+   * Used by the `Tab` shortcut. With nothing selected, picks the first.
+   */
+  selectNext(): void {
+    const all = this.getAllWidgets()
+    if (all.length === 0) return
+    const currentId = useEditorStore.getState().primarySelectionId
+    const idx = currentId ? all.findIndex((w) => w.id === currentId) : -1
+    const next = all[(idx + 1) % all.length]
+    if (next) this.selectOne(next.id)
   }
 
   // History ────────────────────────────────────────────────────────

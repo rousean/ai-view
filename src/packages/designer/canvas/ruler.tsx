@@ -62,9 +62,16 @@ function useElementSize<T extends HTMLElement>() {
 interface RulerProps {
   style?: React.CSSProperties
   className?: string
+  /**
+   * Called when the user starts dragging out of this ruler. Caller is
+   * expected to take over the pointer (capture, move, up) — the ruler
+   * just announces the intent. Cursor while down is forced to the
+   * resize variant matching the eventual guide orientation.
+   */
+  onStartGuide?: (e: React.PointerEvent) => void
 }
 
-export const AxisX: React.FC<RulerProps> = ({ style, className }) => {
+export const AxisX: React.FC<RulerProps> = ({ style, className, onStartGuide }) => {
   const camera = useEditorStore((s) => s.camera)
   const { ref, size } = useElementSize<HTMLDivElement>()
   const { width, height } = size
@@ -79,9 +86,19 @@ export const AxisX: React.FC<RulerProps> = ({ style, className }) => {
   )
 
   return (
-    <div ref={ref} className={className} style={style}>
+    <div
+      ref={ref}
+      className={className}
+      style={{ ...style, cursor: onStartGuide ? 'col-resize' : style?.cursor }}
+      onPointerDown={onStartGuide ? (e) => onStartGuide(e) : undefined}
+    >
       {width > 0 && height > 0 && (
-        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        <svg
+          width={width}
+          height={height}
+          viewBox={`0 0 ${width} ${height}`}
+          style={{ pointerEvents: 'none' }}
+        >
           <g fill="currentColor">
             <line
               x1={0}
@@ -126,7 +143,7 @@ export const AxisX: React.FC<RulerProps> = ({ style, className }) => {
   )
 }
 
-export const AxisY: React.FC<RulerProps> = ({ style, className }) => {
+export const AxisY: React.FC<RulerProps> = ({ style, className, onStartGuide }) => {
   const camera = useEditorStore((s) => s.camera)
   const { ref, size } = useElementSize<HTMLDivElement>()
   const { width, height } = size
@@ -141,9 +158,19 @@ export const AxisY: React.FC<RulerProps> = ({ style, className }) => {
   )
 
   return (
-    <div ref={ref} className={className} style={style}>
+    <div
+      ref={ref}
+      className={className}
+      style={{ ...style, cursor: onStartGuide ? 'row-resize' : style?.cursor }}
+      onPointerDown={onStartGuide ? (e) => onStartGuide(e) : undefined}
+    >
       {width > 0 && height > 0 && (
-        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        <svg
+          width={width}
+          height={height}
+          viewBox={`0 0 ${width} ${height}`}
+          style={{ pointerEvents: 'none' }}
+        >
           <g fill="currentColor">
             <line
               x1={width}
