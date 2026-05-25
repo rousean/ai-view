@@ -131,9 +131,11 @@ export function DashboardPage() {
                     编辑大屏
                   </Link>
                 </Button>
-                <Button size="sm" disabled title="全屏预览 · 即将上线">
-                  <Eye />
-                  全屏预览
+                <Button size="sm" asChild>
+                  <Link to="/preview/$id" params={{ id: current.id }}>
+                    <Eye />
+                    全屏预览
+                  </Link>
                 </Button>
               </>
             )}

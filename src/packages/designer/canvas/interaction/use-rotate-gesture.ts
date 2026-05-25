@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { Layout, WidgetNode } from '@schema/types'
 import { useDashboardEditor } from '../../editor/editor-context'
+import { useEditorStore } from '../../stores/editor-store'
 import { bboxCenter, distributeRotation, unionBBox } from '../transformer/geometry'
 
 interface RotateSession {
@@ -56,6 +57,7 @@ export function useRotateGesture(): (e: React.PointerEvent) => void {
   const onUp = React.useCallback(() => {
     sessionRef.current = null
     containerRectRef.current = null
+    useEditorStore.getState().actions.setInteraction({ kind: 'idle' })
     window.removeEventListener('pointermove', onMove)
     window.removeEventListener('pointerup', onUp)
     window.removeEventListener('pointercancel', onUp)
@@ -84,6 +86,11 @@ export function useRotateGesture(): (e: React.PointerEvent) => void {
         startAngle,
         initial: initial.map((w) => structuredClone(w)),
       }
+      useEditorStore.getState().actions.setInteraction({
+        kind: 'rotating',
+        ids: initial.map((w) => w.id),
+        pivot,
+      })
       editor.mark('Rotate widgets')
 
       e.stopPropagation()

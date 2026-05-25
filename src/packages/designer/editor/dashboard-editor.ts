@@ -11,6 +11,7 @@ import type {
 import type { PersistenceAdapter } from '@schema/persistence'
 import { createGroupId, createWidgetId } from '@schema/index'
 
+import { unionBBox } from '../canvas/transformer/geometry'
 import { useDocumentStore } from '../stores/document-store'
 import {
   selectCurrentPage,
@@ -71,6 +72,18 @@ export class DashboardEditor {
 
   private installedPlugins = new Map<string, () => void>()
 
+  // ── Save / dirty tracking ─────────────────────────────────────────
+  // `_dirty` flips true on the first mutation after a save (or load)
+  // and back to false on a successful save. Auto-save schedules a
+  // debounced save after each mutation; pulling on the same dirty
+  // signal so loading a clean document doesn't fire a no-op save.
+  private _dirty = false
+  private _lastSavedAt: Date | null = null
+  private _saving = false
+  private _autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+  private _autoSaveMs = 30_000 // override via prefs.autoSaveInterval
+  private _autoSaveEnabled = true
+
   constructor(opts: EditorOptions) {
     this.adapter = opts.adapter
     this.history = new HistoryManager(this.bus)
@@ -83,6 +96,67 @@ export class DashboardEditor {
 
     for (const plugin of opts.initialPlugins ?? []) {
       this.use(plugin)
+    }
+
+    // Hook dirty tracking into every document-mutating event. We listen
+    // on the bus rather than wrapping `execute()` so commands routed
+    // through history (apply/undo/redo) all flow through one funnel.
+    const markDirty = () => this._markDirty()
+    this.bus.on('history.applied', markDirty)
+    this.bus.on('history.undone', markDirty)
+    this.bus.on('history.redone', markDirty)
+
+    // Reset dirty on (re)load — a freshly loaded project is clean.
+    this.bus.on('document.loaded', () => {
+      this._dirty = false
+      this._lastSavedAt = null
+      this._cancelAutoSave()
+      this.bus.emit('document.dirty', { dirty: false })
+    })
+
+    // Pick up the user's autosave preferences (interval + enabled).
+    const prefs = useEditorStore.getState().preferences
+    this._autoSaveEnabled = prefs.autoSave
+    this._autoSaveMs = prefs.autoSaveInterval
+  }
+
+  // ── Dirty / save accessors ────────────────────────────────────────
+
+  isDirty(): boolean {
+    return this._dirty
+  }
+
+  isSaving(): boolean {
+    return this._saving
+  }
+
+  /** Last successful save timestamp, or null if never saved this session. */
+  getLastSavedAt(): Date | null {
+    return this._lastSavedAt
+  }
+
+  private _markDirty(): void {
+    if (!this._dirty) {
+      this._dirty = true
+      this.bus.emit('document.dirty', { dirty: true })
+    }
+    if (this._autoSaveEnabled) this._scheduleAutoSave()
+  }
+
+  private _scheduleAutoSave(): void {
+    this._cancelAutoSave()
+    this._autoSaveTimer = setTimeout(() => {
+      this._autoSaveTimer = null
+      void this.save().catch((err) => {
+        console.error('[autosave] save failed', err)
+      })
+    }, this._autoSaveMs)
+  }
+
+  private _cancelAutoSave(): void {
+    if (this._autoSaveTimer) {
+      clearTimeout(this._autoSaveTimer)
+      this._autoSaveTimer = null
     }
   }
 
@@ -108,8 +182,20 @@ export class DashboardEditor {
   async save(): Promise<void> {
     const project = useDocumentStore.getState().project
     if (!project) return
-    await this.adapter.save(project)
-    this.bus.emit('document.saved', { project })
+    // Reentrancy guard — a slow save shouldn't get a second save fired
+    // on top of it (Cmd+S during autosave, etc.).
+    if (this._saving) return
+    this._cancelAutoSave()
+    this._saving = true
+    try {
+      await this.adapter.save(project)
+      this._dirty = false
+      this._lastSavedAt = new Date()
+      this.bus.emit('document.saved', { project })
+      this.bus.emit('document.dirty', { dirty: false })
+    } finally {
+      this._saving = false
+    }
   }
 
   async close(): Promise<void> {
@@ -269,6 +355,33 @@ export class DashboardEditor {
     this.execute('widget.moveLayer', { ids, delta: -1 })
   }
 
+  /**
+   * Push the given widgets to the very top of the z-order (visually on
+   * top of everything else). Goes through `widget.reorder` with a fresh
+   * ordering so it stays a single undo entry.
+   */
+  bringToFront(ids: string[]): void {
+    if (ids.length === 0) return
+    const all = this.getAllWidgets().map((w) => w.id)
+    const set = new Set(ids)
+    const rest = all.filter((id) => !set.has(id))
+    // Preserve the relative order *within* the targeted set so a multi-
+    // select bring-to-front looks like the user expects: clicked stays on
+    // top of its peers, peers in their original order beneath.
+    const targeted = all.filter((id) => set.has(id))
+    this.execute('widget.reorder', { orderedIds: [...rest, ...targeted] })
+  }
+
+  /** Mirror of bringToFront — pushes to the very bottom of the z-order. */
+  sendToBack(ids: string[]): void {
+    if (ids.length === 0) return
+    const all = this.getAllWidgets().map((w) => w.id)
+    const set = new Set(ids)
+    const rest = all.filter((id) => !set.has(id))
+    const targeted = all.filter((id) => set.has(id))
+    this.execute('widget.reorder', { orderedIds: [...targeted, ...rest] })
+  }
+
   reorderWidgets(orderedIds: string[]): void {
     this.execute('widget.reorder', { orderedIds })
   }
@@ -361,13 +474,41 @@ export class DashboardEditor {
       }
     }
 
-    const offset = opts.offset ?? { x: 10, y: 10 }
+    // Drop location:
+    //   - explicit `opts.offset` wins (callers that want exact control)
+    //   - else, if the cursor is over the canvas → centre the pasted
+    //     bbox under it (Figma idiom)
+    //   - else → small +10/+10 fallback so things don't fully overlap
+    let deltaX: number, deltaY: number
+    if (opts.offset) {
+      deltaX = opts.offset.x
+      deltaY = opts.offset.y
+    } else {
+      const mouse = useEditorStore.getState().mouseCanvasPos
+      if (mouse) {
+        // Union bbox of the un-rotated layouts is enough for centring.
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        for (const n of nodes) {
+          const { x, y, width, height } = n.layout
+          if (x < minX) minX = x
+          if (y < minY) minY = y
+          if (x + width > maxX) maxX = x + width
+          if (y + height > maxY) maxY = y + height
+        }
+        deltaX = mouse.x - (minX + (maxX - minX) / 2)
+        deltaY = mouse.y - (minY + (maxY - minY) / 2)
+      } else {
+        deltaX = 10
+        deltaY = 10
+      }
+    }
+
     const newIds = nodes.map(() => createWidgetId())
     this.execute('widget.addMany', {
       nodes: nodes.map((n, i) => ({
         ...n,
         id: newIds[i],
-        layout: { ...n.layout, x: n.layout.x + offset.x, y: n.layout.y + offset.y },
+        layout: { ...n.layout, x: n.layout.x + deltaX, y: n.layout.y + deltaY },
         groupId: n.groupId ? groupRemap.get(n.groupId) : undefined,
       })),
     })
@@ -414,6 +555,19 @@ export class DashboardEditor {
     this.bus.emit('hover.changed', { id })
   }
 
+  /**
+   * Enter / leave "isolated group" mode (Figma's double-click-into-group
+   * idiom). While set, click-to-select on a member of that group selects
+   * just the one member instead of the whole group. `null` exits.
+   */
+  setIsolatedGroup(id: string | null): void {
+    useEditorStore.getState().actions.setIsolatedGroup(id)
+  }
+
+  getIsolatedGroupId(): string | null {
+    return useEditorStore.getState().isolatedGroupId
+  }
+
   // Camera (volatile) ──────────────────────────────────────────────
 
   setCamera(camera: Partial<Camera>): void {
@@ -445,6 +599,53 @@ export class DashboardEditor {
 
   resetView(): void {
     this.setCamera({ x: 0, y: 0, scale: 1 })
+  }
+
+  /**
+   * Fit the current page's canvas into the viewport: pick the largest
+   * scale that keeps both dimensions inside, then centre. `padding` is
+   * the breathing-room around the canvas in *screen* pixels.
+   *
+   * No-ops before the first viewport measurement (CanvasViewport writes
+   * `viewportSize` via ResizeObserver).
+   */
+  fitToScreen(padding = 40): void {
+    const page = this.getCurrentPage()
+    const { width: vw, height: vh } = useEditorStore.getState().viewportSize
+    if (!page || vw <= 0 || vh <= 0) return
+    const availW = Math.max(vw - padding * 2, 1)
+    const availH = Math.max(vh - padding * 2, 1)
+    const scale = Math.min(availW / page.canvas.width, availH / page.canvas.height)
+    const x = (vw - page.canvas.width * scale) / 2
+    const y = (vh - page.canvas.height * scale) / 2
+    this.setCamera({ x, y, scale })
+  }
+
+  /**
+   * Fit the current selection (union bbox) into the viewport, leaving
+   * `padding` screen pixels of breathing room. With nothing selected,
+   * falls back to `fitToScreen()` so the shortcut always does *something*.
+   */
+  fitToSelection(padding = 80): void {
+    const widgets = this.getSelectedWidgets()
+    if (widgets.length === 0) {
+      this.fitToScreen()
+      return
+    }
+    const bb = unionBBox(widgets)
+    const { width: vw, height: vh } = useEditorStore.getState().viewportSize
+    if (!bb || vw <= 0 || vh <= 0) return
+    const availW = Math.max(vw - padding * 2, 1)
+    const availH = Math.max(vh - padding * 2, 1)
+    const scale = Math.min(availW / Math.max(bb.width, 1), availH / Math.max(bb.height, 1))
+    // Cap zoom-in so a tiny widget doesn't slam to 5000% — Figma caps
+    // around 200% on fit-to-selection. We allow up to 400%.
+    const cappedScale = Math.min(scale, 4)
+    const cx = bb.x + bb.width / 2
+    const cy = bb.y + bb.height / 2
+    const x = vw / 2 - cx * cappedScale
+    const y = vh / 2 - cy * cappedScale
+    this.setCamera({ x, y, scale: cappedScale })
   }
 
   panBy(dx: number, dy: number): void {

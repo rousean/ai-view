@@ -2,7 +2,8 @@ import * as React from 'react'
 import { useDroppable } from '@dnd-kit/react'
 import { cn } from '~/lib/utils'
 import { useDashboardEditor, useEditorState } from '../editor/editor-context'
-import { runShortcut } from '../editor/keyboard-shortcuts'
+import { runShortcut, shouldSkipKeydown } from '../editor/keyboard-shortcuts'
+import { useEditorStore } from '../stores/editor-store'
 import type { Tool, ToolContext } from '../tools/tool.interface'
 import { CameraTransformLayer } from './camera-transform-layer'
 import { GridLayer } from './grid-layer'
@@ -40,6 +41,17 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
   const containerRef = React.useRef<HTMLDivElement | null>(null)
   const { start: startGuide } = useCreateGuideGesture(containerRef)
 
+  /**
+   * Transient pan state — viewport-owned (not the active tool), driven
+   * by Space-hold or middle-button drag. Keeps SelectTool intact so the
+   * user pops out of the pan and resumes selecting with no extra clicks.
+   */
+  const panRef = React.useRef<{
+    startScreen: { x: number; y: number }
+    startCamera: { x: number; y: number }
+  } | null>(null)
+  const [spaceHeld, setSpaceHeld] = React.useState(false)
+
   // Register the inner viewport div as a drop target for material drags
   // from the left panel. The actual drop handler lives in EditorRoot;
   // we only need to declare ourselves a target here.
@@ -59,7 +71,7 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
   const toolStatesRef = React.useRef<Map<string, Record<string, unknown>>>(new Map())
 
   const getToolContext = React.useCallback(
-    (e: PointerEvent | WheelEvent | KeyboardEvent): ToolContext | null => {
+    (e: PointerEvent | WheelEvent | KeyboardEvent | MouseEvent): ToolContext | null => {
       const rect = containerRef.current?.getBoundingClientRect()
       const screen = 'clientX' in e ? { x: e.clientX, y: e.clientY } : { x: 0, y: 0 }
       const canvas = editor.screenToCanvas(screen, {
@@ -117,7 +129,23 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
 
   // ── Event handlers ─────────────────────────────────────────────
 
+  const startTransientPan = (e: React.PointerEvent) => {
+    const cam = editor.getCamera()
+    panRef.current = {
+      startScreen: { x: e.clientX, y: e.clientY },
+      startCamera: { x: cam.x, y: cam.y },
+    }
+    ;(e.target as Element).setPointerCapture?.(e.pointerId)
+  }
+
   const handlePointerDown = (e: React.PointerEvent) => {
+    // Transient pan — middle-mouse OR Space-held, regardless of active
+    // tool. Bypass tool dispatch entirely so we don't pollute its state.
+    if (e.button === 1 || spaceHeld) {
+      e.preventDefault()
+      startTransientPan(e)
+      return
+    }
     const t = getActiveTool()
     if (!t?.onPointerDown) return
     const ctx = getToolContext(e.nativeEvent)
@@ -125,6 +153,26 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    // Always publish the pointer's canvas-space position so facades
+    // like `pasteFromClipboard` can drop content under the cursor.
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (rect) {
+      const canvas = editor.screenToCanvas(
+        { x: e.clientX, y: e.clientY },
+        { left: rect.left, top: rect.top },
+      )
+      useEditorStore.getState().actions.setMouseCanvasPos(canvas)
+    }
+
+    // Mid-pan: just translate the camera, skip tool dispatch.
+    if (panRef.current) {
+      const { startScreen, startCamera } = panRef.current
+      const dx = e.clientX - startScreen.x
+      const dy = e.clientY - startScreen.y
+      editor.setCamera({ x: startCamera.x + dx, y: startCamera.y + dy })
+      return
+    }
+
     // Hover detection
     const targetEl = e.target as HTMLElement
     let el: HTMLElement | null = targetEl
@@ -146,10 +194,21 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    if (panRef.current) {
+      panRef.current = null
+      return
+    }
     const t = getActiveTool()
     if (!t?.onPointerUp) return
     const ctx = getToolContext(e.nativeEvent)
     if (ctx) t.onPointerUp(e.nativeEvent, ctx)
+  }
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    const t = getActiveTool()
+    if (!t?.onDoubleClick) return
+    const ctx = getToolContext(e.nativeEvent)
+    if (ctx) t.onDoubleClick(e.nativeEvent, ctx)
   }
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -171,22 +230,54 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
     }
   }
 
+  // Publish viewport size to EditorStore so facades like `fitToScreen`
+  // can scale content to actual on-screen room. Reads stay in canvas-
+  // space, so DashboardEditor never needs to touch the DOM directly.
+  React.useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const publish = () => {
+      const rect = el.getBoundingClientRect()
+      useEditorStore
+        .getState()
+        .actions.setViewportSize({ width: rect.width, height: rect.height })
+    }
+    publish()
+    const ro = new ResizeObserver(publish)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   // Keyboard events
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      // 1. Active tool gets first dibs — a tool can fully consume an
-      //    event (it should call e.preventDefault() if so) and block
-      //    the global shortcut dispatcher.
+      if (shouldSkipKeydown(e)) return
+
+      // Space (held) = temporary pan tool. Once down, the next pointer
+      // press routes through `startTransientPan` instead of the active
+      // tool. We swallow the keypress so the page doesn't scroll.
+      if (e.code === 'Space' && !e.repeat) {
+        e.preventDefault()
+        setSpaceHeld(true)
+        return
+      }
+
+      // 1. Active tool gets first dibs.
       const t = getActiveTool()
       if (t?.onKeyDown) {
         const ctx = getToolContext(e)
         if (ctx) t.onKeyDown(e, ctx)
         if (e.defaultPrevented) return
       }
-      // 2. Global shortcuts — undo/redo/select/delete/zoom/toggles/…
+      // 2. Global shortcuts.
       runShortcut(e, editor)
     }
     const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setSpaceHeld(false)
+        return
+      }
+      if (shouldSkipKeydown(e)) return
       const t = getActiveTool()
       if (!t?.onKeyUp) return
       const ctx = getToolContext(e)
@@ -206,7 +297,9 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
     <div
       className={cn('text-primary relative h-full w-full', className)}
     >
-      {/* Viewport — fills the frame, reserves space for rulers via inset */}
+      {/* Viewport — fills the frame, reserves space for rulers via inset.
+          Cursor priority: mid-pan (grabbing) > space-held (grab) > active
+          tool's own cursor. */}
       <div
         ref={setContainerRef}
         data-canvas-viewport
@@ -214,11 +307,16 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
         style={{
           top: rulerOffset,
           left: rulerOffset,
-          cursor: getActiveTool()?.cursor as string | undefined,
+          cursor: panRef.current
+            ? 'grabbing'
+            : spaceHeld
+              ? 'grab'
+              : (getActiveTool()?.cursor as string | undefined),
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onDoubleClick={handleDoubleClick}
         onWheel={handleWheel}
       >
         <CameraTransformLayer>

@@ -1,4 +1,5 @@
 import { MousePointer2 } from 'lucide-react'
+import type { WidgetNode } from '@schema/types'
 import { rotatedAABB, unionBBox } from '../canvas/transformer/geometry'
 import { buildSnapContext } from '../snap/build-context'
 import { useSnapGuidesStore } from '../snap/snap-store'
@@ -22,6 +23,12 @@ interface SelectState {
   initialBBox?: { x: number; y: number; width: number; height: number }
   marqueeOrigin?: { x: number; y: number }
   hitWidgetId?: string
+  /**
+   * Whether Alt was held at pointer-down. We don't act on it until the
+   * pointer actually starts dragging (Alt+down with no move = pierce-
+   * select; Alt+drag = duplicate-then-move).
+   */
+  altOnDown?: boolean
 }
 
 const MOVE_THRESHOLD = 4 // px in screen space
@@ -40,6 +47,32 @@ function findHitWidgetId(target: EventTarget | null): string | null {
   return null
 }
 
+/**
+ * Walk the DOM under the cursor and collect every widget id stacked at
+ * the click point (top-most first). Used for Alt-click "pierce" so the
+ * user can cycle through widgets layered on top of each other.
+ *
+ * `elementsFromPoint` returns every element under the point regardless
+ * of stacking — we map each to its nearest `[data-widget-id]` ancestor
+ * and dedupe, preserving order.
+ */
+function findStackedWidgetIds(clientX: number, clientY: number): string[] {
+  if (typeof document === 'undefined') return []
+  const seen = new Set<string>()
+  const out: string[] = []
+  const elements = document.elementsFromPoint(clientX, clientY) as HTMLElement[]
+  for (const el of elements) {
+    const host = el.closest?.('[data-widget-id]') as HTMLElement | null
+    if (!host) continue
+    const id = host.dataset.widgetId
+    if (id && !seen.has(id)) {
+      seen.add(id)
+      out.push(id)
+    }
+  }
+  return out
+}
+
 export const SelectTool: Tool = {
   type: 'select',
   label: '选择',
@@ -53,18 +86,77 @@ export const SelectTool: Tool = {
   onPointerDown(e, ctx) {
     const editor = ctx.editor
     const s = getState(ctx)
-    const widgetId = findHitWidgetId(e.target)
+    // Hit detection.
+    //   - Plain click → top-most widget under the cursor.
+    //   - Alt + click → pierce through to the next widget below the
+    //     current selection (or the bottom-most if nothing's selected).
+    //     Repeated Alt-clicks cycle through the stack. This is what
+    //     Figma calls "select layer below".
+    //
+    // Alt also doubles as "duplicate-drag" once a widget is hit (see
+    // below). The two behaviours don't conflict: pierce picks the
+    // target; duplicate then clones that target before move starts.
+    let widgetId = findHitWidgetId(e.target)
+    if (e.altKey) {
+      const stack = findStackedWidgetIds(e.clientX, e.clientY)
+      if (stack.length > 1) {
+        const selected = new Set(editor.getSelectedIds())
+        const next = stack.find((id) => !selected.has(id))
+        if (next) widgetId = next
+      }
+    }
     s.pointerStart = { x: e.clientX, y: e.clientY }
     s.canvasStart = ctx.pointer.canvas
 
     if (widgetId) {
       // Hit a widget — prepare to move it (and everything else selected).
+      //
+      // Group expansion rules:
+      //   - Hitting a widget with `groupId` normally selects the whole
+      //     group, so the group behaves like a single unit.
+      //   - EXCEPT when we're in "isolated group" mode (entered via
+      //     double-click on a group member): inside the isolated group
+      //     we treat each click as a single-widget selection, so the
+      //     user can move members individually without exiting.
+      //   - Clicking a widget OUTSIDE the isolated group exits isolation
+      //     and falls back to the normal whole-group rule.
+      const hit = editor.getWidget(widgetId)
+      const groupId = hit?.groupId
+      const isolatedGroupId = editor.getIsolatedGroupId()
+      const inIsolatedGroup = isolatedGroupId !== null && groupId === isolatedGroupId
+
+      let nextIds: string[]
+      if (inIsolatedGroup) {
+        nextIds = [widgetId]
+      } else {
+        // Stepping out of (or never in) the isolated group: clear it.
+        if (isolatedGroupId !== null) editor.setIsolatedGroup(null)
+        nextIds = groupId
+          ? editor
+              .getAllWidgets()
+              .filter((w) => w.groupId === groupId)
+              .map((w) => w.id)
+          : [widgetId]
+      }
+
       const isAlreadySelected = editor.getSelectedIds().includes(widgetId)
       if (!isAlreadySelected) {
-        if (e.shiftKey || e.ctrlKey || e.metaKey)
-          editor.selectOne(widgetId, { addToSelection: true })
-        else editor.selectOne(widgetId)
+        if (e.shiftKey || e.ctrlKey || e.metaKey) {
+          // Additive: union the new ids into the existing selection.
+          const next = new Set(editor.getSelectedIds())
+          for (const id of nextIds) next.add(id)
+          editor.select([...next])
+        } else {
+          editor.select(nextIds)
+        }
       }
+
+      // NB: Alt-drag duplication used to fire here, but that turns every
+      // Alt+click into a stealth copy (even when the user only wanted to
+      // pierce-select the layer below). Delay the duplicate until the
+      // pointer actually crosses the move threshold — see onPointerMove.
+      s.altOnDown = e.altKey
+
       s.hitWidgetId = widgetId
       s.phase = 'pre-move'
       const ids = editor.getSelectedIds()
@@ -84,8 +176,12 @@ export const SelectTool: Tool = {
       s.initialBBox = unionBBox(selectedWidgets) ?? undefined
       editor.mark('Move widgets')
     } else {
-      // Empty canvas click → marquee or clear selection.
-      if (!(e.shiftKey || e.ctrlKey || e.metaKey)) editor.selectNone()
+      // Empty canvas click → marquee or clear selection. Also exits
+      // isolated-group mode if we were in one.
+      if (!(e.shiftKey || e.ctrlKey || e.metaKey)) {
+        editor.selectNone()
+        if (editor.getIsolatedGroupId() !== null) editor.setIsolatedGroup(null)
+      }
       s.phase = 'marquee'
       s.marqueeOrigin = ctx.pointer.canvas
     }
@@ -104,6 +200,39 @@ export const SelectTool: Tool = {
       const dy = e.clientY - s.pointerStart.y
       if (s.phase === 'pre-move' && Math.hypot(dx, dy) < MOVE_THRESHOLD) {
         return
+      }
+      if (s.phase !== 'moving') {
+        // Crossed the move threshold.
+        // (a) If Alt was held at pointer-down, this is alt-drag
+        //     duplicate. Clone the selection in place, then re-snapshot
+        //     initialLayouts / initialBBox against the clones so the
+        //     drag (and snap) acts on the new copies, leaving the
+        //     originals untouched.
+        if (s.altOnDown) {
+          editor.duplicateSelection({ offset: { x: 0, y: 0 } })
+          const newIds = editor.getSelectedIds()
+          s.movingIds = newIds
+          const newLayouts = new Map<string, { x: number; y: number }>()
+          const newWidgets: WidgetNode[] = []
+          for (const id of newIds) {
+            const w = editor.getWidget(id)
+            if (w) {
+              newLayouts.set(id, { x: w.layout.x, y: w.layout.y })
+              newWidgets.push(w)
+            }
+          }
+          s.initialLayouts = newLayouts
+          s.initialBBox = unionBBox(newWidgets) ?? undefined
+          s.altOnDown = false // already consumed
+        }
+        // (b) Surface the gesture to EditorStore so HUD overlays know
+        // to switch their readout (X, Y instead of W × H). Cleared in
+        // onPointerUp.
+        useEditorStore.getState().actions.setInteraction({
+          kind: 'moving',
+          ids: s.movingIds ?? [],
+          startedAt: Date.now(),
+        })
       }
       s.phase = 'moving'
 
@@ -155,6 +284,17 @@ export const SelectTool: Tool = {
         }
       } else {
         useSnapGuidesStore.getState().clear()
+      }
+
+      // Shift = axis-lock to the dominant direction. Applied after snap
+      // so snapping doesn't fight us by reintroducing the other axis.
+      // The "dominant" axis is decided from the un-snapped delta so the
+      // lock direction stays stable across the drag.
+      if (e.shiftKey) {
+        const rawDx = dx / scale
+        const rawDy = dy / scale
+        if (Math.abs(rawDx) > Math.abs(rawDy)) cdy = 0
+        else cdx = 0
       }
 
       const updates = (s.movingIds ?? []).map((id) => {
@@ -215,7 +355,32 @@ export const SelectTool: Tool = {
     }
     // Clear any active alignment guides at the end of every gesture.
     useSnapGuidesStore.getState().clear()
+    // Surface "no gesture in flight" to EditorStore so HUD overlays
+    // revert to their default (W × H) readout. Idempotent — safe even
+    // if the interaction was never bumped (pre-move cancelled, etc.).
+    if (useEditorStore.getState().interaction.kind !== 'idle') {
+      useEditorStore.getState().actions.setInteraction({ kind: 'idle' })
+    }
     Object.assign(ctx.state, { phase: 'idle' } satisfies SelectState)
+  },
+
+  onDoubleClick(e, ctx) {
+    const editor = ctx.editor
+    const widgetId = findHitWidgetId(e.target)
+    if (!widgetId) {
+      // Double-clicking blank exits any active isolated mode.
+      if (editor.getIsolatedGroupId() !== null) editor.setIsolatedGroup(null)
+      return
+    }
+    const hit = editor.getWidget(widgetId)
+    if (!hit?.groupId) {
+      // Not part of a group — nothing special; leave selection alone.
+      return
+    }
+    // Enter isolated mode for this group, narrow selection to the one
+    // widget that was double-clicked.
+    editor.setIsolatedGroup(hit.groupId)
+    editor.select([widgetId])
   },
 
   onKeyDown(e, ctx) {
@@ -224,7 +389,14 @@ export const SelectTool: Tool = {
       const ids = editor.getSelectedIds()
       if (ids.length > 0) editor.removeWidgets(ids)
     } else if (e.key === 'Escape') {
-      editor.selectNone()
+      // Esc: exit isolated mode first, otherwise clear selection. The
+      // two-step lets users back out of a group without losing the rest
+      // of their context (Figma's behaviour).
+      if (editor.getIsolatedGroupId() !== null) {
+        editor.setIsolatedGroup(null)
+      } else {
+        editor.selectNone()
+      }
     } else if (e.key.toLowerCase() === 'a' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       editor.selectAll()

@@ -54,10 +54,33 @@ export interface EditorState {
   // Camera
   camera: Camera
 
+  /**
+   * Live size of the canvas viewport in screen-space pixels. Written
+   * from CanvasViewport via ResizeObserver, read by facades that need
+   * to fit content to the viewport (e.g. `fitToScreen`).
+   * `{ width: 0, height: 0 }` before the first measurement.
+   */
+  viewportSize: { width: number; height: number }
+
+  /**
+   * Last seen pointer position over the canvas, in canvas-space coords.
+   * Updated continuously from CanvasViewport pointer-move. `null` when
+   * the cursor is outside the viewport. Used by `pasteFromClipboard` so
+   * "paste" lands under the cursor instead of at a fixed offset.
+   */
+  mouseCanvasPos: { x: number; y: number } | null
+
   // Selection
   selectedIds: string[]
   hoverId: string | null
   primarySelectionId: string | null
+  /**
+   * Group currently being "edited in isolation". When set, clicking a
+   * member of this group selects only that member (instead of expanding
+   * to the whole group). Clicking outside the group or pressing Esc
+   * clears it. Figma's "double-click into group" idiom.
+   */
+  isolatedGroupId: string | null
 
   // Tool
   tool: string
@@ -80,6 +103,9 @@ export interface EditorState {
   // Actions
   actions: {
     setCamera: (camera: Partial<Camera>) => void
+    setViewportSize: (size: { width: number; height: number }) => void
+    setMouseCanvasPos: (pos: { x: number; y: number } | null) => void
+    setIsolatedGroup: (id: string | null) => void
     setSelected: (ids: string[]) => void
     setHover: (id: string | null) => void
     setPrimarySelection: (id: string | null) => void
@@ -124,9 +150,12 @@ export const useEditorStore = create<EditorState>()(
     persist(
       subscribeWithSelector((set) => ({
         camera: { x: 0, y: 0, scale: 1 },
+        viewportSize: { width: 0, height: 0 },
+        mouseCanvasPos: null,
         selectedIds: [],
         hoverId: null,
         primarySelectionId: null,
+        isolatedGroupId: null,
         tool: 'select',
         toolLocked: false,
         toolContext: {},
@@ -139,6 +168,12 @@ export const useEditorStore = create<EditorState>()(
         actions: {
           setCamera: (camera) =>
             set((s) => ({ camera: { ...s.camera, ...camera } }), false, 'editor/setCamera'),
+          setViewportSize: (size) =>
+            set({ viewportSize: size }, false, 'editor/setViewportSize'),
+          setMouseCanvasPos: (pos) =>
+            set({ mouseCanvasPos: pos }, false, 'editor/setMouseCanvasPos'),
+          setIsolatedGroup: (id) =>
+            set({ isolatedGroupId: id }, false, 'editor/setIsolatedGroup'),
           setSelected: (ids) =>
             set(
               {
@@ -176,6 +211,7 @@ export const useEditorStore = create<EditorState>()(
                 selectedIds: [],
                 hoverId: null,
                 primarySelectionId: null,
+                isolatedGroupId: null,
                 interaction: { kind: 'idle' },
                 clipboard: null,
               },

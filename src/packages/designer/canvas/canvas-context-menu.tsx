@@ -112,6 +112,14 @@ function WidgetMenu({
         下移一层
         <ContextMenuShortcut>⌘[</ContextMenuShortcut>
       </ContextMenuItem>
+      <ContextMenuItem onSelect={() => editor.bringToFront(ids)}>
+        置顶
+        <ContextMenuShortcut>⌘⌥]</ContextMenuShortcut>
+      </ContextMenuItem>
+      <ContextMenuItem onSelect={() => editor.sendToBack(ids)}>
+        置底
+        <ContextMenuShortcut>⌘⌥[</ContextMenuShortcut>
+      </ContextMenuItem>
 
       <ContextMenuSeparator />
 

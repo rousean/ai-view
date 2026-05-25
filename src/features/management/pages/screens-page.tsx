@@ -8,6 +8,7 @@ import {
   Filter,
   Plus,
   Search,
+  Upload,
 } from 'lucide-react'
 import {
   createColumnHelper,
@@ -37,6 +38,8 @@ import { MiniThumb, type MiniThumbTheme } from '../components/mini-thumb'
 import { ScreenRowActions } from '../components/screen-row-actions'
 import {
   createNewProject,
+  exportProjectsAsJson,
+  importProjectsFromFile,
   useProjects,
   type ScreenListItem,
 } from '../use-projects'
@@ -194,6 +197,7 @@ export function ScreensPage() {
   const [tab, setTab] = React.useState<'all' | ProjectStatus>('all')
   const [search, setSearch] = React.useState('')
   const [creating, setCreating] = React.useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
   const filtered = React.useMemo(() => {
     const byTab = tab === 'all' ? items : items.filter((s) => s.status === tab)
@@ -242,10 +246,43 @@ export function ScreensPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" disabled>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={items.length === 0}
+            onClick={() => void exportProjectsAsJson(items.map((s) => s.id))}
+            title="导出全部为 JSON"
+          >
             <Download />
             导出
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            title="从 JSON 文件导入"
+          >
+            <Upload />
+            导入
+          </Button>
+          {/* Hidden file picker — the visible <Button> above proxies the click. */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={async (e) => {
+              const f = e.target.files?.[0]
+              e.target.value = '' // allow re-selecting the same file
+              if (!f) return
+              try {
+                const n = await importProjectsFromFile(f)
+                if (n === 0) alert('未能从文件中识别出有效的大屏数据')
+              } catch (err) {
+                alert(`导入失败：${(err as Error).message}`)
+              }
+            }}
+          />
           <Button size="sm" onClick={() => void onCreate()} disabled={creating}>
             <Plus />
             {creating ? '创建中…' : '新建大屏'}

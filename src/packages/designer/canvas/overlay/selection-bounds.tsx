@@ -83,6 +83,11 @@ export const SelectionBounds: React.FC = () => {
 
   const stroke = Math.max(1 / scale, 0.5)
   const isMarquee = interaction === 'marquee'
+  const showBadge =
+    interaction === 'idle' ||
+    interaction === 'moving' ||
+    interaction === 'resizing' ||
+    interaction === 'rotating'
 
   // Single-element chrome mirrors the widget's full transform — rotate +
   // flip — so it visually overlays the rotated/flipped widget exactly.
@@ -121,6 +126,57 @@ export const SelectionBounds: React.FC = () => {
           />
         </>
       )}
+      {showBadge && <SizeBadge bbox={bbox} interaction={interaction} scale={scale} />}
+    </div>
+  )
+}
+
+/**
+ * Floating numeric tag pinned to the bottom-centre of the selection
+ * bbox. Content depends on what gesture is in flight:
+ *
+ *   - idle:      `W × H` — the standing size readout
+ *   - moving:    `X, Y`  — current top-left in canvas coords
+ *   - resizing:  `W × H` — live size as the user drags a handle
+ *   - rotating:  `N°`    — current angle
+ *
+ * Lives inside the chrome's rotated transform, but counter-scales font
+ * + padding so it always reads as 11px on screen regardless of zoom.
+ */
+function SizeBadge({
+  bbox,
+  interaction,
+  scale,
+}: {
+  bbox: SelectionBBox
+  interaction: ReturnType<typeof useEditorStore.getState>['interaction']['kind']
+  scale: number
+}) {
+  let text: string
+  if (interaction === 'moving') {
+    text = `${Math.round(bbox.x)}, ${Math.round(bbox.y)}`
+  } else if (interaction === 'rotating') {
+    text = `${Math.round(bbox.rotate)}°`
+  } else {
+    // idle / resizing — both show the current size
+    text = `${Math.round(bbox.width)} × ${Math.round(bbox.height)}`
+  }
+  // Everything in canvas-space px; divide by camera scale to land at
+  // pixel-perfect 11px on screen.
+  return (
+    <div
+      className="bg-primary text-primary-foreground pointer-events-none absolute font-medium whitespace-nowrap tabular-nums"
+      style={{
+        left: bbox.width / 2,
+        top: bbox.height + 8 / scale,
+        transform: 'translate(-50%, 0)',
+        fontSize: 11 / scale,
+        padding: `${2 / scale}px ${6 / scale}px`,
+        borderRadius: 4 / scale,
+        boxShadow: `0 ${1 / scale}px ${3 / scale}px rgba(0,0,0,0.2)`,
+      }}
+    >
+      {text}
     </div>
   )
 }

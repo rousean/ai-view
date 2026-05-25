@@ -135,4 +135,69 @@ export async function setProjectStatus(id: string, status: ProjectStatus): Promi
   notifyProjectsChanged()
 }
 
+/**
+ * Download one project as JSON. Filename = sanitised project name.
+ * Browser-only: builds a Blob + clicks a synthetic <a download>, no
+ * server round-trip.
+ */
+export async function exportProjectAsJson(id: string): Promise<void> {
+  const json = await adapter.exportJson(id)
+  const project = await adapter.load(id)
+  triggerDownload(`${sanitizeFilename(project.name)}.json`, json)
+}
+
+/** Same as above but for a batch — produces a single `.json` file with an array. */
+export async function exportProjectsAsJson(ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+  if (ids.length === 1) return exportProjectAsJson(ids[0]!)
+  const projects = await Promise.all(ids.map((id) => adapter.load(id)))
+  const json = JSON.stringify(projects, null, 2)
+  triggerDownload(`aiview-screens-${new Date().toISOString().slice(0, 10)}.json`, json)
+}
+
+/**
+ * Read a `.json` file (single project object or an array thereof),
+ * import each via the adapter, return how many landed. Caller's
+ * responsibility to surface success/failure to the user.
+ */
+export async function importProjectsFromFile(file: File): Promise<number> {
+  const text = await file.text()
+  const parsed = JSON.parse(text) as unknown
+  const list = Array.isArray(parsed) ? parsed : [parsed]
+  let n = 0
+  for (const p of list) {
+    try {
+      await adapter.importJson(JSON.stringify(p))
+      n++
+    } catch (err) {
+      console.warn('[importProjectsFromFile] skipped invalid project', err)
+    }
+  }
+  notifyProjectsChanged()
+  return n
+}
+
+function triggerDownload(filename: string, content: string) {
+  const blob = new Blob([content], { type: 'application/json;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+function sanitizeFilename(name: string): string {
+  // Strip filesystem-reserved chars; collapse whitespace; cap length.
+  return (
+    name
+      .replace(/[\\/:*?"<>|]+/g, '_')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 80) || 'untitled'
+  )
+}
+
 export { adapter as projectsAdapter }

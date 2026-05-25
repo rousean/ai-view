@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link } from '@tanstack/react-router'
-import { Copy, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { Copy, Download, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import {
   Dialog,
@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
-import { deleteProject, duplicateProject } from '../use-projects'
+import { deleteProject, duplicateProject, exportProjectAsJson } from '../use-projects'
 
 interface Props {
   id: string
@@ -76,6 +76,10 @@ export function ScreenRowActions({ id, name }: Props) {
           <DropdownMenuItem onSelect={() => void onDuplicate()} disabled={pending}>
             <Copy />
             创建副本
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void exportProjectAsJson(id)}>
+            <Download />
+            导出 JSON
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

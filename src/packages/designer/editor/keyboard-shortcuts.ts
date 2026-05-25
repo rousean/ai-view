@@ -175,6 +175,22 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
 
   // ── Selection ───────────────────────────────────────────────────────
   { key: 'a', mod: 'cmd', run: (ed) => ed.selectAll(), description: '全选' },
+  {
+    key: 'a',
+    mod: 'cmd+shift',
+    when: hasSelection,
+    run: (ed) => {
+      const primaryId = ed.getSelectedIds()[0]
+      const primary = primaryId ? ed.getWidget(primaryId) : null
+      if (!primary) return
+      const sameType = ed
+        .getAllWidgets()
+        .filter((w) => w.type === primary.type)
+        .map((w) => w.id)
+      if (sameType.length > 0) ed.select(sameType)
+    },
+    description: '选择所有同类型',
+  },
   { key: 'Escape', when: hasSelection, run: (ed) => ed.selectNone(), description: '取消选择' },
   { key: 'Tab', run: (ed) => ed.selectNext(), description: '选择下一个部件' },
 
@@ -249,6 +265,20 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
     run: (ed) => ed.sendBackward(ed.getSelectedIds()),
     description: '下移一层',
   },
+  {
+    key: ']',
+    mod: 'cmd+alt',
+    when: hasSelection,
+    run: (ed) => ed.bringToFront(ed.getSelectedIds()),
+    description: '置顶',
+  },
+  {
+    key: '[',
+    mod: 'cmd+alt',
+    when: hasSelection,
+    run: (ed) => ed.sendToBack(ed.getSelectedIds()),
+    description: '置底',
+  },
 
   // ── Group / ungroup ─────────────────────────────────────────────────
   {
@@ -316,7 +346,14 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
     run: (ed) => ed.setCamera({ scale: 1, x: 0, y: 0 }),
     description: '缩放到 100%',
   },
-  { key: '1', mod: 'cmd', run: (ed) => ed.resetView(), description: '适应屏幕' },
+  { key: '1', mod: 'cmd', run: (ed) => ed.fitToScreen(), description: '适应屏幕' },
+  {
+    key: '2',
+    mod: 'cmd',
+    when: hasSelection,
+    run: (ed) => ed.fitToSelection(),
+    description: '缩放到选中',
+  },
   { key: '=', mod: 'cmd', run: (ed) => ed.zoomBy(0.1), description: '放大' },
   { key: '+', mod: 'cmd', run: (ed) => ed.zoomBy(0.1), description: '放大' },
   { key: '-', mod: 'cmd', run: (ed) => ed.zoomBy(-0.1), description: '缩小' },

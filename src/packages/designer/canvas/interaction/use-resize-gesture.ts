@@ -113,6 +113,7 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
   const onUp = React.useCallback(() => {
     sessionRef.current = null
     useSnapGuidesStore.getState().clear()
+    useEditorStore.getState().actions.setInteraction({ kind: 'idle' })
     window.removeEventListener('pointermove', onMove)
     window.removeEventListener('pointerup', onUp)
     window.removeEventListener('pointercancel', onUp)
@@ -132,6 +133,13 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
         // Snapshot initial layouts; we re-derive from these every move.
         initial: initial.map((w) => structuredClone(w)),
       }
+      // Surface the gesture to EditorStore so HUD overlays can render
+      // the right readout (W × H during resize).
+      useEditorStore.getState().actions.setInteraction({
+        kind: 'resizing',
+        ids: initial.map((w) => w.id),
+        handle,
+      })
       // Mark a single history breakpoint at gesture start; subsequent
       // updateLayoutBatch calls coalesce via mergeKey.
       editor.mark('Resize widgets')

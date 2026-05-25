@@ -11,7 +11,7 @@ import {
 } from '~/components/ui/context-menu'
 import { Input } from '~/components/ui/input'
 import { cn } from '~/lib/utils'
-import { useDashboardEditor, useDocumentState } from '../editor/editor-context'
+import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
 import { selectPages } from '../stores/selectors'
 
 /**
@@ -30,10 +30,13 @@ export function PagesTabBar() {
   const editor = useDashboardEditor()
   const pages = useDocumentState(useShallow((s) => selectPages(s)))
   const currentPageId = useDocumentState((s) => s.project?.currentPageId ?? null)
+  const selectedCount = useEditorState((s) => s.selectedIds.length)
+  const scale = useEditorState((s) => s.camera.scale)
+  const mouse = useEditorState((s) => s.mouseCanvasPos)
 
   return (
     <div className="border-border bg-card flex h-9 shrink-0 items-center gap-0.5 border-t px-2">
-      <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+      <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
         {pages.map((p) => (
           <PageTab
             key={p.id}
@@ -43,18 +46,29 @@ export function PagesTabBar() {
             canDelete={pages.length > 1}
           />
         ))}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="新建页面"
+          onClick={() => editor.addPage()}
+        >
+          <Plus />
+        </Button>
       </div>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        aria-label="新建页面"
-        onClick={() => editor.addPage()}
-      >
-        <Plus />
-      </Button>
-      <span className="text-muted-foreground/60 ml-1 px-1 text-[11px] tabular-nums">
-        {pages.length} 个页面
-      </span>
+      {/* Status strip — pushed to the right. Three metrics, separated
+          by a thin divider; each item hides itself when irrelevant so
+          the strip stays tight when there's nothing to show. */}
+      <div className="text-muted-foreground/80 ml-auto flex items-center gap-3 px-2 text-[11px] tabular-nums">
+        {mouse && (
+          <span title="鼠标位置（画布坐标）">
+            X {Math.round(mouse.x)} · Y {Math.round(mouse.y)}
+          </span>
+        )}
+        {selectedCount > 0 && <span>选中 {selectedCount}</span>}
+        <span title="缩放">{Math.round(scale * 100)}%</span>
+        <span className="text-muted-foreground/40">·</span>
+        <span>{pages.length} 个页面</span>
+      </div>
     </div>
   )
 }

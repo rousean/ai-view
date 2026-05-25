@@ -16,6 +16,7 @@ import { Route as DesignerRouteImport } from './routes/designer'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ManagementIndexRouteImport } from './routes/management/index'
 import { Route as LayoutIndexRouteImport } from './routes/layout/index'
+import { Route as PreviewIdRouteImport } from './routes/preview/$id'
 import { Route as ManagementTemplatesRouteImport } from './routes/management/templates'
 import { Route as ManagementSettingsRouteImport } from './routes/management/settings'
 import { Route as ManagementScreensRouteImport } from './routes/management/screens'
@@ -58,6 +59,11 @@ const ManagementIndexRoute = ManagementIndexRouteImport.update({
 const LayoutIndexRoute = LayoutIndexRouteImport.update({
   id: '/layout/',
   path: '/layout/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewIdRoute = PreviewIdRouteImport.update({
+  id: '/preview/$id',
+  path: '/preview/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ManagementTemplatesRoute = ManagementTemplatesRouteImport.update({
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/management/screens': typeof ManagementScreensRoute
   '/management/settings': typeof ManagementSettingsRoute
   '/management/templates': typeof ManagementTemplatesRoute
+  '/preview/$id': typeof PreviewIdRoute
   '/layout/': typeof LayoutIndexRoute
   '/management/': typeof ManagementIndexRoute
 }
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/management/screens': typeof ManagementScreensRoute
   '/management/settings': typeof ManagementSettingsRoute
   '/management/templates': typeof ManagementTemplatesRoute
+  '/preview/$id': typeof PreviewIdRoute
   '/layout': typeof LayoutIndexRoute
   '/management': typeof ManagementIndexRoute
 }
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/management/screens': typeof ManagementScreensRoute
   '/management/settings': typeof ManagementSettingsRoute
   '/management/templates': typeof ManagementTemplatesRoute
+  '/preview/$id': typeof PreviewIdRoute
   '/layout/': typeof LayoutIndexRoute
   '/management/': typeof ManagementIndexRoute
 }
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/management/screens'
     | '/management/settings'
     | '/management/templates'
+    | '/preview/$id'
     | '/layout/'
     | '/management/'
   fileRoutesByTo: FileRoutesByTo
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/management/screens'
     | '/management/settings'
     | '/management/templates'
+    | '/preview/$id'
     | '/layout'
     | '/management'
   id:
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/management/screens'
     | '/management/settings'
     | '/management/templates'
+    | '/preview/$id'
     | '/layout/'
     | '/management/'
   fileRoutesById: FileRoutesById
@@ -211,6 +223,7 @@ export interface RootRouteChildren {
   EditorV2Route: typeof EditorV2Route
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRouteWithChildren
+  PreviewIdRoute: typeof PreviewIdRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
@@ -263,6 +276,13 @@ declare module '@tanstack/react-router' {
       path: '/layout'
       fullPath: '/layout/'
       preLoaderRoute: typeof LayoutIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview/$id': {
+      id: '/preview/$id'
+      path: '/preview/$id'
+      fullPath: '/preview/$id'
+      preLoaderRoute: typeof PreviewIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/management/templates': {
@@ -358,6 +378,7 @@ const rootRouteChildren: RootRouteChildren = {
   EditorV2Route: EditorV2Route,
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRouteWithChildren,
+  PreviewIdRoute: PreviewIdRoute,
   LayoutIndexRoute: LayoutIndexRoute,
 }
 export const routeTree = rootRouteImport

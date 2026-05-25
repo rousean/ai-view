@@ -108,16 +108,35 @@ export function NumInput({
 }) {
   const [text, setText] = React.useState(formatNumber(value))
   React.useEffect(() => setText(formatNumber(value)), [value])
+  const clamp = React.useCallback(
+    (n: number) => {
+      if (typeof min === 'number' && n < min) return min
+      if (typeof max === 'number' && n > max) return max
+      return n
+    },
+    [min, max],
+  )
   const commit = (raw: string) => {
-    const n = Number(raw)
-    if (Number.isFinite(n)) onChange?.(n)
+    const n = parseNumericExpression(raw, value)
+    if (Number.isFinite(n)) onChange?.(clamp(n))
     else setText(formatNumber(value))
   }
+  const bump = (delta: number) => {
+    const base = Number.isFinite(value) ? (value as number) : 0
+    onChange?.(clamp(base + delta))
+  }
+  // Scrub: pointer-down on the prefix label, drag horizontally → +/-.
+  // Matches Figma's "drag the X/Y label to scrub the value" idiom.
+  const prefixLabel = prefix ? (
+    <ScrubHandle
+      label={prefix}
+      disabled={disabled || !onChange}
+      onScrub={(delta) => bump(delta)}
+    />
+  ) : null
   return (
     <PropInput disabled={disabled} style={{ width }}>
-      {prefix && (
-        <span className="text-muted-foreground/80 shrink-0 text-[11px]">{prefix}</span>
-      )}
+      {prefixLabel}
       <input
         type="text"
         inputMode="decimal"
@@ -127,7 +146,15 @@ export function NumInput({
         onChange={(e) => setText(e.target.value)}
         onBlur={(e) => commit(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') commit((e.target as HTMLInputElement).value)
+          if (e.key === 'Enter') {
+            commit((e.target as HTMLInputElement).value)
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault()
+            bump(e.shiftKey ? 10 : 1)
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault()
+            bump(e.shiftKey ? -10 : -1)
+          }
         }}
         min={min}
         max={max}
@@ -139,6 +166,85 @@ export function NumInput({
       )}
     </PropInput>
   )
+}
+
+/**
+ * Drag-to-scrub label. Pointer-down + horizontal drag emits a delta
+ * proportional to the mouse movement. 1px ≈ 1 unit by default;
+ * Shift = 10× faster, Alt = 0.1× for fine control. Used as the prefix
+ * inside NumInput when a `prefix` string is provided.
+ */
+function ScrubHandle({
+  label,
+  disabled,
+  onScrub,
+}: {
+  label: string
+  disabled: boolean
+  onScrub: (delta: number) => void
+}) {
+  const startRef = React.useRef<{ x: number; accumulated: number } | null>(null)
+
+  return (
+    <span
+      className={cn(
+        'text-muted-foreground/80 shrink-0 cursor-ew-resize text-[11px] select-none',
+        disabled && 'cursor-default',
+      )}
+      onPointerDown={(e) => {
+        if (disabled) return
+        e.preventDefault()
+        ;(e.target as Element).setPointerCapture?.(e.pointerId)
+        startRef.current = { x: e.clientX, accumulated: 0 }
+      }}
+      onPointerMove={(e) => {
+        if (!startRef.current) return
+        const dx = e.clientX - startRef.current.x
+        const step = e.shiftKey ? 10 : e.altKey ? 0.1 : 1
+        // Integer-snapping the emitted delta keeps undo entries clean:
+        // we only fire when at least one whole step's worth has built up.
+        const next = Math.trunc(dx * step)
+        const emit = next - startRef.current.accumulated
+        if (emit !== 0) {
+          startRef.current.accumulated = next
+          onScrub(emit)
+        }
+      }}
+      onPointerUp={() => {
+        startRef.current = null
+      }}
+    >
+      {label}
+    </span>
+  )
+}
+
+/**
+ * Parse a NumInput value. Accepts plain numbers and tiny arithmetic
+ * expressions made of digits, `. + - * / ( )`. Anything else falls
+ * back to the previous value. Sandboxed via Function — the regex
+ * whitelist makes it safe to evaluate user input.
+ */
+function parseNumericExpression(raw: string, fallback: number | undefined): number {
+  const trimmed = raw.trim()
+  if (!trimmed) return Number.NaN
+  // Fast path: plain number (with optional unit suffix like "px" or "%"
+  // — for now we just strip them; semantic unit handling is out of scope).
+  const cleaned = trimmed.replace(/(px|deg|%)$/i, '')
+  const plain = Number(cleaned)
+  if (Number.isFinite(plain)) return plain
+  // Expression path. Whitelist the allowed character set so we can run
+  // it through `new Function` without opening eval.
+  if (!/^[\d\s+\-*/().]+$/.test(cleaned)) {
+    return fallback ?? Number.NaN
+  }
+  try {
+    const value = new Function(`"use strict"; return (${cleaned});`)() as unknown
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+  } catch {
+    // fall through
+  }
+  return fallback ?? Number.NaN
 }
 
 /** Color swatch + hex input (read-only stub for now). */

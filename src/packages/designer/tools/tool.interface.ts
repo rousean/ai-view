@@ -37,6 +37,11 @@ export interface Tool {
   onPointerDown?(e: PointerEvent, ctx: ToolContext): void
   onPointerMove?(e: PointerEvent, ctx: ToolContext): void
   onPointerUp?(e: PointerEvent, ctx: ToolContext): void
+  /**
+   * Native double-click on the viewport. SelectTool uses this to
+   * "isolate" a single group member for direct editing (Figma idiom).
+   */
+  onDoubleClick?(e: MouseEvent, ctx: ToolContext): void
   onWheel?(e: WheelEvent, ctx: ToolContext): void
   onKeyDown?(e: KeyboardEvent, ctx: ToolContext): void
   onKeyUp?(e: KeyboardEvent, ctx: ToolContext): void

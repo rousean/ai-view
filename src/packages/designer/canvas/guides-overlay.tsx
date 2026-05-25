@@ -101,14 +101,47 @@ export const GuidesOverlay: React.FC<Props> = ({ viewportRef }) => {
           same dashed style. */}
       {(interaction.kind === 'creating-guide' ||
         interaction.kind === 'moving-guide') && (
-        <PreviewLine
-          orientation={interaction.orientation}
-          position={interaction.position}
-          canvasW={canvasW}
-          canvasH={canvasH}
-          stroke={stroke}
-          scale={scale}
-        />
+        <>
+          <PreviewLine
+            orientation={interaction.orientation}
+            position={interaction.position}
+            canvasW={canvasW}
+            canvasH={canvasH}
+            stroke={stroke}
+            scale={scale}
+          />
+          {/* Coordinate readout pinned near the cursor end of the
+              preview, so the user knows exactly where they're dropping
+              the guide. */}
+          <foreignObject
+            x={
+              interaction.orientation === 'vertical'
+                ? interaction.position + 6 / scale
+                : 6 / scale
+            }
+            y={
+              interaction.orientation === 'horizontal'
+                ? interaction.position - 18 / scale
+                : 6 / scale
+            }
+            width={120 / scale}
+            height={20 / scale}
+            style={{ pointerEvents: 'none', overflow: 'visible' }}
+          >
+            <div
+              className="bg-primary text-primary-foreground inline-block font-medium tabular-nums"
+              style={{
+                fontSize: 11 / scale,
+                padding: `${2 / scale}px ${6 / scale}px`,
+                borderRadius: 4 / scale,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {interaction.orientation === 'vertical' ? 'X' : 'Y'}:{' '}
+              {Math.round(interaction.position)}
+            </div>
+          </foreignObject>
+        </>
       )}
     </svg>
   )

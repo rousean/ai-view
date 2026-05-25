@@ -14,6 +14,7 @@ import { DashboardEditor } from '../editor/dashboard-editor'
 import { EditorProvider } from '../editor/editor-context'
 import { registerBuiltinSetters } from '../setters'
 import { registerBuiltinTools } from '../tools'
+import { CommandPalette } from './command-palette'
 import { FloatingTools } from './floating-tools'
 import { FloatingZoom } from './floating-zoom'
 import { IconRail, type RailKey } from './icon-rail'
@@ -162,11 +163,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
             <div className="flex min-h-0 flex-1">
               <IconRail active={rail} onChange={setRail} />
               {rail === 'mat' && <MaterialsPanel />}
-              {rail === 'layers' && (
-                <SecondaryPanel title="图层">
-                  <LayersPanel />
-                </SecondaryPanel>
-              )}
+              {rail === 'layers' && <LayersPanel />}
               {rail === 'data' && (
                 <SecondaryPanel title="数据源">
                   <DataSourcesPanel />
@@ -201,6 +198,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
               <PropertyPanel />
             </div>
           </DragDropProvider>
+          <CommandPalette />
         </TooltipProvider>
       </div>
     </EditorProvider>
