@@ -568,6 +568,22 @@ export class DashboardEditor {
     return useEditorStore.getState().isolatedGroupId
   }
 
+  /** Open / close the Cmd+K command palette from anywhere. */
+  setPaletteOpen(open: boolean): void {
+    useEditorStore.getState().actions.setPaletteOpen(open)
+  }
+
+  /**
+   * Ask any listening UI (currently the LayersPanel) to put the given
+   * widget — or the primary selection if no id — into inline rename mode.
+   * Bumps a nonce so the same widget can be re-requested.
+   */
+  requestRename(widgetId?: string): void {
+    const id = widgetId ?? useEditorStore.getState().primarySelectionId
+    if (!id) return
+    useEditorStore.getState().actions.requestRename(id)
+  }
+
   // Camera (volatile) ──────────────────────────────────────────────
 
   setCamera(camera: Partial<Camera>): void {

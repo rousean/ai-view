@@ -446,6 +446,16 @@ function WidgetRow({
   const [draft, setDraft] = React.useState(w.name)
   React.useEffect(() => setDraft(w.name), [w.name])
 
+  // External rename request — fired by the F2 shortcut (or anywhere
+  // else that calls `editor.requestRename(id)`). When the request's id
+  // matches this row, drop into inline edit. The `nonce` dep is what
+  // makes a second request on the same id re-trigger the effect.
+  const renameRequest = useEditorStore((s) => s.renameRequest)
+  React.useEffect(() => {
+    if (renameRequest && renameRequest.id === w.id) setEditing(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renameRequest?.id, renameRequest?.nonce, w.id])
+
   const commitRename = () => {
     setEditing(false)
     const trimmed = draft.trim()
@@ -613,41 +623,137 @@ export function AssetsPanel() {
   )
 }
 
-// ───────── History (placeholder) ───────────────────────────────────
+// ───────── History (real data, jump-anywhere) ───────────────────────
 
-const DEMO_HISTORY: [string, string, string, boolean?][] = [
-  ['现在', '你', '添加图表 · 雷达图', true],
-  ['3 分钟前', '你', '修改 KPI 颜色'],
-  ['12 分钟前', '李小慧', '调整布局'],
-  ['1 小时前', '你', '替换数据源'],
-  ['昨天 16:42', '王志远', '创建项目'],
-]
-
+/**
+ * Render the live undo / redo stacks from HistoryManager.
+ *
+ * Visual order is newest-on-top, so undo[N-1] (latest entry, "current
+ * state") sits at the very top of the panel highlighted. Redo entries
+ * sit below the divider, dimmed — clicking one fast-forwards by
+ * issuing `redo()` enough times to land on it. Clicking an older undo
+ * entry rolls back by calling `undo()` until that entry becomes the
+ * top of the stack.
+ */
 export function HistoryPanel() {
+  const editor = useDashboardEditor()
+
+  // History is owned by HistoryManager, not by zustand — subscribe via
+  // the editor's bus. One reducer kicks a re-render on any history
+  // event, which is rare enough that the cost is invisible.
+  const [, force] = React.useReducer((x) => x + 1, 0)
+  React.useEffect(() => {
+    const off = [
+      editor.bus.on('history.applied', () => force()),
+      editor.bus.on('history.undone', () => force()),
+      editor.bus.on('history.redone', () => force()),
+      editor.bus.on('history.cleared', () => force()),
+      editor.bus.on('document.loaded', () => force()),
+    ]
+    return () => off.forEach((fn) => fn())
+  }, [editor])
+
+  const { undo, redo } = editor.history.getHistory()
+  if (undo.length === 0 && redo.length === 0) {
+    return (
+      <p className="text-muted-foreground/80 p-4 text-center text-[11px]">
+        还没有操作记录
+      </p>
+    )
+  }
+
+  // Newest undo entry == current document state. Render undo top-down
+  // (latest first), then a hairline, then redo top-down (next-redo first).
+  const undoReversed = [...undo].reverse()
+  const redoReversed = [...redo].reverse()
+
   return (
     <div className="py-1">
-      {DEMO_HISTORY.map(([t, u, m, cur], i) => (
-        <div
-          key={i}
-          className={cn(
-            'flex cursor-pointer gap-2 border-l-2 px-3 py-2',
-            cur ? 'border-primary bg-primary/10' : 'border-transparent',
-          )}
-        >
-          <div
-            className={cn(
-              'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
-              cur ? 'bg-primary' : 'bg-muted-foreground/40',
-            )}
+      {undoReversed.map((entry, i) => {
+        const isCurrent = i === 0
+        // Click an older entry → undo enough times to land on it.
+        // i === 0 is the current state; i === 1 means roll back once.
+        const steps = i
+        return (
+          <HistoryRow
+            key={entry.id}
+            label={entry.label}
+            timestamp={entry.timestamp}
+            current={isCurrent}
+            dim={false}
+            onClick={() => {
+              for (let k = 0; k < steps; k++) editor.undo()
+            }}
           />
-          <div className="flex-1">
-            <div className="text-xs">{m}</div>
-            <div className="text-muted-foreground/80 text-[11px]">
-              {u} · {t}
-            </div>
-          </div>
-        </div>
-      ))}
+        )
+      })}
+      {redoReversed.length > 0 && (
+        <div className="border-border/60 my-1 border-t" />
+      )}
+      {redoReversed.map((entry, i) => {
+        // redoStack top (last pushed) is what `redo()` will reapply
+        // *first*; after reverse the top of our stack is at i=0,
+        // matching "1 step forward". Click i+1-deep entry → that many redos.
+        const steps = i + 1
+        return (
+          <HistoryRow
+            key={entry.id}
+            label={entry.label}
+            timestamp={entry.timestamp}
+            current={false}
+            dim
+            onClick={() => {
+              for (let k = 0; k < steps; k++) editor.redo()
+            }}
+          />
+        )
+      })}
     </div>
   )
+}
+
+function HistoryRow({
+  label,
+  timestamp,
+  current,
+  dim,
+  onClick,
+}: {
+  label: string
+  timestamp: number
+  current: boolean
+  dim: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'flex w-full cursor-pointer items-center gap-2 border-l-2 px-3 py-2 text-left',
+        current ? 'border-primary bg-primary/10' : 'hover:bg-muted border-transparent',
+        dim && 'opacity-50',
+      )}
+    >
+      <div
+        className={cn(
+          'mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full',
+          current ? 'bg-primary' : 'bg-muted-foreground/40',
+        )}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-xs">{label}</div>
+        <div className="text-muted-foreground/80 text-[11px] tabular-nums">
+          {formatTimestamp(timestamp)}
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function formatTimestamp(ts: number): string {
+  const d = new Date(ts)
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  const ss = String(d.getSeconds()).padStart(2, '0')
+  return `${hh}:${mm}:${ss}`
 }

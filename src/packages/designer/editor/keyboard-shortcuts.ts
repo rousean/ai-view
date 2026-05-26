@@ -173,6 +173,11 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
   { key: 'z', mod: 'cmd+shift', run: (ed) => ed.redo(), description: '重做' },
   { key: 'y', mod: 'cmd', run: (ed) => ed.redo(), description: '重做（Windows 习惯）' },
 
+  // ── Save ────────────────────────────────────────────────────────────
+  // Cmd+S also cancels the in-flight autosave timer (the underlying
+  // facade does that), so pressing it doesn't queue a duplicate save.
+  { key: 's', mod: 'cmd', run: (ed) => void ed.save(), description: '保存' },
+
   // ── Selection ───────────────────────────────────────────────────────
   { key: 'a', mod: 'cmd', run: (ed) => ed.selectAll(), description: '全选' },
   {
@@ -193,6 +198,12 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
   },
   { key: 'Escape', when: hasSelection, run: (ed) => ed.selectNone(), description: '取消选择' },
   { key: 'Tab', run: (ed) => ed.selectNext(), description: '选择下一个部件' },
+  {
+    key: 'F2',
+    when: hasSelection,
+    run: (ed) => ed.requestRename(),
+    description: '重命名',
+  },
 
   // ── Nudge (arrow keys, Shift = 10×) ─────────────────────────────────
   nudge('ArrowLeft', -1, 0, 1),

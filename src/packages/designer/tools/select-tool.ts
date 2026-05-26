@@ -368,8 +368,13 @@ export const SelectTool: Tool = {
     const editor = ctx.editor
     const widgetId = findHitWidgetId(e.target)
     if (!widgetId) {
-      // Double-clicking blank exits any active isolated mode.
+      // Double-click on blank canvas does two things in sequence:
+      //   1. exit any active isolated-group mode
+      //   2. open the command palette so the user can pick a widget
+      //      to add — saves a Cmd+K hop for the common "place something
+      //      here" workflow.
       if (editor.getIsolatedGroupId() !== null) editor.setIsolatedGroup(null)
+      editor.setPaletteOpen(true)
       return
     }
     const hit = editor.getWidget(widgetId)

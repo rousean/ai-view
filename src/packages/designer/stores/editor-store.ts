@@ -82,6 +82,22 @@ export interface EditorState {
    */
   isolatedGroupId: string | null
 
+  /**
+   * Open-state of the Cmd+K command palette. Lifted to the store so
+   * other UI (e.g. the canvas's "double-click empty → quick add") can
+   * pop the palette without owning a ref to it.
+   */
+  paletteOpen: boolean
+
+  /**
+   * Sentinel that bumps every time something asks "please put widget X
+   * into rename mode" (F2 shortcut, double-click on its layer row, etc).
+   * The LayersPanel watches this counter and triggers inline edit on
+   * the named widget. Reading via `useEditorState` is reactive so any
+   * subscriber re-renders on change.
+   */
+  renameRequest: { id: string; nonce: number } | null
+
   // Tool
   tool: string
   toolLocked: boolean
@@ -106,6 +122,8 @@ export interface EditorState {
     setViewportSize: (size: { width: number; height: number }) => void
     setMouseCanvasPos: (pos: { x: number; y: number } | null) => void
     setIsolatedGroup: (id: string | null) => void
+    setPaletteOpen: (open: boolean) => void
+    requestRename: (widgetId: string) => void
     setSelected: (ids: string[]) => void
     setHover: (id: string | null) => void
     setPrimarySelection: (id: string | null) => void
@@ -156,6 +174,8 @@ export const useEditorStore = create<EditorState>()(
         hoverId: null,
         primarySelectionId: null,
         isolatedGroupId: null,
+        paletteOpen: false,
+        renameRequest: null,
         tool: 'select',
         toolLocked: false,
         toolContext: {},
@@ -174,6 +194,21 @@ export const useEditorStore = create<EditorState>()(
             set({ mouseCanvasPos: pos }, false, 'editor/setMouseCanvasPos'),
           setIsolatedGroup: (id) =>
             set({ isolatedGroupId: id }, false, 'editor/setIsolatedGroup'),
+          setPaletteOpen: (open) =>
+            set({ paletteOpen: open }, false, 'editor/setPaletteOpen'),
+          requestRename: (widgetId) =>
+            set(
+              (s) => ({
+                renameRequest: {
+                  id: widgetId,
+                  // Nonce bumps so identical consecutive requests still
+                  // re-trigger downstream effects.
+                  nonce: (s.renameRequest?.nonce ?? 0) + 1,
+                },
+              }),
+              false,
+              'editor/requestRename',
+            ),
           setSelected: (ids) =>
             set(
               {
@@ -212,6 +247,8 @@ export const useEditorStore = create<EditorState>()(
                 hoverId: null,
                 primarySelectionId: null,
                 isolatedGroupId: null,
+                paletteOpen: false,
+                renameRequest: null,
                 interaction: { kind: 'idle' },
                 clipboard: null,
               },

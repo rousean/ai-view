@@ -11,7 +11,11 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from '~/components/ui/command'
-import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
+import {
+  useDashboardEditor,
+  useDocumentState,
+  useEditorState,
+} from '../editor/editor-context'
 import { DEFAULT_SHORTCUTS, type ShortcutDef } from '../editor/keyboard-shortcuts'
 import { selectPages } from '../stores/selectors'
 
@@ -31,7 +35,14 @@ import { selectPages } from '../stores/selectors'
  */
 export function CommandPalette() {
   const editor = useDashboardEditor()
-  const [open, setOpen] = React.useState(false)
+  // Open-state lives on EditorStore so other actors (canvas double-
+  // click, command-palette button in the topbar, etc.) can pop the
+  // palette without needing a ref to this component.
+  const open = useEditorState((s) => s.paletteOpen)
+  const setOpen = React.useCallback(
+    (next: boolean) => editor.setPaletteOpen(next),
+    [editor],
+  )
 
   // Cmd+K toggle. Listens at window level so the trigger works no matter
   // which editor element has focus; skip when typing in an input so
@@ -51,11 +62,11 @@ export function CommandPalette() {
         if (!open) return
       }
       e.preventDefault()
-      setOpen((o) => !o)
+      setOpen(!open)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open])
+  }, [open, setOpen])
 
   // Live data for the entries.
   const selectedIds = useEditorState((s) => s.selectedIds)

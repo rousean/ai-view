@@ -211,6 +211,24 @@ export const HoverIndicator: React.FC = () => {
         outlineOffset: `-${stroke}px`,
         transform,
       }}
-    />
+    >
+      {/* Floating W × H tag — same idiom as the selection SizeBadge,
+          but pinned to the dashed hover outline so users get an
+          instant size readout on any widget they point at, without
+          having to commit a selection. */}
+      <div
+        className="bg-primary/80 text-primary-foreground pointer-events-none absolute font-medium whitespace-nowrap tabular-nums"
+        style={{
+          left: widget.layout.width / 2,
+          top: widget.layout.height + 8 / scale,
+          transform: 'translate(-50%, 0)',
+          fontSize: 11 / scale,
+          padding: `${2 / scale}px ${6 / scale}px`,
+          borderRadius: 4 / scale,
+        }}
+      >
+        {Math.round(widget.layout.width)} × {Math.round(widget.layout.height)}
+      </div>
+    </div>
   )
 }

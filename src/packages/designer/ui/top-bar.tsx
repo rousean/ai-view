@@ -35,20 +35,30 @@ export function TopBar() {
   const projectName = useDocumentState((s) => s.project?.name ?? '')
   const scale = useEditorState((s) => s.camera.scale)
 
-  // Force re-evaluate canUndo / canRedo on history changes.
+  // Force re-evaluate canUndo / canRedo + dirty state on history /
+  // save events. One reducer covers all of them — the cost of an extra
+  // render is negligible next to what triggered the event in the first
+  // place (an undoable mutation).
   const [, force] = React.useReducer((x) => x + 1, 0)
-  React.useEffect(() => editor.bus.on('history.applied', () => force()), [editor])
-  React.useEffect(() => editor.bus.on('history.undone', () => force()), [editor])
-  React.useEffect(() => editor.bus.on('history.redone', () => force()), [editor])
+  React.useEffect(() => {
+    const off = [
+      editor.bus.on('history.applied', () => force()),
+      editor.bus.on('history.undone', () => force()),
+      editor.bus.on('history.redone', () => force()),
+      editor.bus.on('document.dirty', () => force()),
+      editor.bus.on('document.saved', () => force()),
+    ]
+    return () => off.forEach((fn) => fn())
+  }, [editor])
 
   return (
     <div className="flex h-11 shrink-0 items-center gap-1.5 border-b border-border bg-card pr-2 pl-3">
-      {/* Left: logo + project name + auto-save */}
+      {/* Left: logo + project name + save status */}
       <div className="flex min-w-0 items-center gap-2.5">
         <Logo size={20} />
         <span className="text-muted-foreground/80 text-xs">/</span>
         <ProjectNameEditor name={projectName} />
-        <span className="text-muted-foreground/60 ml-1 text-[11px]">● 已自动保存</span>
+        <SaveIndicator editor={editor} />
       </div>
 
       {/* Center: undo / redo / zoom / history */}
@@ -133,6 +143,55 @@ export function TopBar() {
       </div>
     </div>
   )
+}
+
+/**
+ * Project save state — three flavours:
+ *
+ *   - saving        spinner-y "保存中…"
+ *   - dirty         orange dot + "未保存的更改"
+ *   - clean+saved   muted "已保存 HH:MM"
+ *   - clean+never   muted "未修改"
+ *
+ * The clock under "saved at" ticks once a minute so the label stays
+ * fresh ("已保存 12:01" → "已保存 12:02").
+ */
+function SaveIndicator({ editor }: { editor: ReturnType<typeof useDashboardEditor> }) {
+  const dirty = editor.isDirty()
+  const saving = editor.isSaving()
+  const lastSavedAt = editor.getLastSavedAt()
+
+  // Refresh once a minute so "已保存 12:01" updates without an event.
+  const [, force] = React.useReducer((x) => x + 1, 0)
+  React.useEffect(() => {
+    const id = setInterval(() => force(), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
+  if (saving) {
+    return (
+      <span className="text-muted-foreground/80 ml-1 text-[11px]">
+        ● 保存中…
+      </span>
+    )
+  }
+  if (dirty) {
+    return (
+      <span className="ml-1 text-[11px] text-amber-500" title="有未保存的更改 (⌘S 立即保存)">
+        ● 未保存的更改
+      </span>
+    )
+  }
+  if (lastSavedAt) {
+    const hh = String(lastSavedAt.getHours()).padStart(2, '0')
+    const mm = String(lastSavedAt.getMinutes()).padStart(2, '0')
+    return (
+      <span className="text-muted-foreground/60 ml-1 text-[11px]" title={lastSavedAt.toLocaleString()}>
+        ● 已保存 {hh}:{mm}
+      </span>
+    )
+  }
+  return <span className="text-muted-foreground/40 ml-1 text-[11px]">● 未修改</span>
 }
 
 // ─── Logo ───────────────────────────────────────────────────────────
