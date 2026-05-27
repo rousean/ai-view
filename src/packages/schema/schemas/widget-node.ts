@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ExtensionsSchema, PointSchema } from './common'
+import { DatasetSchema, ExtensionsSchema, PointSchema } from './common'
 
 export const LayoutSchema = z.object({
   x: z.number(),
@@ -24,17 +24,24 @@ export const TransformStepSchema = z.object({
   params: z.record(z.unknown()),
 })
 
-export const DataBindingSchema = z.object({
-  sourceId: z.string(),
-  mapping: z.record(z.string()),
-  transform: z.array(TransformStepSchema).optional(),
-  mock: z
-    .object({
-      enabled: z.boolean(),
-      data: z.array(z.unknown()),
-    })
-    .optional(),
-})
+/** Slot column mapping — slot name → single column or array of columns. */
+export const SlotMappingSchema = z.record(z.union([z.string(), z.array(z.string())]))
+
+/** Widget-attached data: inline (dataset owned by widget) | bound (DataSource). */
+export const WidgetDataSchema = z.discriminatedUnion('mode', [
+  z.object({
+    mode: z.literal('inline'),
+    dataset: DatasetSchema,
+    mapping: SlotMappingSchema,
+    transform: z.array(TransformStepSchema).optional(),
+  }),
+  z.object({
+    mode: z.literal('bound'),
+    sourceId: z.string(),
+    mapping: SlotMappingSchema,
+    transform: z.array(TransformStepSchema).optional(),
+  }),
+])
 
 export const EventBindingSchema = z.object({
   id: z.string(),
@@ -72,7 +79,7 @@ export const WidgetNodeSchema = z.object({
   flags: WidgetFlagsSchema,
   /** Type-specific; not validated here. WidgetMeta does it. */
   props: z.record(z.unknown()),
-  dataBinding: DataBindingSchema.optional(),
+  data: WidgetDataSchema.optional(),
   events: z.array(EventBindingSchema).optional(),
   animation: AnimationConfigSchema.optional(),
   groupId: z.string().optional(),

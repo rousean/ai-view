@@ -9,38 +9,6 @@ interface PieDatum {
   value: number
 }
 
-/** Demo dataset shown when no databinding is configured. */
-const FALLBACK_DATA: PieDatum[] = [
-  { name: 'JavaScript', value: 500 },
-  { name: 'Python', value: 200 },
-  { name: 'Java', value: 300 },
-  { name: 'C++', value: 400 },
-  { name: 'C#', value: 100 },
-]
-
-/** Coerce arbitrary mapped data into `{name, value}` rows. */
-function normalizeData(input: unknown): PieDatum[] {
-  if (!Array.isArray(input) || input.length === 0) return []
-  return input
-    .map((row) => {
-      if (!row || typeof row !== 'object') return null
-      const r = row as Record<string, unknown>
-      const rawName = r.name ?? r.label ?? r.category ?? r.x ?? ''
-      const rawValue = r.value ?? r.y ?? 0
-      const value = Number(rawValue)
-      const name = String(rawName)
-      if (!name || !Number.isFinite(value)) return null
-      return { name, value }
-    })
-    .filter((row): row is PieDatum => row !== null)
-}
-
-/** Pop a slice outward along its bisector by `move` pixels. */
-function calcTranslate(d: PieArcDatum<PieDatum>, move: number): string {
-  const mid = d.startAngle + (d.endAngle - d.startAngle) / 2
-  return `translate(${-move * Math.cos(mid + Math.PI / 2)}, ${-move * Math.sin(mid + Math.PI / 2)})`
-}
-
 const BASE_PALETTE = [
   '#0d99ff',
   '#00d4ff',
@@ -51,6 +19,17 @@ const BASE_PALETTE = [
   '#f24822',
 ]
 
+/** Pop a slice outward along its bisector by `move` pixels. */
+function calcTranslate(d: PieArcDatum<PieDatum>, move: number): string {
+  const mid = d.startAngle + (d.endAngle - d.startAngle) / 2
+  return `translate(${-move * Math.cos(mid + Math.PI / 2)}, ${-move * Math.sin(mid + Math.PI / 2)})`
+}
+
+/**
+ * Donut chart — single dimension `name`, single measure `value`. Reads
+ * resolved slots; no fallback dataset, no normalizeData (resolver
+ * already projected the rows into per-slot value arrays).
+ */
 export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> = ({
   props: rawProps,
   data,
@@ -59,12 +38,25 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
   const props = { ...DEFAULT_DONUT_PROPS, ...rawProps }
   const svgRef = React.useRef<SVGSVGElement | null>(null)
 
-  const rows = React.useMemo(() => {
-    const normalized = normalizeData(data)
-    return normalized.length > 0 ? normalized : FALLBACK_DATA
+  // Zip parallel slot arrays into d3-friendly { name, value } records,
+  // dropping rows where either side is missing/NaN. Slot reads live
+  // inside the memo callback so the dep list reduces to the stable
+  // `data` reference (memoized by the resolver in WidgetContainer).
+  const rows = React.useMemo<PieDatum[]>(() => {
+    const nameValues = (data.slots.name?.values[0] ?? []) as Array<string>
+    const valueValues = (data.slots.value?.values[0] ?? []) as Array<number>
+    const out: PieDatum[] = []
+    const n = Math.min(nameValues.length, valueValues.length)
+    for (let i = 0; i < n; i++) {
+      const name = String(nameValues[i] ?? '').trim()
+      const value = Number(valueValues[i])
+      if (!name || !Number.isFinite(value)) continue
+      out.push({ name, value })
+    }
+    return out
   }, [data])
 
-  // Use the built-in palette; synthesize extra colours from d3 rainbow when
+  // Built-in palette; synthesize extra colours from d3 rainbow when
   // there are more slices than preset colours.
   const palette = React.useMemo(() => {
     if (BASE_PALETTE.length >= rows.length) return BASE_PALETTE.slice(0, rows.length)
@@ -86,7 +78,6 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
     const cx = props.padding + innerW / 2
     const cy = props.padding + titleHeight + innerH / 2
 
-    // Title
     if (props.title) {
       svg
         .append('text')

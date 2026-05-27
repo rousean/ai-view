@@ -1,12 +1,9 @@
 import { z } from 'zod'
-import { ExtensionsSchema } from './common'
+import { ExtensionsSchema, FieldDefSchema } from './common'
 import { TransformStepSchema } from './widget-node'
 
-export const FieldDefSchema = z.object({
-  name: z.string(),
-  type: z.enum(['string', 'number', 'date', 'boolean']),
-  label: z.string().optional(),
-})
+// NB: `FieldDefSchema` moved to ./common (inline widget data also uses
+// it). Import it from there.
 
 const DataSourceBaseShape = {
   id: z.string(),

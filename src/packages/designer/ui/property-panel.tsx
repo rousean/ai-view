@@ -3,9 +3,7 @@ import {
   ChartBar,
   ChartLine,
   ChartPie,
-  ChevronDown,
   Copy,
-  Database,
   Hash,
   MoreHorizontal,
   Radar,
@@ -18,6 +16,7 @@ import type { PropConfig, WidgetMeta } from '@widgets/widget-meta'
 import { Button } from '~/components/ui/button'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { cn } from '~/lib/utils'
+import { DataTab } from './data-tab/data-tab'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
 import { getByPath, setByPath } from '../setters/path-utils'
 import { selectCurrentPage, selectWidget } from '../stores/selectors'
@@ -31,19 +30,40 @@ import {
   Toggle,
 } from './property-controls'
 
+/** Active tab on the right panel. Persists across selection changes. */
+type RightTab = 'canvas' | 'props' | 'data'
+
 /**
- * Right-side property panel — Figma-style with two top tabs (画布 / 图表).
- * 画布 tab edits page-level config (size, background, grid, fit mode).
- * 图表 tab edits the selected widget; sections come from WidgetMeta.propsConfig.
+ * Right-side property panel — three top tabs:
+ *
+ *   - 画布 — page-level config (canvas size, background, grid). Always
+ *           available, default when nothing is selected.
+ *   - 属性 — widget chrome + layout + schema-driven 样式/配置. Requires
+ *           a single selection.
+ *   - 数据 — data binding + inline table editor + slot mapping +
+ *           preview. Requires a single selection.
+ *
+ * Multi-select collapses to a shared 画布 view (multi-widget property
+ * editing is its own beast — see MultiSelectProps).
  */
 export function PropertyPanel() {
   const selectedIds = useEditorState((s) => s.selectedIds)
-  const [tab, setTab] = React.useState<'canvas' | 'chart'>(
-    selectedIds.length === 1 ? 'chart' : 'canvas',
-  )
+  const hasSingle = selectedIds.length === 1
+  const [tab, setTab] = React.useState<RightTab>(hasSingle ? 'props' : 'canvas')
+
+  // Selection-driven tab fallback:
+  //   - nothing / multi-selected → 画布 (props/data tabs need single widget)
+  //   - single-selected          → 属性 (props is the natural default)
+  // We don't try to preserve "data" across deselect→reselect because the
+  // user would already see the empty data UI right after; making them
+  // re-click is clearer.
   React.useEffect(() => {
-    setTab(selectedIds.length === 1 ? 'chart' : 'canvas')
-  }, [selectedIds.length])
+    if (!hasSingle && tab !== 'canvas') setTab('canvas')
+    if (hasSingle && tab === 'canvas') setTab('props')
+    // tab intentionally omitted — we only want to react to selection
+    // changes, not to user-driven tab clicks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasSingle])
 
   return (
     <aside className="border-border bg-card flex w-[280px] shrink-0 flex-col border-l">
@@ -51,11 +71,22 @@ export function PropertyPanel() {
         <TabButton active={tab === 'canvas'} onClick={() => setTab('canvas')}>
           画布
         </TabButton>
-        <TabButton active={tab === 'chart'} onClick={() => setTab('chart')}>
-          图表
-          {selectedIds.length === 1 && (
+        <TabButton
+          active={tab === 'props'}
+          onClick={() => hasSingle && setTab('props')}
+          disabled={!hasSingle}
+        >
+          属性
+          {hasSingle && tab !== 'props' && (
             <span className="bg-primary ml-1 inline-block h-1.5 w-1.5 rounded-full align-middle" />
           )}
+        </TabButton>
+        <TabButton
+          active={tab === 'data'}
+          onClick={() => hasSingle && setTab('data')}
+          disabled={!hasSingle}
+        >
+          数据
         </TabButton>
         <div className="flex-1" />
         <Button variant="ghost" size="icon-sm" className="mr-1 self-center" aria-label="更多">
@@ -63,7 +94,9 @@ export function PropertyPanel() {
         </Button>
       </div>
       <ScrollArea className="min-h-0 flex-1">
-        {tab === 'canvas' ? <CanvasProps /> : <ChartProps />}
+        {tab === 'canvas' && <CanvasProps />}
+        {tab === 'props' && <PropsTab />}
+        {tab === 'data' && <DataTab />}
       </ScrollArea>
     </aside>
   )
@@ -72,20 +105,25 @@ export function PropertyPanel() {
 function TabButton({
   active,
   onClick,
+  disabled,
   children,
 }: {
   active: boolean
   onClick: () => void
+  disabled?: boolean
   children: React.ReactNode
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       className={cn(
-        'relative cursor-pointer bg-transparent px-2 py-2 text-xs whitespace-nowrap select-none',
-        active
-          ? "text-foreground font-medium after:bg-primary after:absolute after:right-2 after:-bottom-px after:left-2 after:h-0.5 after:rounded-[1px] after:content-['']"
-          : 'text-muted-foreground hover:text-foreground',
+        'relative bg-transparent px-2 py-2 text-xs whitespace-nowrap select-none',
+        disabled && 'text-muted-foreground/40 cursor-not-allowed',
+        !disabled &&
+          (active
+            ? "text-foreground cursor-pointer font-medium after:bg-primary after:absolute after:right-2 after:-bottom-px after:left-2 after:h-0.5 after:rounded-[1px] after:content-['']"
+            : 'text-muted-foreground hover:text-foreground cursor-pointer'),
       )}
     >
       {children}
@@ -279,7 +317,7 @@ function ratioOf(w: number, h: number): string {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 图表 tab — widget-level config
+// 属性 tab — widget-level config (layout + props; data lives in 数据 tab)
 // ═══════════════════════════════════════════════════════════════════
 
 const WIDGET_TYPE_ICON: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -293,7 +331,14 @@ const WIDGET_TYPE_ICON: Record<string, React.ComponentType<{ size?: number }>> =
   table: Table,
 }
 
-function ChartProps() {
+/**
+ * 属性 tab — shows the selected widget's chrome (rename / dup / delete),
+ * layout (X/Y/W/H/rotate/opacity), and schema-driven 样式/配置 sections.
+ *
+ * The "数据" section was removed in the 3-tab split — that lives in the
+ * dedicated 数据 tab now.
+ */
+function PropsTab() {
   const editor = useDashboardEditor()
   const selectedIds = useEditorState((s) => s.selectedIds)
   const primaryId = useEditorState((s) => s.primarySelectionId)
@@ -305,9 +350,9 @@ function ChartProps() {
     return (
       <div className="text-muted-foreground/80 p-6 text-center">
         <ChartBar size={28} className="text-muted-foreground/40 mx-auto" />
-        <div className="mt-2.5 text-[13px]">未选中图表</div>
+        <div className="mt-2.5 text-[13px]">未选中组件</div>
         <div className="text-muted-foreground/60 mt-1 text-[11px]">
-          在画布中点击图表以查看属性
+          在画布中点击组件以查看属性
         </div>
       </div>
     )
@@ -400,21 +445,8 @@ function ChartProps() {
         </PropRow>
       </PropSection>
 
-      {/* 数据 (P8 占位) */}
-      <PropSection title="数据" defaultOpen={false}>
-        <PropRow label="数据源">
-          <div className="bg-muted flex h-[26px] min-w-0 flex-1 items-center gap-1 rounded-sm px-1.5 text-[11px]">
-            <Database size={12} className="text-muted-foreground" />
-            <input defaultValue="未绑定" className="ml-1 flex-1 bg-transparent outline-none" disabled />
-            <ChevronDown size={12} className="text-muted-foreground/80" />
-          </div>
-        </PropRow>
-        <PropRow label="提示">
-          <span className="text-muted-foreground/80 text-[11px]">数据源管理将在 P8 上线</span>
-        </PropRow>
-      </PropSection>
-
-      {/* 样式 / 配置 — driven by WidgetMeta.propsConfig */}
+      {/* 样式 / 配置 — driven by WidgetMeta.propsConfig. The "数据"
+          section was moved out into the dedicated data tab. */}
       {meta && <MetaDrivenSections widget={widget} meta={meta} />}
     </>
   )

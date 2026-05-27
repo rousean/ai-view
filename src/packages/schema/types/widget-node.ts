@@ -1,4 +1,4 @@
-import type { Point } from './common'
+import type { Dataset, Point } from './common'
 
 /**
  * Visual layout — position, size, transform. All in canvas-space pixels,
@@ -29,25 +29,46 @@ export interface WidgetFlags {
 }
 
 /**
- * Bind a widget to a data source. The widget receives data after the
- * source-level transforms, the binding-level transforms, and the
- * field mapping have been applied (in that order).
+ * Per-slot column mapping. A slot can accept a single column (`'salesY'`)
+ * or multiple columns (`['salesY', 'costY']`) when the widget's slot
+ * cardinality allows it (multi-series). Unmapped slots are simply absent.
  */
-export interface DataBinding {
-  /** Reference to Project.dataSources[].id */
-  sourceId: string
+export type SlotMapping = Record<string, string | string[]>
 
-  /**
-   * Field mapping: widget schema field name → data column name.
-   * e.g. { x: 'date', y: 'sales', series: 'category' }
-   */
-  mapping: Record<string, string>
+/**
+ * Data attached to a widget. Two modes, intentionally exclusive:
+ *
+ *   - `inline` — the widget owns its dataset. The user edits a typed
+ *     table directly in the data tab. Most demos, mock-ups, and small
+ *     fixed-list widgets live here. Initialised by copying the widget's
+ *     `WidgetMeta.dataSchema.sample` on first edit.
+ *   - `bound`  — the widget pulls from a project-level `DataSource` and
+ *     maps its columns into the widget's declared slots.
+ *
+ * A `WidgetNode` with no `data` field falls back to the meta's `sample`
+ * dataset at render time — so a freshly dropped widget always shows
+ * something sensible without forcing the user through configuration.
+ */
+export type WidgetData = InlineWidgetData | BoundWidgetData
 
-  /** Widget-level transforms. Run after the data-source's transforms. */
+export interface InlineWidgetData {
+  mode: 'inline'
+  /** Self-contained dataset; editable in the table editor. */
+  dataset: Dataset
+  /** Slot name → column name(s) in `dataset.fields`. */
+  mapping: SlotMapping
+  /** Per-widget transforms applied to the inline dataset. */
   transform?: TransformStep[]
+}
 
-  /** Design-time mock override. When mock.enabled, widget gets mock.data. */
-  mock?: { enabled: boolean; data: unknown[] }
+export interface BoundWidgetData {
+  mode: 'bound'
+  /** Reference to `Project.dataSources[].id`. */
+  sourceId: string
+  /** Slot name → column name(s) from the source's fields. */
+  mapping: SlotMapping
+  /** Per-widget transforms run after source-level transforms. */
+  transform?: TransformStep[]
 }
 
 /** A single step in a data transformation chain. */
@@ -113,7 +134,13 @@ export interface WidgetNode {
   /** Type-specific properties. Validated by WidgetMeta.propsSchema. */
   props: Record<string, unknown>
 
-  dataBinding?: DataBinding
+  /**
+   * Data attached to this widget. Undefined → the widget renders with
+   * `WidgetMeta.dataSchema.sample` (so freshly dropped widgets always
+   * have something to show). On first edit the data tab populates this
+   * with `{ mode: 'inline', dataset: <copy of sample>, mapping: {...} }`.
+   */
+  data?: WidgetData
   events?: EventBinding[]
   animation?: AnimationConfig
 

@@ -1,11 +1,10 @@
+import type { Dataset, FieldDef } from './common'
 import type { TransformStep } from './widget-node'
 
-/** Field metadata used by widget data-mapping setters. */
-export interface FieldDef {
-  name: string
-  type: 'string' | 'number' | 'date' | 'boolean'
-  label?: string
-}
+// `FieldDef` lives in `common.ts` now — it's also used by inline widget
+// data. Re-exported here so legacy imports of `@schema/types`'s
+// `FieldDef` keep working.
+export type { FieldDef }
 
 /** Common fields shared by all DataSource variants. */
 export interface DataSourceBase {
@@ -27,10 +26,17 @@ export interface DataSourceBase {
   extensions: Record<string, unknown>
 }
 
-/** Static inline data — useful for design-time and demos. */
+/**
+ * Static inline data — useful for design-time and demos.
+ *
+ * `dataset` carries both field metadata and rows so widgets binding to
+ * a static source get the same `fields + rows` shape they'd get from a
+ * remote source, without an inference step. (Older projects that stored
+ * `data: unknown[]` are migrated at load time.)
+ */
 export interface StaticDataSource extends DataSourceBase {
   type: 'static'
-  data: unknown[]
+  dataset: Dataset
 }
 
 /** HTTP-based source. Polling is supported via pollingInterval > 0. */

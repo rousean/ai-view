@@ -33,10 +33,35 @@ export const donutChartMeta: WidgetMeta<DonutChartProps> = {
   propsConfig: DONUT_CHART_PROPS_CONFIG,
 
   dataSchema: {
-    fields: [
-      { name: 'name', label: '分类', type: 'string', required: true },
-      { name: 'value', label: '数值', type: 'number', required: true },
+    slots: [
+      {
+        name: 'name',
+        label: '分类',
+        role: 'dimension',
+        accepts: ['string'],
+        cardinality: 'one',
+      },
+      {
+        name: 'value',
+        label: '数值',
+        role: 'measure',
+        accepts: ['number'],
+        cardinality: 'one',
+      },
     ],
+    sample: {
+      fields: [
+        { name: '语言', type: 'string' },
+        { name: '占比', type: 'number' },
+      ],
+      rows: [
+        { 语言: 'JavaScript', 占比: 500 },
+        { 语言: 'Python', 占比: 200 },
+        { 语言: 'Java', 占比: 300 },
+        { 语言: 'C++', 占比: 400 },
+        { 语言: 'C#', 占比: 100 },
+      ],
+    },
   },
 
   Component: DonutChartComponent,

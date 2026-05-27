@@ -1,7 +1,8 @@
 import * as React from 'react'
-import type { Page, Project, WidgetNode } from '@schema/types'
+import type { DataSource, Page, Project, WidgetNode } from '@schema/types'
 import { LocalStoragePersistence } from '@schema/index'
 import { builtinWidgets, type WidgetMeta } from '@widgets/index'
+import { indexDataSources, resolveWidgetData } from '@designer/data'
 import { cn } from '~/lib/utils'
 
 /**
@@ -92,6 +93,7 @@ export function ProjectRuntime({
 
   const { width, height } = page.canvas
   const bg = pageBackground(page)
+  const dataSources = indexDataSources(project.dataSources)
 
   return (
     <div
@@ -104,7 +106,12 @@ export function ProjectRuntime({
       }}
     >
       {page.widgets.map((w) => (
-        <RuntimeWidget key={w.id} node={w} meta={widgetMap.get(w.type)} />
+        <RuntimeWidget
+          key={w.id}
+          node={w}
+          meta={widgetMap.get(w.type)}
+          dataSources={dataSources}
+        />
       ))}
     </div>
   )
@@ -113,12 +120,18 @@ export function ProjectRuntime({
 function RuntimeWidget({
   node,
   meta,
+  dataSources,
 }: {
   node: WidgetNode
   meta: WidgetMeta | undefined
+  dataSources: Record<string, DataSource>
 }) {
   if (node.flags.hidden) return null
   const { layout } = node
+
+  // Build the resolved data the component reads. Same resolver the
+  // designer uses, so runtime preview matches design-time exactly.
+  const data = resolveWidgetData(node, meta, dataSources)
 
   return (
     <div
@@ -136,7 +149,7 @@ function RuntimeWidget({
         <meta.Component
           node={node}
           props={node.props as never}
-          data={undefined}
+          data={data}
           layout={layout}
           designMode={false}
         />

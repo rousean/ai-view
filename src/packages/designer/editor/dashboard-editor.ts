@@ -2,14 +2,20 @@ import type {
   Background,
   Camera,
   DataSource,
+  FieldType,
   Layout,
   Page,
   Point,
   Project,
+  SlotMapping,
+  WidgetData,
   WidgetNode,
 } from '@schema/types'
 import type { PersistenceAdapter } from '@schema/persistence'
+import type { WidgetMeta } from '@widgets/widget-meta'
 import { createGroupId, createWidgetId } from '@schema/index'
+
+import { initInlineFromSample } from '../data/resolve'
 
 import { unionBBox } from '../canvas/transformer/geometry'
 import { useDocumentStore } from '../stores/document-store'
@@ -751,6 +757,85 @@ export class DashboardEditor {
 
   clearGuides(): void {
     this.execute('guide.clear', {})
+  }
+
+  // Widget data ────────────────────────────────────────────────────
+
+  /**
+   * Set / clear the widget's `data` field directly. Passing `undefined`
+   * reverts the widget to its meta's built-in sample dataset.
+   */
+  setWidgetData(id: string, next: WidgetData | undefined): void {
+    this.execute('widget.setData', { id, next })
+  }
+
+  /**
+   * Ensure the widget has inline data: if it already does, no-op; if
+   * it's bound or sample, switch to inline initialised from the meta's
+   * sample. Called by the data tab when the user starts editing a
+   * cell on a "sample" widget (the resolver's `isSample === true`
+   * fallback) — the first edit promotes them to inline.
+   */
+  ensureInlineWidgetData(id: string): void {
+    const node = this.getWidget(id)
+    if (!node) return
+    if (node.data?.mode === 'inline') return
+    const meta = this.registry.widgets.get(node.type) as WidgetMeta | undefined
+    const next = initInlineFromSample(meta)
+    if (next) this.setWidgetData(id, next)
+  }
+
+  /** Patch the slot→column mapping; pass `null` for a slot to remove it. */
+  updateSlotMapping(id: string, mapping: Record<string, string | string[] | null>): void {
+    this.ensureInlineWidgetData(id)
+    this.execute('widget.updateSlotMapping', { id, mapping })
+  }
+
+  setBoundSource(id: string, sourceId: string, mapping?: SlotMapping): void {
+    this.execute('widget.setBoundSource', { id, sourceId, mapping })
+  }
+
+  // Inline-write facades: auto-bootstrap from sample on first edit so the
+  // data tab can render the meta sample table and have writes work
+  // immediately. ensureInlineWidgetData is a no-op when the widget is
+  // already in inline mode, so the cost is one Map lookup in the common
+  // case. Two undo entries land on the very first edit (init + edit) but
+  // every subsequent edit is a single entry — acceptable for the "first
+  // touch promotes" semantic.
+
+  updateInlineCell(id: string, rowIndex: number, columnName: string, value: unknown): void {
+    this.ensureInlineWidgetData(id)
+    this.execute('widget.inlineCell', { id, rowIndex, columnName, value })
+  }
+
+  addInlineRow(id: string, atIndex?: number): void {
+    this.ensureInlineWidgetData(id)
+    this.execute('widget.inlineRowAdd', { id, atIndex })
+  }
+
+  removeInlineRow(id: string, rowIndex: number): void {
+    this.ensureInlineWidgetData(id)
+    this.execute('widget.inlineRowRemove', { id, rowIndex })
+  }
+
+  addInlineColumn(id: string, field?: { name?: string; type?: FieldType; label?: string }): void {
+    this.ensureInlineWidgetData(id)
+    this.execute('widget.inlineColumnAdd', { id, field })
+  }
+
+  removeInlineColumn(id: string, columnName: string): void {
+    this.ensureInlineWidgetData(id)
+    this.execute('widget.inlineColumnRemove', { id, columnName })
+  }
+
+  renameInlineColumn(id: string, oldName: string, newName: string): void {
+    this.ensureInlineWidgetData(id)
+    this.execute('widget.inlineColumnRename', { id, oldName, newName })
+  }
+
+  setInlineColumnType(id: string, columnName: string, type: FieldType): void {
+    this.ensureInlineWidgetData(id)
+    this.execute('widget.inlineColumnType', { id, columnName, type })
   }
 
   // Data sources ───────────────────────────────────────────────────

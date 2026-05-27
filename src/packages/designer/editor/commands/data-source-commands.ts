@@ -46,11 +46,15 @@ export const dataSourceRemoveCommand: Command<DataSourceRemovePayload> = {
   undoable: true,
   apply: (draft, _ctx, payload) => {
     draft.dataSources = draft.dataSources.filter((d) => d.id !== payload.id)
-    // Detach bindings from widgets that referenced this source.
+    // Detach bound data from widgets that referenced this source.
+    // Clearing back to `undefined` (rather than rewriting to inline/sample)
+    // is the least surprising — the widget will fall back to its meta's
+    // sample dataset at render time, and the data tab will show the
+    // mode picker in its empty state.
     for (const page of draft.pages) {
       for (const w of page.widgets) {
-        if (w.dataBinding?.sourceId === payload.id) {
-          delete w.dataBinding
+        if (w.data?.mode === 'bound' && w.data.sourceId === payload.id) {
+          delete w.data
         }
       }
     }

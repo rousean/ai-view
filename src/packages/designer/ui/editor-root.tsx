@@ -81,11 +81,21 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
         return
       }
       if (!cancelled) setEditor(ed)
+      // Dev-only escape hatch for headless screenshot / e2e debugging.
+      // Exposes the editor on window so tests can drive widget creation
+      // without simulating drag-drop pointer choreography. Stripped by
+      // tree-shaking in prod (`import.meta.env.DEV` is false).
+      if (import.meta.env.DEV && typeof window !== 'undefined') {
+        ;(window as unknown as { __editor?: DashboardEditor }).__editor = ed
+      }
     })()
 
     return () => {
       cancelled = true
       void ed.close()
+      if (import.meta.env.DEV && typeof window !== 'undefined') {
+        delete (window as unknown as { __editor?: DashboardEditor }).__editor
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])

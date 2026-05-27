@@ -1,6 +1,14 @@
 import type * as React from 'react'
 import type { z } from 'zod'
-import type { Layout, ResizeInfo, WidgetNode } from '@schema/types'
+import type {
+  Dataset,
+  FieldDef,
+  FieldType,
+  Layout,
+  ResizeInfo,
+  SlotMapping,
+  WidgetNode,
+} from '@schema/types'
 
 /** Tab bucket for the property panel. Convention follows DataV. */
 export type PropGroup = '配置' | '样式' | '数据' | '交互' | '动画' | string
@@ -49,21 +57,92 @@ export interface WidgetCapabilities {
   maxSize?: { width: number; height: number }
 }
 
-/** Data field declaration (drives the field-mapping setter). */
-export interface WidgetDataField {
-  /** Internal name used in mapping object keys (e.g. 'x', 'y', 'series'). */
+/**
+ * Semantic role of a data slot.
+ *
+ *   - `dimension` — categorical key (x-axis category, slice name, group)
+ *   - `measure`   — numeric value mapped to a visual encoding
+ *   - `attribute` — secondary visual binding (colour, size, etc.)
+ *
+ * Used by the data-tab UI to colour slot rows and to suggest which
+ * source field types fit which slot during auto-mapping.
+ */
+export type DataSlotRole = 'dimension' | 'measure' | 'attribute'
+
+/**
+ * How many columns a single slot can hold. `'one'` for X-axis (exactly
+ * 1), `'many'` for series-like slots (any number). The numeric form
+ * pins min/max for slots that need an explicit range (e.g. scatter's
+ * size slot which accepts 0 or 1).
+ */
+export type SlotCardinality = 'one' | 'many' | { min: number; max: number }
+
+/**
+ * Declaration of a single data slot — the widget's "data contract".
+ *
+ * Slots are how a widget tells the editor "I need a category column
+ * called X, and one or more numeric columns called Y". The data tab
+ * renders one row per slot in the mapping panel; the resolver uses
+ * them to project mapped columns into `ResolvedWidgetData.slots`.
+ */
+export interface DataSlotDef {
+  /** Stable id used in `SlotMapping` keys (e.g. 'x', 'y', 'series'). */
   name: string
-  /** Display label. */
+  /** Human-readable label shown in the mapping panel. */
   label: string
-  /** Allowed source field types. */
-  type: 'string' | 'number' | 'date' | 'boolean'
-  required?: boolean
+  role: DataSlotRole
+  /** Source-column types this slot will accept. */
+  accepts: FieldType[]
+  /** How many columns this slot consumes. */
+  cardinality: SlotCardinality
+  /** Slot can be left unmapped. */
+  optional?: boolean
+  description?: string
 }
 
+/**
+ * Widget data contract — what columns the widget expects, plus a
+ * built-in sample dataset used as the initial template when the user
+ * first switches to inline mode (and as the design-time fallback when
+ * `WidgetNode.data` is undefined).
+ */
 export interface WidgetDataSchema {
-  fields: WidgetDataField[]
-  /** Whether the widget supports an arbitrary number of series. */
-  multiSeries?: boolean
+  slots: DataSlotDef[]
+  /** Built-in sample dataset (also used as inline-mode initial template). */
+  sample: Dataset
+  /**
+   * Auto-map sourcefields → slot mapping when the user picks a data
+   * source. Defaults to a name-match strategy in the resolver if absent.
+   */
+  defaultMapping?: (sourceFields: FieldDef[]) => SlotMapping
+}
+
+/**
+ * One slot's resolved view of the dataset — what the widget Component
+ * actually reads.
+ *
+ * `values[i]` is the array of cell values for column `columnNames[i]`
+ * — parallel arrays, not interleaved, so the common single-column case
+ * stays `slot.values[0]`-indexed.
+ */
+export interface ResolvedSlot {
+  columnNames: string[]
+  values: unknown[][]
+  types: FieldType[]
+}
+
+/**
+ * The single contract every widget Component reads. Produced by the
+ * resolver (`@designer/data`) from a `WidgetNode + WidgetMeta +
+ * dataSources`. Components index `slots` by the slot names they
+ * declared in `WidgetMeta.dataSchema.slots`.
+ */
+export interface ResolvedWidgetData {
+  fields: FieldDef[]
+  rows: Record<string, unknown>[]
+  slots: Record<string, ResolvedSlot>
+  /** Widget is rendering the meta's built-in sample (no user data yet). */
+  isSample: boolean
 }
 
 /**
@@ -73,8 +152,12 @@ export interface WidgetDataSchema {
 export interface WidgetRenderProps<TProps extends object = Record<string, unknown>> {
   node: WidgetNode
   props: TProps
-  /** Already mapped + transformed. May be undefined when no binding / loading. */
-  data: unknown
+  /**
+   * Resolved data — slot-projected, sample-resolved. Always present; if
+   * the widget has no `dataSchema.slots` declared, `slots` is empty and
+   * `rows` is empty. Components that don't take data ignore this.
+   */
+  data: ResolvedWidgetData
   layout: Layout
   /** True in the designer; false in the runtime renderer. */
   designMode: boolean

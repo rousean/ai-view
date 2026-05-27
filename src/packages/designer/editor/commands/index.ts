@@ -5,12 +5,14 @@ import { guideCommands } from './guide-commands'
 import { pageCommands } from './page-commands'
 import { projectCommands } from './project-commands'
 import { widgetCommands } from './widget-commands'
+import { widgetDataCommands } from './widget-data-commands'
 
 /** Register all built-in commands on a registry. */
 export function registerBuiltinCommands(registry: CommandRegistry): void {
   for (const cmd of [
     ...projectCommands,
     ...widgetCommands,
+    ...widgetDataCommands,
     ...pageCommands,
     ...canvasCommands,
     ...guideCommands,
@@ -21,6 +23,7 @@ export function registerBuiltinCommands(registry: CommandRegistry): void {
 }
 
 export * from './widget-commands'
+export * from './widget-data-commands'
 export * from './page-commands'
 export * from './canvas-commands'
 export * from './guide-commands'

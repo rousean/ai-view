@@ -30,11 +30,40 @@ export const barChartMeta: WidgetMeta<BarChartProps> = {
   propsSchema: BarChartPropsSchema,
   propsConfig: BAR_CHART_PROPS_CONFIG,
 
+  // Data contract: one categorical X (string OR date), one numeric Y
+  // for now (`cardinality: 'one'` keeps the data tab UI focused on the
+  // common single-series case until multi-series UI lands).
   dataSchema: {
-    fields: [
-      { name: 'x', label: '类目', type: 'string', required: true },
-      { name: 'y', label: '数值', type: 'number', required: true },
+    slots: [
+      {
+        name: 'x',
+        label: '类目',
+        role: 'dimension',
+        accepts: ['string', 'date'],
+        cardinality: 'one',
+      },
+      {
+        name: 'y',
+        label: '数值',
+        role: 'measure',
+        accepts: ['number'],
+        cardinality: 'one',
+      },
     ],
+    sample: {
+      fields: [
+        { name: '月份', type: 'string' },
+        { name: '销量', type: 'number' },
+      ],
+      rows: [
+        { 月份: '一月', 销量: 120 },
+        { 月份: '二月', 销量: 200 },
+        { 月份: '三月', 销量: 150 },
+        { 月份: '四月', 销量: 80 },
+        { 月份: '五月', 销量: 70 },
+        { 月份: '六月', 销量: 110 },
+      ],
+    },
   },
 
   Component: BarChartComponent,

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { Layout, WidgetNode } from '@schema/types'
+import type { Layout, Rect, WidgetNode } from '@schema/types'
 import { useDashboardEditor } from '../../editor/editor-context'
 import { useEditorStore } from '../../stores/editor-store'
 import { bboxCenter, distributeRotation, unionBBox } from '../transformer/geometry'
@@ -8,6 +8,10 @@ interface RotateSession {
   pivot: { x: number; y: number }
   startAngle: number
   initial: WidgetNode[]
+  /** Union AABB at gesture start; reused for chrome rendering each frame. */
+  initialBBox: Rect
+  /** Selected widget ids — captured here so onMove doesn't need to re-read. */
+  ids: string[]
 }
 
 /** Returns degrees from pivot → point, with 0 = up. */
@@ -50,6 +54,18 @@ export function useRotateGesture(): (e: React.PointerEvent) => void {
       if (ev.shiftKey) delta = snapAngle(delta, 15)
       const updates = distributeRotation(s.initial, s.pivot, delta)
       editor.updateLayoutBatch(updates as Array<{ id: string; layout: Partial<Layout> }>)
+      // Publish the live delta so SelectionBounds can render the multi-
+      // select chrome as a rigid rotation of `initialBBox` around the
+      // pivot — instead of recomputing the AABB from the per-frame
+      // widget positions (which wobbles, and drifts off-pivot for
+      // asymmetric selections).
+      useEditorStore.getState().actions.setInteraction({
+        kind: 'rotating',
+        ids: s.ids,
+        pivot: s.pivot,
+        initialBBox: s.initialBBox,
+        delta,
+      })
     },
     [editor, screenToCanvas],
   )
@@ -81,15 +97,20 @@ export function useRotateGesture(): (e: React.PointerEvent) => void {
       const startPt = screenToCanvas(e.clientX, e.clientY)
       const startAngle = angleFromPivot(pivot, startPt)
 
+      const ids = initial.map((w) => w.id)
       sessionRef.current = {
         pivot,
         startAngle,
         initial: initial.map((w) => structuredClone(w)),
+        initialBBox: bbox,
+        ids,
       }
       useEditorStore.getState().actions.setInteraction({
         kind: 'rotating',
-        ids: initial.map((w) => w.id),
+        ids,
         pivot,
+        initialBBox: bbox,
+        delta: 0,
       })
       editor.mark('Rotate widgets')
 

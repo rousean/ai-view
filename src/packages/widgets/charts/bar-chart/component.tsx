@@ -5,37 +5,13 @@ import { useEcharts } from '../../shared/use-echarts'
 import type { BarChartProps } from './types'
 import { DEFAULT_BAR_PROPS } from './default-props'
 
-/** Demo / fallback dataset used when no databinding is configured. */
-const FALLBACK_DATA = [
-  { category: '一月', value: 120 },
-  { category: '二月', value: 200 },
-  { category: '三月', value: 150 },
-  { category: '四月', value: 80 },
-  { category: '五月', value: 70 },
-  { category: '六月', value: 110 },
-]
-
-interface MappedRow {
-  x: string | number
-  y: number
-}
-
-function normalizeData(input: unknown): MappedRow[] {
-  if (!Array.isArray(input) || input.length === 0) return []
-  return input
-    .map((row) => {
-      if (row && typeof row === 'object') {
-        const r = row as Record<string, unknown>
-        return {
-          x: (r.x ?? r.category ?? r.name ?? '') as string | number,
-          y: Number(r.y ?? r.value ?? 0),
-        }
-      }
-      return null
-    })
-    .filter((r): r is MappedRow => r !== null && Number.isFinite(r.y))
-}
-
+/**
+ * Bar chart — single-series for now (`y` slot cardinality is 'one').
+ * Data comes resolved (slots already projected) — no per-component
+ * normalization, no alias-tolerance, no FALLBACK_DATA. The resolver
+ * (`@designer/data`) takes care of picking inline vs bound vs sample
+ * and projecting columns into the slot shape the component reads.
+ */
 export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
   props: rawProps,
   data,
@@ -43,20 +19,22 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
 }) => {
   const props = { ...DEFAULT_BAR_PROPS, ...rawProps }
 
-  const rows = React.useMemo(() => {
-    const normalized = normalizeData(data)
-    return normalized.length > 0
-      ? normalized
-      : FALLBACK_DATA.map((d) => ({ x: d.category, y: d.value }))
-  }, [data])
-
   const color = props.barColor || '#0d99ff'
-  // ECharts needs concrete colour strings; CSS var() is not readable from JS.
+  // ECharts wants concrete colour strings; CSS var() isn't readable from JS.
   const fgColor = '#1e1e1e'
   const axisColor = 'rgba(0,0,0,0.45)'
   const splitColor = 'rgba(0,0,0,0.06)'
 
+  // `data` is always present (ResolvedWidgetData); empty slots just
+  // mean the user hasn't mapped that slot yet — chart renders empty
+  // axes instead of crashing.
+  //
+  // Slot reads + the option object live inside useMemo so we depend on
+  // the stable `data` reference (memoized by the resolver in
+  // WidgetContainer) rather than per-render projections of it.
   const option = React.useMemo<EChartsOption>(() => {
+    const xValues = (data.slots.x?.values[0] ?? []) as Array<string | number>
+    const yValues = (data.slots.y?.values[0] ?? []) as Array<number>
     return {
       backgroundColor: 'transparent',
       title: props.title
@@ -75,7 +53,7 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
       xAxis: {
         show: props.showXAxis,
         type: 'category',
-        data: rows.map((r) => String(r.x)),
+        data: xValues.map(String),
         axisLine: { lineStyle: { color: axisColor } },
         axisLabel: { color: fgColor, fontSize: 11 },
       },
@@ -89,7 +67,9 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
       series: [
         {
           type: 'bar',
-          data: rows.map((r) => r.y),
+          // Filter to finite numbers — coerced cells may carry NaN
+          // from an in-flight user edit; ECharts would render a gap.
+          data: yValues.map((v) => (Number.isFinite(v) ? v : null)),
           itemStyle: {
             color,
             borderRadius: [props.barRadius, props.barRadius, 0, 0],
@@ -107,11 +87,8 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
       ],
     }
   }, [
-    rows,
+    data,
     color,
-    fgColor,
-    axisColor,
-    splitColor,
     props.barRadius,
     props.showLabels,
     props.showLegend,
@@ -128,9 +105,6 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
       style={{
         width: layout.width,
         height: layout.height,
-        // No container frame — the chart speaks for itself. If you want
-        // a card-style border, add it via a future "container" prop or
-        // a wrapper Frame widget.
         background: 'transparent',
       }}
     />

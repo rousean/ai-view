@@ -364,8 +364,11 @@ export const widgetDuplicateCommand: Command<WidgetDuplicatePayload> = {
         props: { ...src.props },
         extensions: { ...src.extensions },
         groupId: remappedGroup,
-        // Keep optional fields if present (dataBinding / events / animation).
-        dataBinding: src.dataBinding ? { ...src.dataBinding } : undefined,
+        // Keep optional fields if present (data / events / animation).
+        // structuredClone here so nested mapping arrays + inline datasets
+        // don't alias the source widget (subsequent edits to either copy
+        // must not mutate the other).
+        data: src.data ? structuredClone(src.data) : undefined,
         events: src.events ? src.events.map((e) => ({ ...e })) : undefined,
         animation: src.animation ? { ...src.animation } : undefined,
       }

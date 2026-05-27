@@ -1,5 +1,24 @@
 import { z } from 'zod'
 
+export const FieldTypeSchema = z.enum(['string', 'number', 'date', 'boolean'])
+
+export const FieldDefSchema = z.object({
+  name: z.string(),
+  type: FieldTypeSchema,
+  label: z.string().optional(),
+})
+
+/**
+ * Lightweight self-describing dataset. Rows are loose `Record<string, unknown>`
+ * — we don't deep-validate cell types at the zod layer; the table editor
+ * (and source fetchers) own that, and stronger validation would reject
+ * partial / in-flight edits.
+ */
+export const DatasetSchema = z.object({
+  fields: z.array(FieldDefSchema),
+  rows: z.array(z.record(z.unknown())),
+})
+
 export const PointSchema = z.object({
   x: z.number(),
   y: z.number(),

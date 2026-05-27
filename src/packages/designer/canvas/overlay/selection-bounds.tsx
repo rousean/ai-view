@@ -12,7 +12,15 @@ interface SelectionBBox {
   y: number
   width: number
   height: number
-  /** Chrome rotation (only set when count === 1, otherwise 0). */
+  /**
+   * Chrome rotation in degrees CW.
+   *   - count === 1: tracks the single widget's own `layout.rotate`
+   *   - count > 1, mid-rotation: the live gesture delta, so the multi-
+   *     select chrome rotates rigidly around the pivot instead of
+   *     re-deriving from each frame's AABB (which would wobble and
+   *     drift off-pivot for asymmetric selections)
+   *   - count > 1, idle: 0 (axis-aligned AABB)
+   */
   rotate: number
   /** Single-element flip; multi-selection chrome is never flipped. */
   flipX: boolean
@@ -27,12 +35,25 @@ interface SelectionBBox {
  * applied at render). So we return the *un-rotated* layout rect plus the
  * widget's rotation — the CSS transform will orient the chrome correctly.
  *
- * Multi-selection: the chrome stays axis-aligned. We must enclose every
- * selected widget's *visual* extent — which for rotated widgets means
- * using rotatedAABB, not the raw layout. unionBBox already handles this.
+ * Multi-selection, idle/moving/resizing: the chrome stays axis-aligned and
+ * encloses every selected widget's *visual* extent (rotatedAABB).
+ *
+ * Multi-selection, **rotating**: the chrome is frozen to the initial AABB
+ * captured at gesture start, then rotated rigidly by the live `delta`
+ * around the pivot. This avoids two distinct artefacts:
+ *
+ *   1. **Wobble** — each member's rotatedAABB grows/shrinks as it spins,
+ *      so a per-frame `unionBBox` is constantly resizing.
+ *   2. **Pivot drift** — for selections of mixed sizes, the per-frame
+ *      union AABB centre walks away from the original pivot, leaving the
+ *      rotation handle disconnected from where the user is dragging.
+ *
+ * Locking to the initial bbox keeps the handle anchored to the actual
+ * pivot for the whole gesture.
  */
 function useSelectionBBox(): SelectionBBox | null {
   const ids = useEditorStore(useShallow((s) => s.selectedIds))
+  const interaction = useEditorStore((s) => s.interaction)
   const widgets = useDocumentStore(
     useShallow((s) => {
       if (ids.length === 0) return []
@@ -58,6 +79,25 @@ function useSelectionBBox(): SelectionBBox | null {
       flipX: w.layout.flipX,
       flipY: w.layout.flipY,
       count: 1,
+    }
+  }
+
+  // Multi-select, mid-rotation: freeze to the gesture's initial AABB and
+  // rotate by `delta`. SelectionBounds will set transformOrigin to the
+  // bbox centre, which (because `pivot = bboxCenter(initialBBox)`) is
+  // exactly the rotation pivot — the chrome spins around the same point
+  // the widgets do.
+  if (interaction.kind === 'rotating' && widgets.length > 1) {
+    const { initialBBox: ib, delta } = interaction
+    return {
+      x: ib.x,
+      y: ib.y,
+      width: ib.width,
+      height: ib.height,
+      rotate: delta,
+      flipX: false,
+      flipY: false,
+      count: widgets.length,
     }
   }
 
@@ -89,13 +129,16 @@ export const SelectionBounds: React.FC = () => {
     interaction === 'resizing' ||
     interaction === 'rotating'
 
-  // Single-element chrome mirrors the widget's full transform — rotate +
-  // flip — so it visually overlays the rotated/flipped widget exactly.
-  // (Outline shape is symmetric so flip doesn't change the outline itself,
-  // but flip *does* reverse the rotation direction in a composed matrix,
-  // so we still need it for correct alignment.)
+  // Apply the chrome's rotation/flip transform:
+  //   - count === 1: mirrors the widget's full transform (rotate + flip)
+  //     so the chrome visually overlays the rotated/flipped widget.
+  //   - count > 1: only `rotate` is ever non-zero (set by useSelectionBBox
+  //     during a rotation gesture); flips don't apply to multi-select
+  //     chrome. Transform origin defaults to centre, which IS the rotation
+  //     pivot (pivot == bboxCenter(initialBBox)) — so the chrome spins
+  //     around the same point as the widgets.
   const chromeTransform =
-    bbox.count === 1 && (bbox.rotate || bbox.flipX || bbox.flipY)
+    bbox.rotate || bbox.flipX || bbox.flipY
       ? `rotate(${bbox.rotate}deg) scale(${bbox.flipX ? -1 : 1}, ${bbox.flipY ? -1 : 1})`
       : undefined
 

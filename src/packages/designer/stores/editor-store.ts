@@ -7,7 +7,21 @@ export type Interaction =
   | { kind: 'idle' }
   | { kind: 'moving'; ids: string[]; startedAt: number }
   | { kind: 'resizing'; ids: string[]; handle: ResizeHandle }
-  | { kind: 'rotating'; ids: string[]; pivot: Point }
+  | {
+      kind: 'rotating'
+      ids: string[]
+      /** Common rotation centre (canvas-space) — fixed for the whole gesture. */
+      pivot: Point
+      /**
+       * Union AABB at gesture start. Stays constant for the whole rotate
+       * so the selection chrome doesn't wobble as each member's own
+       * rotatedAABB changes shape — SelectionBounds renders this rect
+       * with `transform: rotate(delta)` around the pivot.
+       */
+      initialBBox: Rect
+      /** Live cumulative rotation in degrees CW since gesture start. */
+      delta: number
+    }
   | { kind: 'marquee'; rect: Rect }
   | { kind: 'panning' }
   /**

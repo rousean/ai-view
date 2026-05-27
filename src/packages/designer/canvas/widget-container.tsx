@@ -1,5 +1,7 @@
 import * as React from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import type { WidgetMeta } from '@widgets/widget-meta'
+import { indexDataSources, resolveWidgetData } from '@designer/data'
 import { cn } from '~/lib/utils'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
 import { selectWidget } from '../stores/selectors'
@@ -19,13 +21,27 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
 }) {
   const editor = useDashboardEditor()
   const widget = useDocumentState((s) => selectWidget(id)(s) ?? null)
+  // useShallow so subscriptions only re-fire when the dataSources array
+  // identity changes — not every other document mutation.
+  const dataSources = useDocumentState(useShallow((s) => s.project?.dataSources ?? []))
   const isSelected = useEditorState((s) => s.selectedIds.includes(id))
   const isHovered = useEditorState((s) => s.hoverId === id)
 
-  if (!widget) return null
-  if (widget.flags.hidden) return null
+  const meta = widget
+    ? (editor.registry.widgets.get(widget.type) as WidgetMeta | undefined)
+    : undefined
 
-  const meta = editor.registry.widgets.get(widget.type) as WidgetMeta | undefined
+  // Resolve the widget's data (slot-projected, sample-filled when no
+  // user data exists) so the component reads a single consistent shape.
+  // Memo keyed on the inputs that actually affect the output — widget
+  // identity (so reordering doesn't churn), data, and the source list.
+  const resolvedData = React.useMemo(() => {
+    if (!widget) return null
+    return resolveWidgetData(widget, meta, indexDataSources(dataSources))
+  }, [widget, meta, dataSources])
+
+  if (!widget || !resolvedData) return null
+  if (widget.flags.hidden) return null
 
   const layout = widget.layout
   // Pivot all transforms (rotate, scale/flip) around the widget's visual
@@ -63,7 +79,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
         <meta.Component
           node={widget}
           props={widget.props as never}
-          data={undefined}
+          data={resolvedData}
           layout={layout}
           designMode
         />
