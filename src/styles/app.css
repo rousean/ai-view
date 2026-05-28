@@ -141,7 +141,11 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  /* Brighter + tinted with the brand hue so keyboard focus reads at a
+     glance on dark surfaces — the previous neutral grey (0.556) blended
+     into both the muted background and the border, making the focus
+     state nearly invisible. */
+  --ring: oklch(0.78 0.1 236);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
