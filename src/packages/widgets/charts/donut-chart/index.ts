@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type { WidgetMeta } from '../../widget-meta'
 import { DonutChartComponent } from './component'
 import { DEFAULT_DONUT_PROPS } from './default-props'
-import { DONUT_CHART_PROPS_CONFIG } from './props-config'
+import { DONUT_CHART_PROPS_CONFIG, DONUT_CHART_PROPS_GROUPS } from './props-config'
 import type { DonutChartProps } from './types'
 
 const DonutChartPropsSchema = z.object({
@@ -31,6 +31,7 @@ export const donutChartMeta: WidgetMeta<DonutChartProps> = {
 
   propsSchema: DonutChartPropsSchema,
   propsConfig: DONUT_CHART_PROPS_CONFIG,
+  propsGroups: DONUT_CHART_PROPS_GROUPS,
 
   dataSchema: {
     slots: [

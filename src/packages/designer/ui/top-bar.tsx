@@ -1,5 +1,6 @@
 import * as React from 'react'
 import {
+  Camera,
   ChevronDown,
   Eye,
   History,
@@ -25,6 +26,10 @@ import {
   useDocumentState,
   useEditorState,
 } from '../editor/editor-context'
+import { exportElementToPng } from '../export/screenshot'
+import { useRuntimeStore } from '../stores/runtime-store'
+import { HelpSheet } from './help-sheet'
+import { toast } from '~/components/ui/sonner'
 
 /**
  * Top toolbar — Figma-style.
@@ -100,6 +105,7 @@ export function TopBar() {
           </TooltipTrigger>
           <TooltipContent>历史版本 · 即将上线</TooltipContent>
         </Tooltip>
+        <HelpSheet />
       </div>
 
       {/* Right: collaborators + preview / share / publish + more.
@@ -110,11 +116,23 @@ export function TopBar() {
         <Avatars />
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" disabled>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => useRuntimeStore.getState().actions.setMode('preview')}
+            >
               <Eye size={14} /> 预览
             </Button>
           </TooltipTrigger>
-          <TooltipContent>预览 · 即将上线</TooltipContent>
+          <TooltipContent>进入预览模式 · ESC 退出</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" onClick={() => captureCanvasNow(projectName)}>
+              <Camera size={14} /> 截图
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>下载当前页 PNG</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -126,7 +144,17 @@ export function TopBar() {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button size="sm" onClick={() => editor.save()}>
+            <Button
+              size="sm"
+              onClick={() => {
+                editor
+                  .save()
+                  .then(() => toast.success('已保存'))
+                  .catch((err) =>
+                    toast.error('保存失败', { description: (err as Error).message }),
+                  )
+              }}
+            >
               <Send size={14} /> 发布
             </Button>
           </TooltipTrigger>
@@ -143,6 +171,34 @@ export function TopBar() {
       </div>
     </div>
   )
+}
+
+/**
+ * Capture the current page artboard as PNG. We target the page
+ * background node by data-attribute (`data-snapshot-target="canvas"`)
+ * — that's set on the artboard so we capture just the visible canvas
+ * rectangle, not the surrounding chrome / ruler / panels.
+ *
+ * Falls back to alerting the user if the target is missing — fail loud
+ * rather than producing an empty download.
+ */
+async function captureCanvasNow(projectName: string): Promise<void> {
+  if (typeof document === 'undefined') return
+  const target = document.querySelector<HTMLElement>('[data-snapshot-target="canvas"]')
+  if (!target) {
+    toast.error('截图失败', { description: '未找到画布节点' })
+    return
+  }
+  const safeName = (projectName || 'screenshot').replace(/[\\/:*?"<>|]+/g, '_')
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')
+  const filename = `${safeName}-${stamp}.png`
+  try {
+    await exportElementToPng(target, filename)
+    toast.success('截图已下载', { description: filename })
+  } catch (err) {
+    console.error('[screenshot] failed', err)
+    toast.error('截图失败', { description: (err as Error).message })
+  }
 }
 
 /**

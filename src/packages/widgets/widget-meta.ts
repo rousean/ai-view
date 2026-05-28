@@ -10,8 +10,32 @@ import type {
   WidgetNode,
 } from '@schema/types'
 
-/** Tab bucket for the property panel. Convention follows DataV. */
-export type PropGroup = '配置' | '样式' | '数据' | '交互' | '动画' | string
+/**
+ * Tab bucket for the property panel.
+ *
+ * Convention:
+ *   - `设计` — visual chrome of the widget (title / axes / series / labels).
+ *               The 80% of high-frequency operations. Replaces the old
+ *               '配置 / 样式' split which led to fields scattered across
+ *               two tabs for no benefit.
+ *   - `数据` — data binding (data tab handles this — fields here are for
+ *               legacy widgets that want to expose extra hooks).
+ *   - `交互` — events → actions binding.
+ *   - `动画` — entrance / loop / transitions.
+ *
+ * Free strings are allowed for plugin tabs but not promoted in built-in
+ * UI. Old values ('配置' / '样式') are accepted as aliases of `设计`.
+ */
+export type PropTab = '设计' | '数据' | '交互' | '动画' | string
+
+/**
+ * @deprecated Use {@link PropTab} instead — the name `PropGroup` now
+ * refers to the nested-section structure declared by `WidgetMeta.propsGroups`.
+ * Old `propsConfig: PropConfig[]` arrays that referenced `group: '样式'`
+ * are still honoured via auto-grouping; new widgets should declare
+ * `propsGroups` directly.
+ */
+export type PropGroup = PropTab
 
 /**
  * Configuration for a single property field on the property panel.
@@ -32,9 +56,15 @@ export interface PropConfig {
   /** Forwarded to the setter component as `setterProps`. */
   setterProps?: Record<string, unknown>
 
-  /** Tab bucket. */
-  group?: PropGroup
-  /** Collapsible section title within a group. */
+  /**
+   * Top-level tab the field belongs to. Defaults to `设计`. Old aliases
+   * (`配置 / 样式`) map to `设计` automatically; widgets migrating to the
+   * new layout should drop this field entirely and rely on `propsGroups`.
+   */
+  tab?: PropTab
+  /** @deprecated Use `tab`. Old field name, still accepted. */
+  group?: PropTab
+  /** Collapsible section title within a tab — legacy auto-grouping key. */
   section?: string
 
   /** Conditional visibility. Receives current props object. */
@@ -44,6 +74,57 @@ export interface PropConfig {
 
   /** Initial collapsed state when wrapped in a section. */
   collapsed?: boolean
+}
+
+/**
+ * Nested property-panel structure — what widgets *should* declare going
+ * forward. Renders as Section → optional SubSection → Field rows on the
+ * 设计 tab; each section can carry a master toggle and collapse its
+ * children when off.
+ *
+ * Layout heuristics:
+ *   - `enableToggle` makes the section header carry a Switch. When the
+ *     toggled prop is `false` and `collapsedWhenOff` is true (default),
+ *     the body collapses entirely so the panel stays scannable.
+ *   - `children` produces a second level (e.g. Y 轴 → 轴线 / 刻度标签 /
+ *     网格线), each of which may itself carry an `enableToggle`.
+ *   - `fields` is the leaf — `PropConfig` rows, identical to legacy.
+ *
+ * Authors choose between `propsConfig` (flat, legacy) and `propsGroups`
+ * (nested, current). PropertyPanel auto-detects: if `propsGroups` is
+ * present it's the source of truth; else it groups `propsConfig` by tab
+ * + section.
+ */
+export interface PropGroupDef {
+  /** Stable id — used for search index + collapse memory. */
+  key: string
+  title: string
+  /** Top tab this group belongs to. Defaults to `设计`. */
+  tab?: PropTab
+  /** Lucide icon next to the title (optional). */
+  icon?: React.ComponentType<{ size?: number; className?: string }>
+  /** Initial open state. Defaults to `true` for top level. */
+  defaultOpen?: boolean
+  /**
+   * Master switch: when the boolean prop at `enableToggle.path` is false,
+   * the group becomes a single-line header (no body). The Switch is the
+   * one rendered next to the chevron, not inside the body.
+   */
+  enableToggle?: {
+    path: string
+    /** Defaults to `true`. */
+    collapsedWhenOff?: boolean
+  }
+  /** Short hint shown under the title (italic, muted). */
+  description?: string
+  /** Leaf rows. Mutually exclusive with `children` is *not* enforced — a
+   *  group may carry both: fields render first, then sub-groups. */
+  fields?: PropConfig[]
+  /** One level of nested sub-groups. Deeper nesting is intentionally
+   *  disallowed to keep the panel scannable. */
+  children?: PropGroupDef[]
+  /** Conditional visibility — receives current props. */
+  visible?: (props: Record<string, unknown>) => boolean
 }
 
 /** Capability flags advertised by the widget. */
@@ -192,8 +273,19 @@ export interface WidgetMeta<TProps extends object = Record<string, unknown>> {
   /** zod schema for runtime validation of props. Optional. */
   propsSchema?: z.ZodType<TProps>
 
-  /** Property-panel field config, in display order. */
+  /**
+   * Flat property-panel field list — legacy layout. Still supported; if
+   * `propsGroups` is also provided it wins.
+   */
   propsConfig: PropConfig[]
+
+  /**
+   * Nested property-panel structure — the current layout. When present,
+   * `propsConfig` is ignored for rendering (but kept for back-compat
+   * tooling). Each top-level group declares its tab; ones with no `tab`
+   * default to `设计`.
+   */
+  propsGroups?: PropGroupDef[]
 
   /** Optional data input schema for this widget. */
   dataSchema?: WidgetDataSchema

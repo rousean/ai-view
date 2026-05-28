@@ -10,3 +10,14 @@
 export * from './types'
 export * from './resolve'
 export * from './dataset-utils'
+export { parseCsv } from './csv-parser'
+export type { ParseCsvOptions } from './csv-parser'
+export { parseJson } from './json-parser'
+export type { ParseJsonResult } from './json-parser'
+export {
+  startApiFetcher,
+  reconcileFetchers,
+  stopAllFetchers,
+  fetchApiSourceOnce,
+} from './fetch-service'
+export type { FetcherHandle } from './fetch-service'

@@ -40,6 +40,7 @@ export const GridLayer: React.FC = () => {
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
       className="text-primary pointer-events-none absolute inset-0"
+      data-skip-snapshot
     >
       <g stroke={customStroke ?? 'currentColor'}>
         {Array.from({ length: xCount + 1 }, (_, i) => {

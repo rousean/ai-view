@@ -7,7 +7,6 @@ import {
   ChevronRight,
   ChevronsDown,
   ChevronsUp,
-  Database,
   Eye,
   EyeOff,
   Folder,
@@ -533,37 +532,11 @@ function WidgetRow({
   )
 }
 
-// ───────── Data sources (placeholder) ───────────────────────────────
-
-const DEMO_DATA_SOURCES: [string, string, string][] = [
-  ['销售总表', 'MySQL · 实时', '#14ae5c'],
-  ['用户行为', 'Kafka · 实时流', '#14ae5c'],
-  ['商品维度', 'HTTP API', '#fbbf24'],
-  ['渠道来源', '静态 CSV', '#8a8a8a'],
-]
-
-export function DataSourcesPanel() {
-  return (
-    <div className="p-2">
-      {DEMO_DATA_SOURCES.map(([n, t, c]) => (
-        <div
-          key={n}
-          className="hover:bg-muted flex cursor-grab flex-row items-center rounded-sm px-2.5 py-2 transition-colors select-none active:cursor-grabbing"
-        >
-          <Database size={16} className="text-muted-foreground" />
-          <div className="ml-2 flex-1">
-            <div className="text-xs font-medium">{n}</div>
-            <div className="text-muted-foreground/80 text-[11px]">{t}</div>
-          </div>
-          <div className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />
-        </div>
-      ))}
-      <Button variant="ghost" size="sm" className="text-primary mt-2 w-full justify-start">
-        <Plus size={14} /> 添加数据源
-      </Button>
-    </div>
-  )
-}
+// ───────── Data sources ─────────────────────────────────────────────
+// Real panel lives in ./data-sources-panel.tsx; this is just a thin
+// re-export so the existing import chain (editor-root.tsx → secondary-
+// panels) keeps working.
+export { DataSourcesPanel } from './data-sources-panel'
 
 // ───────── Assets (placeholder) ────────────────────────────────────
 

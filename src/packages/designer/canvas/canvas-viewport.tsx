@@ -7,9 +7,11 @@ import { useEditorStore } from '../stores/editor-store'
 import type { Tool, ToolContext } from '../tools/tool.interface'
 import { CameraTransformLayer } from './camera-transform-layer'
 import { GridLayer } from './grid-layer'
+import { CanvasEmptyState } from './empty-state'
 import { GuidesOverlay } from './guides-overlay'
 import { useCreateGuideGesture } from './interaction/use-create-guide-gesture'
 import { AlignmentGuidesOverlay } from './overlay/alignment-guides'
+import { DistanceGuides } from './overlay/distance-guides'
 import { MarqueeOverlay } from './overlay/marquee'
 import { HoverIndicator, SelectionBounds } from './overlay/selection-bounds'
 import { PageBackgroundWithAssets } from './page-background'
@@ -50,6 +52,9 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
     startScreen: { x: number; y: number }
     startCamera: { x: number; y: number }
   } | null>(null)
+  // Mirror of `panRef.current !== null` exposed as state so the cursor
+  // can be driven from render without breaking the React refs rule.
+  const [isPanning, setIsPanning] = React.useState(false)
   const [spaceHeld, setSpaceHeld] = React.useState(false)
 
   // Register the inner viewport div as a drop target for material drags
@@ -131,6 +136,7 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
 
   const startTransientPan = (e: React.PointerEvent) => {
     const cam = editor.getCamera()
+    setIsPanning(true)
     panRef.current = {
       startScreen: { x: e.clientX, y: e.clientY },
       startCamera: { x: cam.x, y: cam.y },
@@ -196,6 +202,7 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (panRef.current) {
       panRef.current = null
+      setIsPanning(false)
       return
     }
     const t = getActiveTool()
@@ -307,7 +314,7 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
         style={{
           top: rulerOffset,
           left: rulerOffset,
-          cursor: panRef.current
+          cursor: isPanning
             ? 'grabbing'
             : spaceHeld
               ? 'grab'
@@ -326,6 +333,8 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
           <HoverIndicator />
           <SelectionBounds />
           <AlignmentGuidesOverlay />
+          <DistanceGuides />
+          <CanvasEmptyState />
           <GuidesOverlay viewportRef={containerRef} />
           <MarqueeOverlay />
         </CameraTransformLayer>

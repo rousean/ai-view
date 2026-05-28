@@ -54,10 +54,43 @@ export interface ApiDataSource extends DataSourceBase {
 }
 
 /**
+ * CSV data source — the user pastes (or uploads) text, we parse it once
+ * into a Dataset and snapshot it on the source. Useful for "no backend,
+ * make a chart from a spreadsheet I have right now" workflows.
+ *
+ * The raw text is kept so the user can re-parse with different options
+ * later (delimiter, header row) without re-typing.
+ */
+export interface CsvDataSource extends DataSourceBase {
+  type: 'csv'
+  raw: string
+  delimiter?: string
+  /** Defaults to true. */
+  hasHeader?: boolean
+  /** Parsed result; refreshed on raw/delimiter/hasHeader changes. */
+  dataset?: Dataset
+}
+
+/**
+ * Inline JSON array — for quick mocks or when an upstream system already
+ * delivers a JSON file. `dataset` holds the parsed result so widgets get
+ * a Dataset without rerunning JSON.parse on every read.
+ */
+export interface JsonDataSource extends DataSourceBase {
+  type: 'json'
+  /** Pasted JSON text. */
+  raw: string
+  /** Parsed records (object array). Refreshed on raw change. */
+  dataset?: Dataset
+}
+
+/**
  * Open union: built-ins listed explicitly; third-party types fall through
  * the catch-all. Consumers narrow via `type` field.
  */
 export type DataSource =
   | StaticDataSource
   | ApiDataSource
+  | CsvDataSource
+  | JsonDataSource
   | (DataSourceBase & { type: string; [key: string]: unknown })

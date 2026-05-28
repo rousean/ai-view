@@ -145,6 +145,7 @@ export const SelectionBounds: React.FC = () => {
   return (
     <div
       className="pointer-events-none absolute origin-center"
+      data-skip-snapshot
       style={{
         left: bbox.x,
         top: bbox.y,
@@ -245,6 +246,7 @@ export const HoverIndicator: React.FC = () => {
   return (
     <div
       className="pointer-events-none absolute origin-center"
+      data-skip-snapshot
       style={{
         left: widget.layout.x,
         top: widget.layout.y,

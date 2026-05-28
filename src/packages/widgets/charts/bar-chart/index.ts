@@ -2,17 +2,31 @@ import { z } from 'zod'
 import type { WidgetMeta } from '../../widget-meta'
 import { BarChartComponent } from './component'
 import { DEFAULT_BAR_PROPS } from './default-props'
-import { BAR_CHART_PROPS_CONFIG } from './props-config'
+import { BAR_CHART_PROPS_CONFIG, BAR_CHART_PROPS_GROUPS } from './props-config'
 import type { BarChartProps } from './types'
+
+const FontStyleSchema = z.object({
+  color: z.string().optional(),
+  size: z.number().optional(),
+  weight: z.union([z.literal('normal'), z.literal('bold'), z.number()]).optional(),
+  italic: z.boolean().optional(),
+})
 
 const BarChartPropsSchema = z.object({
   title: z.string(),
-  showXAxis: z.boolean(),
-  showYAxis: z.boolean(),
-  barColor: z.string(),
-  showLabels: z.boolean(),
+  showTitle: z.boolean(),
+  titleFont: FontStyleSchema,
   showLegend: z.boolean(),
+  legendFont: FontStyleSchema,
+  showXAxis: z.boolean(),
+  xAxisFont: FontStyleSchema,
+  showYAxis: z.boolean(),
+  yAxisFont: FontStyleSchema,
+  showYGrid: z.boolean(),
+  barColor: z.string(),
   barRadius: z.number(),
+  showLabels: z.boolean(),
+  labelFont: FontStyleSchema,
 })
 
 export const barChartMeta: WidgetMeta<BarChartProps> = {
@@ -29,6 +43,7 @@ export const barChartMeta: WidgetMeta<BarChartProps> = {
 
   propsSchema: BarChartPropsSchema,
   propsConfig: BAR_CHART_PROPS_CONFIG,
+  propsGroups: BAR_CHART_PROPS_GROUPS,
 
   // Data contract: one categorical X (string OR date), one numeric Y
   // for now (`cardinality: 'one'` keeps the data tab UI focused on the

@@ -7,6 +7,8 @@ import {
   type PersistenceAdapter,
   type Project,
 } from '@schema/index'
+import { reconcileFetchers, stopAllFetchers } from '@designer/data'
+import { Toaster } from '~/components/ui/sonner'
 import { TooltipProvider } from '~/components/ui/tooltip'
 import { CanvasContextMenu } from '../canvas/canvas-context-menu'
 import { CanvasViewport } from '../canvas/canvas-viewport'
@@ -20,6 +22,7 @@ import { FloatingZoom } from './floating-zoom'
 import { IconRail, type RailKey } from './icon-rail'
 import { MaterialsPanel } from './materials-panel'
 import { PagesTabBar } from './pages-tab-bar'
+import { PreviewOverlay } from './preview-overlay'
 import { PropertyPanel } from './property-panel'
 import {
   AssetsPanel,
@@ -93,12 +96,35 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
     return () => {
       cancelled = true
       void ed.close()
+      // Tear down fetch lifecycles when this editor instance is
+      // disposed (project switch, unmount, HMR).
+      stopAllFetchers()
       if (import.meta.env.DEV && typeof window !== 'undefined') {
         delete (window as unknown as { __editor?: DashboardEditor }).__editor
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
+
+  // Re-reconcile fetchers whenever the project's data-source list
+  // changes. We subscribe directly to the document store so we don't
+  // hold a stale reference if the project gets reloaded under us.
+  React.useEffect(() => {
+    if (!editor) return
+    // Initial pass.
+    reconcileFetchers(editor.getProject()?.dataSources ?? [])
+    // Re-run on every document mutation. History events cover apply /
+    // undo / redo — data-source CRUD goes through commands like any
+    // other edit, so the list will be in its new shape by the time we
+    // see the event.
+    const run = () => reconcileFetchers(editor.getProject()?.dataSources ?? [])
+    const offs = [
+      editor.bus.on('history.applied', run),
+      editor.bus.on('history.undone', run),
+      editor.bus.on('history.redone', run),
+    ]
+    return () => offs.forEach((fn) => fn())
+  }, [editor])
 
   if (error) {
     return (
@@ -209,6 +235,12 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
             </div>
           </DragDropProvider>
           <CommandPalette />
+          {/* Preview overlay sits above the editor chrome and renders
+              its own copy of the canvas. Hidden in design mode. */}
+          <PreviewOverlay />
+          {/* Toast surface — mounted once at the root, consumed via
+              the `toast()` helper from anywhere in the designer. */}
+          <Toaster />
         </TooltipProvider>
       </div>
     </EditorProvider>

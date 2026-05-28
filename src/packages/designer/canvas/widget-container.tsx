@@ -3,8 +3,13 @@ import { useShallow } from 'zustand/react/shallow'
 import type { WidgetMeta } from '@widgets/widget-meta'
 import { indexDataSources, resolveWidgetData } from '@designer/data'
 import { cn } from '~/lib/utils'
+import { findEnterAnimation } from '../animations'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
+import { dispatchEvent } from '../interactions'
+import { useInteractionStore } from '../stores/interaction-store'
 import { selectWidget } from '../stores/selectors'
+import { useRuntimeStore } from '../stores/runtime-store'
+import { WidgetErrorBoundary } from './widget-error-boundary'
 
 interface WidgetContainerProps {
   id: string
@@ -26,6 +31,34 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
   const dataSources = useDocumentState(useShallow((s) => s.project?.dataSources ?? []))
   const isSelected = useEditorState((s) => s.selectedIds.includes(id))
   const isHovered = useEditorState((s) => s.hoverId === id)
+  // Bumps when the user hits "preview animation" in the AnimationsTab.
+  // We mount the inner shell under a key derived from this number so the
+  // CSS keyframe re-plays deterministically (re-mount = fresh animation).
+  const animationPreviewToken = useRuntimeStore(
+    (s) => s.animationPreviewTokens[id] ?? 0,
+  )
+  // Preview-mode wiring: in design mode we never fire bindings (editing
+  // your click handler shouldn't navigate the editor away), and we never
+  // draw the highlight ring.
+  const mode = useRuntimeStore((s) => s.mode)
+  const isHighlighted = useRuntimeStore((s) => s.highlightedIds.has(id))
+  const isPreview = mode === 'preview'
+  // Active cross-widget filter — only consulted in preview. Filters
+  // are write-only at design time so editing doesn't surprise the
+  // author with disappearing rows.
+  const activeFilter = useInteractionStore((s) =>
+    isPreview ? s.filters[id] : undefined,
+  )
+
+  // Data-source status surface — when this widget is bound to a source
+  // currently loading / erroring, we overlay a small banner so authors
+  // never look at a "perfectly rendered chart of sample data" without
+  // noticing the live source has died.
+  const boundSourceId =
+    widget?.data?.mode === 'bound' ? widget.data.sourceId : undefined
+  const fetchStatus = useRuntimeStore((s) =>
+    boundSourceId ? s.fetchStatus[boundSourceId] : undefined,
+  )
 
   const meta = widget
     ? (editor.registry.widgets.get(widget.type) as WidgetMeta | undefined)
@@ -37,13 +70,20 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
   // identity (so reordering doesn't churn), data, and the source list.
   const resolvedData = React.useMemo(() => {
     if (!widget) return null
-    return resolveWidgetData(widget, meta, indexDataSources(dataSources))
-  }, [widget, meta, dataSources])
+    return resolveWidgetData(
+      widget,
+      meta,
+      indexDataSources(dataSources),
+      activeFilter,
+    )
+  }, [widget, meta, dataSources, activeFilter])
 
   if (!widget || !resolvedData) return null
   if (widget.flags.hidden) return null
 
   const layout = widget.layout
+  const enterAnim = widget.animation?.enter
+  const enterMeta = enterAnim ? findEnterAnimation(enterAnim.type) : undefined
   // Pivot all transforms (rotate, scale/flip) around the widget's visual
   // centre so that:
   //   1. rotation gestures (which use bbox-centre as pivot) match what's
@@ -56,15 +96,31 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
   //
   // The base position uses `left/top` (NOT translate) so the
   // centre-pivoted transform composes cleanly without offset bookkeeping.
+  // In preview mode the cursor reflects the bindings — a widget with
+  // any enabled click/dblclick binding becomes a pointer.
+  const hasClickBinding =
+    isPreview &&
+    !!widget.events?.some(
+      (b) => b.enabled && (b.trigger === 'click' || b.trigger === 'dblclick'),
+    )
+
   return (
     <div
       data-widget-id={widget.id}
       data-widget-type={widget.type}
       data-selected={isSelected || undefined}
       data-hover={isHovered || undefined}
+      data-highlight={isHighlighted || undefined}
       className={cn(
         'absolute origin-center',
-        widget.flags.locked ? 'pointer-events-none cursor-default' : 'pointer-events-auto cursor-move',
+        widget.flags.locked || isPreview
+          ? hasClickBinding
+            ? 'pointer-events-auto cursor-pointer'
+            : 'pointer-events-none cursor-default'
+          : 'pointer-events-auto cursor-move',
+        // Highlight ring — drawn outside the widget so its content
+        // isn't clipped. Pulses briefly via tw-animate-css.
+        isHighlighted && 'ring-primary animate-pulse rounded-sm ring-2 ring-offset-2',
       )}
       style={{
         left: layout.x,
@@ -74,18 +130,75 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
         transform: `rotate(${layout.rotate}deg) scale(${layout.flipX ? -1 : 1}, ${layout.flipY ? -1 : 1})`,
         opacity: layout.opacity,
       }}
+      onClick={
+        isPreview
+          ? (e) => {
+              e.stopPropagation()
+              dispatchEvent('click', { source: widget, editor })
+            }
+          : undefined
+      }
+      onDoubleClick={
+        isPreview
+          ? (e) => {
+              e.stopPropagation()
+              dispatchEvent('dblclick', { source: widget, editor })
+            }
+          : undefined
+      }
+      onMouseEnter={
+        isPreview ? () => dispatchEvent('hover', { source: widget, editor }) : undefined
+      }
     >
-      {meta ? (
-        <meta.Component
-          node={widget}
-          props={widget.props as never}
-          data={resolvedData}
-          layout={layout}
-          designMode
-        />
-      ) : (
-        <UnknownWidgetFallback type={widget.type} />
-      )}
+      {/*
+        Inner shell hosts the animation. Keying it on the preview token
+        guarantees the next render mounts a fresh node, which is how we
+        get the keyframe to actually replay (CSS animations don't
+        retrigger on same-node prop changes).
+       */}
+      <div
+        key={`${id}-${animationPreviewToken}`}
+        className={cn('h-full w-full', enterMeta && 'ai-view-anim')}
+        style={
+          enterMeta && enterAnim
+            ? ({
+                ['--ai-view-enter-name']: `ai-view-${enterMeta.type}`,
+                ['--ai-view-enter-duration']: `${enterAnim.duration}ms`,
+                ['--ai-view-enter-delay']: `${enterAnim.delay}ms`,
+                ['--ai-view-enter-easing']: enterAnim.easing,
+              } as React.CSSProperties)
+            : undefined
+        }
+      >
+        {meta ? (
+          <WidgetErrorBoundary
+            widgetId={widget.id}
+            widgetName={widget.name}
+            onError={(err) =>
+              useRuntimeStore.getState().actions.setWidgetError(widget.id, {
+                message: err.message,
+                stack: err.stack,
+              })
+            }
+          >
+            <meta.Component
+              node={widget}
+              props={widget.props as never}
+              data={resolvedData}
+              layout={layout}
+              designMode={!isPreview}
+            />
+          </WidgetErrorBoundary>
+        ) : (
+          <UnknownWidgetFallback type={widget.type} />
+        )}
+        {/* Data-source status banner — overlay, not inline, so it
+            never pushes the chart out of layout. Skip in preview to
+            keep the published view clean. */}
+        {!isPreview && fetchStatus && fetchStatus.state !== 'success' && (
+          <DataStatusBanner status={fetchStatus} />
+        )}
+      </div>
     </div>
   )
 })
@@ -95,3 +208,45 @@ const UnknownWidgetFallback: React.FC<{ type: string }> = ({ type }) => (
     未注册组件: {type}
   </div>
 )
+
+/**
+ * Overlay strip pinned to the widget's top edge that reports the bound
+ * data source's live state. Rendered design-time only; preview mode
+ * hides it so end users don't see editor scaffolding.
+ *
+ * Style:
+ *   - loading → blue with a spinner glyph
+ *   - error   → amber with the truncated error message
+ *
+ * The strip uses `pointer-events-none` so it doesn't steal clicks
+ * from the widget body underneath.
+ */
+function DataStatusBanner({
+  status,
+}: {
+  status: { state: string; error?: string; updatedAt?: number }
+}) {
+  if (status.state === 'loading') {
+    return (
+      <div
+        className="bg-sky-500/15 text-sky-700 pointer-events-none absolute top-0 left-0 flex w-full items-center gap-1 px-2 py-0.5 text-[10px] dark:text-sky-300"
+        data-skip-snapshot
+      >
+        <span className="inline-block size-1.5 animate-pulse rounded-full bg-current" />
+        数据加载中…
+      </div>
+    )
+  }
+  if (status.state === 'error') {
+    return (
+      <div
+        className="bg-amber-500/15 text-amber-700 pointer-events-none absolute top-0 left-0 flex w-full items-center gap-1 px-2 py-0.5 text-[10px] dark:text-amber-300"
+        data-skip-snapshot
+        title={status.error}
+      >
+        ⚠ 数据源加载失败 · {(status.error ?? '').slice(0, 40)}
+      </div>
+    )
+  }
+  return null
+}

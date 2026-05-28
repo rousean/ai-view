@@ -1,0 +1,96 @@
+/**
+ * Animation keyframes for designer + runtime. Loaded once via the
+ * animations module's barrel index.
+ *
+ * Convention:
+ *   - Class `ai-view-anim` on the widget container kicks off whichever
+ *     keyframe `--ai-view-enter-name` resolves to.
+ *   - Duration / delay / easing come from CSS custom properties
+ *     set inline by WidgetContainer.
+ *   - Each keyframe ends at the widget's "natural" state — no `forwards`
+ *     fill — so the post-animation render is identical to the
+ *     no-animation render.
+ */
+
+.ai-view-anim {
+  animation-name: var(--ai-view-enter-name, none);
+  animation-duration: var(--ai-view-enter-duration, 600ms);
+  animation-delay: var(--ai-view-enter-delay, 0ms);
+  animation-timing-function: var(--ai-view-enter-easing, ease-out);
+  animation-fill-mode: both;
+}
+
+@keyframes ai-view-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ai-view-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ai-view-slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ai-view-slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ai-view-slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ai-view-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ai-view-rotateIn {
+  from {
+    opacity: 0;
+    transform: rotate(-6deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}

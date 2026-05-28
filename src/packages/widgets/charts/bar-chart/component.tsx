@@ -1,9 +1,30 @@
 import * as React from 'react'
 import type { EChartsOption } from 'echarts'
+import type { FontStyle } from '@designer/setters'
 import type { WidgetRenderProps } from '../../widget-meta'
 import { useEcharts } from '../../shared/use-echarts'
 import type { BarChartProps } from './types'
 import { DEFAULT_BAR_PROPS } from './default-props'
+
+/**
+ * Translate a {@link FontStyle} bag into the loose text-style object
+ * ECharts expects (`color` / `fontSize` / `fontWeight` / `fontStyle`).
+ * `extra` is merged in last so per-call overrides like `fontWeight: 500`
+ * on the title win.
+ */
+function fontToTextStyle(
+  font: FontStyle | undefined,
+  extra?: Record<string, unknown>,
+): Record<string, unknown> {
+  const f = font ?? {}
+  return {
+    color: f.color,
+    fontSize: f.size,
+    fontWeight: f.weight,
+    fontStyle: f.italic ? 'italic' : undefined,
+    ...extra,
+  }
+}
 
 /**
  * Bar chart — single-series for now (`y` slot cardinality is 'one').
@@ -13,17 +34,29 @@ import { DEFAULT_BAR_PROPS } from './default-props'
  * and projecting columns into the slot shape the component reads.
  */
 export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
+  node,
   props: rawProps,
   data,
   layout,
 }) => {
   const props = { ...DEFAULT_BAR_PROPS, ...rawProps }
 
-  const color = props.barColor || '#0d99ff'
+  // `barColor` is always a concrete value now (default ships as
+  // '#0D99FF'); the palette-paint pass on addWidget keeps new widgets
+  // aligned with the project palette automatically.
+  const color = props.barColor
   // ECharts wants concrete colour strings; CSS var() isn't readable from JS.
-  const fgColor = '#1e1e1e'
   const axisColor = 'rgba(0,0,0,0.45)'
   const splitColor = 'rgba(0,0,0,0.06)'
+
+  // Animation contract:
+  //   - `widget.animation.enter` set → the outer WidgetContainer's CSS
+  //     keyframe owns the mount animation, so we silence ECharts' own
+  //     entry (animationDuration: 0) to avoid the double-play.
+  //   - `widget.animation.update.duration` → ECharts data-update transition.
+  //     Falls back to ECharts' built-in default (300) when unspecified.
+  const hasEnterAnim = !!node.animation?.enter
+  const updateDuration = node.animation?.update?.duration ?? 300
 
   // `data` is always present (ResolvedWidgetData); empty slots just
   // mean the user hasn't mapped that slot yet — chart renders empty
@@ -37,33 +70,40 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
     const yValues = (data.slots.y?.values[0] ?? []) as Array<number>
     return {
       backgroundColor: 'transparent',
-      title: props.title
-        ? {
-            text: props.title,
-            left: 12,
-            top: 8,
-            textStyle: { fontSize: 14, color: fgColor, fontWeight: 500 },
-          }
-        : undefined,
+      title:
+        props.showTitle && props.title
+          ? {
+              text: props.title,
+              left: 12,
+              top: 8,
+              textStyle: fontToTextStyle(props.titleFont, { fontWeight: 500 }),
+            }
+          : undefined,
       tooltip: { trigger: 'axis' },
-      grid: { left: 40, right: 20, top: props.title ? 40 : 16, bottom: 32 },
+      grid: { left: 40, right: 20, top: props.showTitle && props.title ? 40 : 16, bottom: 32 },
       legend: props.showLegend
-        ? { show: true, top: 8, right: 12, textStyle: { color: fgColor } }
+        ? { show: true, top: 8, right: 12, textStyle: fontToTextStyle(props.legendFont) }
         : undefined,
       xAxis: {
         show: props.showXAxis,
         type: 'category',
         data: xValues.map(String),
         axisLine: { lineStyle: { color: axisColor } },
-        axisLabel: { color: fgColor, fontSize: 11 },
+        axisLabel: fontToTextStyle(props.xAxisFont),
       },
       yAxis: {
         show: props.showYAxis,
         type: 'value',
         axisLine: { lineStyle: { color: axisColor } },
-        splitLine: { lineStyle: { color: splitColor } },
-        axisLabel: { color: fgColor, fontSize: 11 },
+        splitLine: { show: props.showYGrid, lineStyle: { color: splitColor } },
+        axisLabel: fontToTextStyle(props.yAxisFont),
       },
+      // Top-level animation knobs — apply to *all* component groups.
+      // The series block overrides `animationDuration` to 0 when the
+      // outer CSS handles entry; otherwise it inherits this default.
+      animation: true,
+      animationDuration: hasEnterAnim ? 0 : 300,
+      animationDurationUpdate: updateDuration,
       series: [
         {
           type: 'bar',
@@ -75,14 +115,10 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
             borderRadius: [props.barRadius, props.barRadius, 0, 0],
           },
           label: props.showLabels
-            ? {
-                show: true,
-                position: 'top',
-                color: fgColor,
-                fontSize: 11,
-              }
+            ? { show: true, position: 'top', ...fontToTextStyle(props.labelFont) }
             : { show: false },
-          animationDuration: 300,
+          animationDuration: hasEnterAnim ? 0 : 300,
+          animationDurationUpdate: updateDuration,
         },
       ],
     }
@@ -91,10 +127,19 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
     color,
     props.barRadius,
     props.showLabels,
+    props.labelFont,
     props.showLegend,
+    props.legendFont,
     props.showXAxis,
+    props.xAxisFont,
     props.showYAxis,
+    props.yAxisFont,
+    props.showYGrid,
+    props.showTitle,
     props.title,
+    props.titleFont,
+    hasEnterAnim,
+    updateDuration,
   ])
 
   const chartRef = useEcharts(option, { width: layout.width, height: layout.height })

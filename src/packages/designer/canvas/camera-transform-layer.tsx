@@ -44,6 +44,10 @@ export const CameraTransformLayer: React.FC<CameraTransformLayerProps> = ({
         // and is essential for keeping the camera transform on the GPU.
         style={{ willChange: 'transform' }}
         className={cn('absolute top-0 left-0 origin-top-left', innerClassName)}
+        // Anchor for the screenshot exporter — captures the full
+        // page (background + widgets) while excluding the editor
+        // chrome (selection handles, rulers, command palette).
+        data-snapshot-target="canvas"
       >
         {children}
       </div>

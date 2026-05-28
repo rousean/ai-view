@@ -37,6 +37,7 @@ import { registerBuiltinCommands } from './commands'
 import { EventBus } from './event-bus'
 import { HistoryManager } from './history-manager'
 import { HookManager } from './hook-manager'
+import { paintPropsWithPalette, selectPalette } from '../palette'
 import { RegistryHub } from './registry-hub'
 import { SnapManager } from '../snap/snap-manager'
 
@@ -308,9 +309,54 @@ export class DashboardEditor {
       size?: { width: number; height: number }
       props?: Record<string, unknown>
       name?: string
+      /** Pre-set widget id. Generated automatically when omitted. */
+      id?: string
+      /** Auto-select the new widget after creation. Defaults true. */
+      select?: boolean
     } = {},
-  ): void {
-    this.execute('widget.add', { type, ...opts })
+  ): string {
+    // Pre-paint the new widget's props with the project palette so dragged-
+    // in widgets immediately match the design's colour story rather than
+    // showing the meta's hardcoded defaults (typically a generic blue).
+    //
+    // We only paint when caller-provided props exist — falling back to the
+    // meta's default behaviour for headless cases that pass `props: {}`.
+    let initialProps = opts.props
+    if (initialProps && Object.keys(initialProps).length > 0) {
+      const palette = selectPalette(useDocumentStore.getState())
+      initialProps = paintPropsWithPalette(initialProps, palette)
+    }
+
+    // Derive a human-readable name from the meta's `defaultName(i)` if
+    // the caller didn't supply one. Without this the widget shows up as
+    // raw "bar-chart" in the layers panel and property header — fine
+    // for headless tests but ugly for real users.
+    let resolvedName = opts.name
+    if (!resolvedName) {
+      const meta = this.registry.widgets.get(type) as WidgetMeta | undefined
+      if (meta?.defaultName) {
+        // Count existing widgets of the same type to pick the next index.
+        const sameTypeCount = this.getAllWidgets().filter((w) => w.type === type).length
+        resolvedName = meta.defaultName(sameTypeCount)
+      } else if (meta?.title) {
+        resolvedName = meta.title
+      }
+    }
+
+    const id = opts.id ?? createWidgetId()
+    this.execute('widget.add', {
+      type,
+      ...opts,
+      id,
+      props: initialProps,
+      name: resolvedName,
+    })
+    // Auto-select the new widget so the user can immediately tweak it
+    // with the property panel, Tab to its neighbours, or press Delete
+    // to undo the drop. Opt-out is for headless tests that drop a batch
+    // in a single tick.
+    if (opts.select !== false) this.select([id])
+    return id
   }
 
   removeWidgets(ids: string[]): void {

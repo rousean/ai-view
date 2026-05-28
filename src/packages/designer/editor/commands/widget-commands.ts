@@ -1,4 +1,4 @@
-import type { Layout, WidgetNode } from '@schema/types'
+import type { AnimationConfig, EventBinding, Layout, WidgetNode } from '@schema/types'
 import { createGroupId, createWidgetId } from '@schema/index'
 import { rotatedAABB, unionBBox } from '../../canvas/transformer/geometry'
 import type { Command } from '../command-registry'
@@ -180,6 +180,54 @@ export const widgetUpdatePropsCommand: Command<WidgetUpdatePropsPayload> = {
     const node = findWidget(draft, payload.id)
     if (!node) return
     node.props = { ...node.props, ...payload.props }
+  },
+}
+
+export interface WidgetSetEventsPayload {
+  id: string
+  events: EventBinding[]
+}
+
+/**
+ * Whole-list replacement for `widget.events`. Lifted to a dedicated
+ * command (rather than a generic field setter) so undo groups feel
+ * right — "添加交互" / "删除交互" appear in the history rather than the
+ * generic "更新组件".
+ */
+export const widgetSetEventsCommand: Command<WidgetSetEventsPayload> = {
+  type: 'widget.setEvents',
+  label: '更新交互',
+  undoable: true,
+  apply: (draft, _ctx, payload) => {
+    const node = findWidget(draft, payload.id)
+    if (!node) return
+    node.events = payload.events
+  },
+}
+
+export interface WidgetSetAnimationPayload {
+  id: string
+  /** Pass `undefined` to clear the widget's animation config. */
+  animation: AnimationConfig | undefined
+}
+
+/**
+ * Whole-object replacement for `widget.animation`. Same rationale as
+ * setEvents — entry-level undo label, simpler than a field-by-field
+ * Patch.
+ */
+export const widgetSetAnimationCommand: Command<WidgetSetAnimationPayload> = {
+  type: 'widget.setAnimation',
+  label: '更新动画',
+  undoable: true,
+  apply: (draft, _ctx, payload) => {
+    const node = findWidget(draft, payload.id)
+    if (!node) return
+    if (payload.animation === undefined) {
+      delete node.animation
+    } else {
+      node.animation = payload.animation
+    }
   },
 }
 
@@ -506,6 +554,8 @@ export const widgetCommands: Command<any>[] = [
   widgetAddManyCommand,
   widgetRemoveCommand,
   widgetUpdatePropsCommand,
+  widgetSetEventsCommand,
+  widgetSetAnimationCommand,
   widgetUpdateLayoutCommand,
   widgetUpdateLayoutBatchCommand,
   widgetRenameCommand,

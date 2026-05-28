@@ -130,6 +130,7 @@ export function MaterialsPanel() {
 
 const MaterialCard: React.FC<{ meta: WidgetMeta }> = ({ meta }) => {
   const id = React.useId()
+  const editor = useDashboardEditor()
   const { ref } = useDraggable({
     id,
     type: 'materials',
@@ -137,10 +138,34 @@ const MaterialCard: React.FC<{ meta: WidgetMeta }> = ({ meta }) => {
     plugins: [Feedback.configure({ feedback: 'clone', dropAnimation: null })],
   })
   const Icon = meta.icon ?? ChartBar
+
+  // Double-click shortcut — drop the widget at the centre of the
+  // current viewport. Matches Figma's library shortcut.
+  const handleDoubleClick = () => {
+    const page = editor.getCurrentPage()
+    if (!page) return
+    const size = meta.defaultLayout
+    let x = (page.canvas.width - size.width) / 2
+    let y = (page.canvas.height - size.height) / 2
+    if (typeof window !== 'undefined') {
+      const cx = window.innerWidth / 2
+      const cy = window.innerHeight / 2
+      const pt = editor.screenToCanvas({ x: cx, y: cy }, { left: 0, top: 0 })
+      x = Math.max(0, Math.min(page.canvas.width - size.width, pt.x - size.width / 2))
+      y = Math.max(0, Math.min(page.canvas.height - size.height, pt.y - size.height / 2))
+    }
+    editor.addWidget(meta.type, {
+      position: { x, y },
+      size,
+      props: meta.defaultProps as Record<string, unknown>,
+    })
+  }
+
   return (
     <div
       ref={ref}
-      title={meta.description ?? meta.title}
+      onDoubleClick={handleDoubleClick}
+      title={`${meta.description ?? meta.title}\n双击添加到画布`}
       className="hover:bg-muted flex cursor-grab flex-col items-center gap-1 rounded-sm px-1 py-2 transition-colors select-none active:cursor-grabbing"
     >
       <div className="bg-muted border-border/60 text-muted-foreground flex aspect-[1.4/1] w-full items-center justify-center rounded-sm border">

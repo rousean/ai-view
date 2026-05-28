@@ -8,6 +8,7 @@ import type {
   WidgetNode,
 } from '@schema/types'
 import type { DataSlotDef, WidgetMeta } from '@widgets/widget-meta'
+import { useRuntimeStore } from '../stores/runtime-store'
 import type { ResolvedSlot, ResolvedWidgetData } from './types'
 
 /**
@@ -30,6 +31,15 @@ import type { ResolvedSlot, ResolvedWidgetData } from './types'
  * (filter/sort/TopN/aggregate UI) — the resolver passes through
  * unchanged for now.
  */
+/**
+ * Active per-widget filter — written by `filter` actions in preview
+ * mode, read here to prune rows before slot projection.
+ */
+export interface ResolveFilter {
+  field: string
+  value: unknown
+}
+
 export function resolveWidgetData(
   node: WidgetNode,
   meta: WidgetMeta | undefined,
@@ -40,6 +50,12 @@ export function resolveWidgetData(
    * meaningful.
    */
   dataSources: Record<string, DataSource> = {},
+  /**
+   * Optional active filter from the interaction layer. Rows where
+   * `row[field] !== value` are dropped before slot projection. The
+   * filter is ignored at design time (caller passes `undefined`).
+   */
+  activeFilter?: ResolveFilter,
 ): ResolvedWidgetData {
   const dataSchema = meta?.dataSchema
   const slots = dataSchema?.slots ?? []
@@ -71,6 +87,20 @@ export function resolveWidgetData(
     isSample = true
   }
 
+  // ── 1.5. Apply interaction-layer filter ───────────────────────────
+  // Cheaper to do this once, on dataset.rows, than during slot
+  // projection — every slot reads the same row stream.
+  let effectiveRows = dataset.rows
+  if (
+    activeFilter &&
+    activeFilter.field &&
+    dataset.fields.some((f) => f.name === activeFilter.field)
+  ) {
+    effectiveRows = dataset.rows.filter(
+      (r) => Object.is(r[activeFilter.field], activeFilter.value),
+    )
+  }
+
   // ── 2. Project through slot mapping ───────────────────────────────
   const resolved: Record<string, ResolvedSlot> = {}
   const fieldByName = new Map(dataset.fields.map((f) => [f.name, f]))
@@ -85,14 +115,14 @@ export function resolveWidgetData(
 
     resolved[slot.name] = {
       columnNames: valid,
-      values: valid.map((c) => dataset.rows.map((r) => r[c])),
+      values: valid.map((c) => effectiveRows.map((r) => r[c])),
       types: valid.map((c) => fieldByName.get(c)!.type),
     }
   }
 
   return {
     fields: dataset.fields,
-    rows: dataset.rows,
+    rows: effectiveRows,
     slots: resolved,
     isSample,
   }
@@ -134,10 +164,31 @@ export function autoMapToSlots(
  */
 function extractDatasetFromSource(src: DataSource | undefined): Dataset | null {
   if (!src) return null
-  if (src.type === 'static') {
-    return (src as StaticDataSource).dataset ?? null
+  switch (src.type) {
+    case 'static':
+      return (src as StaticDataSource).dataset ?? null
+
+    case 'csv':
+    case 'json': {
+      // CSV / JSON sources cache their parsed dataset on the schema
+      // node itself, computed by the data-source editor on edit. We
+      // never re-parse on the read path — that's the editor's job.
+      const ds = (src as unknown as { dataset?: Dataset }).dataset
+      return ds ?? null
+    }
+
+    case 'api': {
+      // Live HTTP data — the fetch-service writes the parsed dataset
+      // to RuntimeStore.fetchedData[sourceId]; we pull it from there
+      // synchronously. Returns null when the fetch hasn't completed
+      // yet (the resolver then falls back to the meta sample).
+      const fetched = useRuntimeStore.getState().fetchedData[src.id]
+      return (fetched as Dataset | undefined) ?? null
+    }
+
+    default:
+      return null
   }
-  return null
 }
 
 /**
