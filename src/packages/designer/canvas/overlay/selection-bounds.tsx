@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { Lock } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useDocumentStore } from '../../stores/document-store'
 import { useEditorStore } from '../../stores/editor-store'
@@ -26,6 +27,13 @@ interface SelectionBBox {
   flipX: boolean
   flipY: boolean
   count: number
+  /**
+   * True when *every* widget in the current selection is locked. In
+   * that case we render a dashed outline + lock icon and suppress the
+   * resize / rotation handles — interacting with them would silently
+   * fail since the underlying gestures filter locked widgets out.
+   */
+  allLocked: boolean
 }
 
 /**
@@ -68,6 +76,8 @@ function useSelectionBBox(): SelectionBBox | null {
   )
   if (widgets.length === 0) return null
 
+  const allLocked = widgets.every((w) => w.flags.locked)
+
   if (widgets.length === 1) {
     const w = widgets[0]
     return {
@@ -79,6 +89,7 @@ function useSelectionBBox(): SelectionBBox | null {
       flipX: w.layout.flipX,
       flipY: w.layout.flipY,
       count: 1,
+      allLocked,
     }
   }
 
@@ -98,12 +109,20 @@ function useSelectionBBox(): SelectionBBox | null {
       flipX: false,
       flipY: false,
       count: widgets.length,
+      allLocked,
     }
   }
 
   const bb = unionBBox(widgets)
   if (!bb) return null
-  return { ...bb, rotate: 0, flipX: false, flipY: false, count: widgets.length }
+  return {
+    ...bb,
+    rotate: 0,
+    flipX: false,
+    flipY: false,
+    count: widgets.length,
+    allLocked,
+  }
 }
 
 /**
@@ -157,11 +176,16 @@ export const SelectionBounds: React.FC = () => {
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          outline: `${stroke}px solid var(--primary)`,
+          // Dashed outline when the selection is locked — same colour
+          // (primary) so it still reads as "this is selected", but the
+          // pattern reinforces "you can't move/resize it".
+          outline: bbox.allLocked
+            ? `${stroke}px dashed var(--primary)`
+            : `${stroke}px solid var(--primary)`,
           outlineOffset: `-${stroke}px`,
         }}
       />
-      {!isMarquee && (
+      {!isMarquee && !bbox.allLocked && (
         <>
           <RotationHandle bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }} />
           <ResizeHandles
@@ -169,6 +193,9 @@ export const SelectionBounds: React.FC = () => {
             rotation={bbox.count === 1 ? bbox.rotate : 0}
           />
         </>
+      )}
+      {bbox.allLocked && (
+        <LockBadge bbox={bbox} scale={scale} />
       )}
       {showBadge && <SizeBadge bbox={bbox} interaction={interaction} scale={scale} />}
     </div>
@@ -187,6 +214,33 @@ export const SelectionBounds: React.FC = () => {
  * Lives inside the chrome's rotated transform, but counter-scales font
  * + padding so it always reads as 11px on screen regardless of zoom.
  */
+function LockBadge({
+  bbox,
+  scale,
+}: {
+  bbox: SelectionBBox
+  scale: number
+}) {
+  const size = 14 / scale
+  const counterRotate = bbox.rotate ? `rotate(${-bbox.rotate}deg)` : ''
+  return (
+    <div
+      className="bg-primary text-primary-foreground pointer-events-none absolute flex items-center justify-center rounded-full shadow-sm"
+      style={{
+        width: size,
+        height: size,
+        left: -size / 2,
+        top: -size / 2,
+        transform: counterRotate,
+        transformOrigin: 'center',
+      }}
+      aria-label="已锁定"
+    >
+      <Lock size={Math.max(8, 9 / scale)} strokeWidth={2.5} />
+    </div>
+  )
+}
+
 function SizeBadge({
   bbox,
   interaction,
@@ -207,13 +261,20 @@ function SizeBadge({
   }
   // Everything in canvas-space px; divide by camera scale to land at
   // pixel-perfect 11px on screen.
+  //
+  // The badge lives inside the chrome's rotated transform, which means
+  // it would tilt with the widget. To keep the readout horizontal we
+  // counter-rotate by the same amount around the badge's anchor — Figma
+  // does the same to keep the W × H tag legible at any angle.
+  const counterRotate = bbox.rotate ? `rotate(${-bbox.rotate}deg)` : ''
   return (
     <div
       className="bg-primary text-primary-foreground pointer-events-none absolute font-medium whitespace-nowrap tabular-nums"
       style={{
         left: bbox.width / 2,
         top: bbox.height + 8 / scale,
-        transform: 'translate(-50%, 0)',
+        transform: `translate(-50%, 0) ${counterRotate}`.trim(),
+        transformOrigin: 'top center',
         fontSize: 11 / scale,
         padding: `${2 / scale}px ${6 / scale}px`,
         borderRadius: 4 / scale,

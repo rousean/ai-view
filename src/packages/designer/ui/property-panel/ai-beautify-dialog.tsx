@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { Button } from '~/components/ui/button'
+import { toast } from '~/components/ui/sonner'
 import { cn } from '~/lib/utils'
 import { useDashboardEditor } from '../../editor/editor-context'
 import { mockBeautifyService } from '../../ai'
@@ -80,6 +81,9 @@ export function AiBeautifyDialog({
     if (!widget) return
     editor.updateProps(widget.id, { ...widget.props, ...s.propsPatch })
     setAppliedId(s.id)
+    toast.success('已应用 AI 样式建议', {
+      description: `「${s.title}」 · 可用 ⌘Z 撤销`,
+    })
     // Brief delay so the user perceives the highlight before dismiss.
     window.setTimeout(() => onOpenChange(false), 350)
   }

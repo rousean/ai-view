@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { WidgetMeta } from '../../widget-meta'
 import { DonutChartComponent } from './component'
 import { DEFAULT_DONUT_PROPS } from './default-props'
+import { DonutChartPreview } from './preview'
 import { DONUT_CHART_PROPS_CONFIG, DONUT_CHART_PROPS_GROUPS } from './props-config'
 import type { DonutChartProps } from './types'
 
@@ -66,6 +67,7 @@ export const donutChartMeta: WidgetMeta<DonutChartProps> = {
   },
 
   Component: DonutChartComponent,
+  Preview: DonutChartPreview,
 
   capabilities: {
     resizable: true,

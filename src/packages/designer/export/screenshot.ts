@@ -18,10 +18,18 @@ export async function exportElementToPng(
   element: HTMLElement,
   filename: string,
 ): Promise<void> {
+  // Use the live --background token so a dark-mode editor produces a
+  // dark-mode PNG instead of a white plate behind every widget. Falls
+  // back to white when running outside a styled environment.
+  const probe = typeof document !== 'undefined' ? document.documentElement : null
+  const bg =
+    (probe && getComputedStyle(probe).getPropertyValue('--background').trim()) ||
+    '#ffffff'
+
   const dataUrl = await toPng(element, {
     pixelRatio: 2,
     cacheBust: true,
-    backgroundColor: '#ffffff',
+    backgroundColor: bg,
     // Skip the editor's interactive chrome — selection bbox, resize
     // handles etc. — by filtering them out of the SVG export.
     filter: (node) => {

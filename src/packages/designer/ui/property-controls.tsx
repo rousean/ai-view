@@ -143,6 +143,12 @@ export function NumInput({
         value={text}
         placeholder={placeholder}
         disabled={disabled}
+        // Native title doubles as the keyboard-shortcut hint — Figma
+        // users expect ↑↓ for ±1 / Shift+↑↓ for ±10 / dragging the prefix
+        // label for scrubbing. We don't ship a custom Tooltip because
+        // the property panel is dense and an extra popover would
+        // obscure neighbouring rows during fast iteration.
+        title="↑↓ ±1 · Shift ↑↓ ±10 · 拖动前缀标签连续调整"
         onChange={(e) => setText(e.target.value)}
         onBlur={(e) => commit(e.target.value)}
         onKeyDown={(e) => {

@@ -8,7 +8,7 @@ import {
   type Project,
 } from '@schema/index'
 import { reconcileFetchers, stopAllFetchers } from '@designer/data'
-import { Toaster } from '~/components/ui/sonner'
+import { Toaster, toast } from '~/components/ui/sonner'
 import { TooltipProvider } from '~/components/ui/tooltip'
 import { CanvasContextMenu } from '../canvas/canvas-context-menu'
 import { CanvasViewport } from '../canvas/canvas-viewport'
@@ -105,6 +105,22 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
+
+  // Toast a hint when delete is blocked by lock. Subscribed once at
+  // the root so the message fires regardless of where the delete
+  // came from (Delete key, context menu, layers panel, etc.).
+  React.useEffect(() => {
+    if (!editor) return
+    const off = editor.bus.on('widget.removeBlockedByLock', (payload) => {
+      toast.info('已跳过锁定的组件', {
+        description:
+          payload.count > 1
+            ? `${payload.count} 个组件被锁定，请先解锁后删除`
+            : '该组件已锁定，请先解锁后再删除',
+      })
+    })
+    return () => off()
+  }, [editor])
 
   // Re-reconcile fetchers whenever the project's data-source list
   // changes. We subscribe directly to the document store so we don't

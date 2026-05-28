@@ -334,10 +334,14 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
           <SelectionBounds />
           <AlignmentGuidesOverlay />
           <DistanceGuides />
-          <CanvasEmptyState />
           <GuidesOverlay viewportRef={containerRef} />
           <MarqueeOverlay />
         </CameraTransformLayer>
+        {/* Empty-state card lives OUTSIDE the camera-transform so it
+            tracks the viewport (the user's actual visible area) instead
+            of the artboard geometry — otherwise it drifts off-screen
+            on a 1920×1080 canvas viewed through a 1280px editor. */}
+        <CanvasEmptyState />
       </div>
 
       {/* Rulers — absolute overlay; self-measuring. Drag-from-ruler

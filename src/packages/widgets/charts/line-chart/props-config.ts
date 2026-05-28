@@ -79,7 +79,7 @@ export const LINE_CHART_PROPS_GROUPS: PropGroupDef[] = [
   },
   {
     key: 'theme',
-    title: '主题与预设',
+    title: '样式预设',
     icon: Palette,
     defaultOpen: false,
     description: '把当前样式保存为预设，下次新建组件一键套用。',

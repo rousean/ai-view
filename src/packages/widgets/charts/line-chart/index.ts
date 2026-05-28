@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { WidgetMeta } from '../../widget-meta'
 import { LineChartComponent } from './component'
 import { DEFAULT_LINE_PROPS } from './default-props'
+import { LineChartPreview } from './preview'
 import { LINE_CHART_PROPS_CONFIG, LINE_CHART_PROPS_GROUPS } from './props-config'
 import type { LineChartProps } from './types'
 
@@ -91,6 +92,7 @@ export const lineChartMeta: WidgetMeta<LineChartProps> = {
   },
 
   Component: LineChartComponent,
+  Preview: LineChartPreview,
 
   capabilities: {
     resizable: true,

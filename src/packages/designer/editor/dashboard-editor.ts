@@ -361,9 +361,28 @@ export class DashboardEditor {
 
   removeWidgets(ids: string[]): void {
     if (ids.length === 0) return
-    this.execute('widget.remove', { ids })
+    // Skip locked widgets. We can't outright throw because removeWidgets
+    // is called from menus that already feel "live" (Delete key, right-
+    // click) — silently dropping locked entries then deleting the rest
+    // is closer to user expectation than refusing the whole batch. We
+    // surface the skip via an event for the UI to toast.
+    const filtered: string[] = []
+    let skippedLocked = 0
+    for (const id of ids) {
+      const w = this.getWidget(id)
+      if (w?.flags.locked) {
+        skippedLocked += 1
+        continue
+      }
+      filtered.push(id)
+    }
+    if (skippedLocked > 0) {
+      this.bus.emit('widget.removeBlockedByLock', { count: skippedLocked })
+    }
+    if (filtered.length === 0) return
+    this.execute('widget.remove', { ids: filtered })
     // Sync selection
-    const remaining = useEditorStore.getState().selectedIds.filter((id) => !ids.includes(id))
+    const remaining = useEditorStore.getState().selectedIds.filter((id) => !filtered.includes(id))
     this.select(remaining)
   }
 
@@ -953,6 +972,10 @@ export class DashboardEditor {
     for (const id of ids) {
       const w = this.getWidget(id)
       if (!w) continue
+      // Locked widgets shouldn't move via arrow keys — they're part of
+      // the selection so the property panel stays consistent, but the
+      // user explicitly opted them out of layout mutations.
+      if (w.flags.locked) continue
       updates.push({
         id,
         layout: { x: w.layout.x + dx * step, y: w.layout.y + dy * step },

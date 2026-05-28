@@ -17,6 +17,25 @@ export function MaterialsPanel() {
   const [, force] = React.useReducer((x) => x + 1, 0)
   React.useEffect(() => editor.registry.widgets.subscribe(() => force()), [editor])
 
+  // `/` focuses the materials search input — Linear / GitHub idiom.
+  // Bound to window so the binding works from anywhere in the editor
+  // chrome. We skip when typing in another input so the literal slash
+  // can still be entered into text fields.
+  const searchInputRef = React.useRef<HTMLInputElement>(null)
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
+      const t = e.target as HTMLElement | null
+      if (!t) return
+      if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable) return
+      e.preventDefault()
+      searchInputRef.current?.focus()
+      searchInputRef.current?.select()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   const all = editor.registry.widgets.list() as unknown as WidgetMeta[]
   const [query, setQuery] = React.useState('')
 
@@ -56,14 +75,15 @@ export function MaterialsPanel() {
           className="text-muted-foreground/80 absolute top-1/2 left-5 -translate-y-px"
         />
         <Input
+          ref={searchInputRef}
           placeholder="搜索物料"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="h-7 px-7 text-xs"
         />
-        <span className="text-muted-foreground/60 absolute top-1/2 right-5 -translate-y-px text-[11px]">
-          ⌘K
-        </span>
+        <kbd className="text-muted-foreground/60 bg-muted absolute top-1/2 right-5 inline-flex h-4 -translate-y-px items-center justify-center rounded border border-border/60 px-1 font-mono text-[10px]">
+          /
+        </kbd>
       </div>
 
       {/* Category tabs (horizontal scroll). Tabs grey out + become inert
@@ -161,6 +181,11 @@ const MaterialCard: React.FC<{ meta: WidgetMeta }> = ({ meta }) => {
     })
   }
 
+  // Prefer the widget's curated SVG preview when it ships one; fall
+  // back to the icon for widgets that haven't authored a thumbnail
+  // yet. The thumbnail surface keeps `aspect-[1.4/1]` regardless so
+  // the grid layout stays uniform.
+  const Preview = meta.Preview
   return (
     <div
       ref={ref}
@@ -168,8 +193,8 @@ const MaterialCard: React.FC<{ meta: WidgetMeta }> = ({ meta }) => {
       title={`${meta.description ?? meta.title}\n双击添加到画布`}
       className="hover:bg-muted flex cursor-grab flex-col items-center gap-1 rounded-sm px-1 py-2 transition-colors select-none active:cursor-grabbing"
     >
-      <div className="bg-muted border-border/60 text-muted-foreground flex aspect-[1.4/1] w-full items-center justify-center rounded-sm border">
-        <Icon size={28} />
+      <div className="bg-muted border-border/60 text-muted-foreground flex aspect-[1.4/1] w-full items-center justify-center rounded-sm border p-1.5">
+        {Preview ? <Preview /> : <Icon size={28} />}
       </div>
       <div className="text-muted-foreground text-center text-[11px] leading-tight">
         {meta.title}

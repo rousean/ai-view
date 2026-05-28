@@ -15,6 +15,12 @@ export interface EditorEventMap {
   'widget.removed': { ids: string[] }
   'widget.updated': { id: string; before: WidgetNode; after: WidgetNode }
   'widget.moved': { ids: string[]; dx: number; dy: number }
+  /**
+   * Emitted by `removeWidgets` when one or more requested ids belonged
+   * to locked widgets — those get silently skipped. The UI listens
+   * here to toast a "请先解锁" hint.
+   */
+  'widget.removeBlockedByLock': { count: number }
 
   // Selection / hover
   'selection.changed': { ids: string[] }

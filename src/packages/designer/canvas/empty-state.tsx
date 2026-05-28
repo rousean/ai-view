@@ -32,11 +32,19 @@ export function CanvasEmptyState() {
 
   if (!page || widgetCount > 0) return null
 
+  // The empty-state card lives outside the camera transform so it
+  // always tracks the user's viewport — never the artboard's
+  // geometric centre. A page-centred overlay drifts off-screen on
+  // 1920×1080 canvases when the editor window is narrower than the
+  // canvas, leaving the new user staring at blank ruler space.
+  //
+  // Rendered as a portal-style fixed element scoped to the canvas
+  // viewport rect (excluding the ruler gutters) so the card sits
+  // dead-centre of what the user can actually see.
   return (
     <div
       data-skip-snapshot
-      className="text-foreground/90 pointer-events-none absolute inset-0 flex items-center justify-center"
-      style={{ width: page.canvas.width, height: page.canvas.height }}
+      className="text-foreground/90 pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
     >
       <div className="bg-card/80 border-border/60 pointer-events-auto flex max-w-sm flex-col items-center gap-4 rounded-xl border p-6 shadow-md backdrop-blur">
         <div className="bg-primary/10 text-primary flex h-10 w-10 items-center justify-center rounded-full">

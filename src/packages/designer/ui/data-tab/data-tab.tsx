@@ -421,7 +421,10 @@ function SlotMappingPanel({
 
 // ─── Preview pane ─────────────────────────────────────────────────
 
-const PREVIEW_ROW_LIMIT = 5
+const PREVIEW_INITIAL_LIMIT = 5
+/** Hard cap when the user expands — large datasets stay scrollable but
+ *  we never render more than this many DOM rows at once. */
+const PREVIEW_MAX_ROWS = 200
 
 function PreviewPane({
   widget,
@@ -438,11 +441,13 @@ function PreviewPane({
     return resolveWidgetData(widget, meta, map)
   }, [widget, meta, dataSources])
 
-  const previewRows = resolved.rows.slice(0, PREVIEW_ROW_LIMIT)
   const total = resolved.rows.length
+  const [expanded, setExpanded] = React.useState(false)
+  const visible = expanded ? Math.min(total, PREVIEW_MAX_ROWS) : PREVIEW_INITIAL_LIMIT
+  const previewRows = resolved.rows.slice(0, visible)
 
   return (
-    <PropSection title="数据预览" defaultOpen={false}>
+    <PropSection title={`数据预览 · ${total} 行`} defaultOpen={false}>
       <div className="px-3 pt-1 pb-2">
         {resolved.isSample && (
           <div className="text-muted-foreground/80 mb-1.5 text-[10px]">
@@ -454,9 +459,14 @@ function PreviewPane({
             没有可预览的数据
           </div>
         ) : (
-          <div className="border-border bg-background overflow-hidden rounded-md border">
+          <div
+            className={cn(
+              'border-border bg-background overflow-hidden rounded-md border',
+              expanded && 'max-h-[240px] overflow-y-auto',
+            )}
+          >
             <Table className="text-[11px] tabular-nums">
-              <TableHeader className="bg-muted/40">
+              <TableHeader className="bg-muted/40 sticky top-0 z-10">
                 <TableRow className="hover:bg-transparent">
                   {resolved.fields.map((f) => (
                     <TableHead
@@ -489,10 +499,16 @@ function PreviewPane({
             </Table>
           </div>
         )}
-        {total > PREVIEW_ROW_LIMIT && (
-          <div className="text-muted-foreground/60 mt-1 text-center text-[10px]">
-            共 {total} 行，仅显示前 {PREVIEW_ROW_LIMIT} 行
-          </div>
+        {total > PREVIEW_INITIAL_LIMIT && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="text-primary hover:text-primary/80 mt-1 w-full cursor-pointer text-center text-[10px]"
+          >
+            {expanded
+              ? `收起 · 显示前 ${PREVIEW_INITIAL_LIMIT} 行`
+              : `展开 · 共 ${total} 行（最多显示 ${Math.min(total, PREVIEW_MAX_ROWS)} 行）`}
+          </button>
         )}
       </div>
     </PropSection>

@@ -75,7 +75,7 @@ export function PanelToolbar({
             onClick={() => onResetAll?.()}
             aria-label="重置所有属性为默认"
           >
-            <RotateCcw size={13} />
+            <RotateCcw size={12} />
           </Button>
         </TooltipTrigger>
         <TooltipContent>重置所有属性</TooltipContent>
@@ -90,7 +90,7 @@ export function PanelToolbar({
             aria-label="AI 美化"
             className="text-primary"
           >
-            <Sparkles size={13} />
+            <Sparkles size={12} />
           </Button>
         </TooltipTrigger>
         <TooltipContent>AI 美化</TooltipContent>

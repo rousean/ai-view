@@ -99,10 +99,10 @@ export const DONUT_CHART_PROPS_GROUPS: PropGroupDef[] = [
   },
   {
     key: 'theme',
-    title: '主题与预设',
+    title: '样式预设',
     icon: Palette,
     defaultOpen: false,
-    description: '保存当前样式或一键切换主题（即将上线）',
+    description: '把当前样式保存为预设，下次新建组件一键套用。',
     fields: [],
   },
 ]

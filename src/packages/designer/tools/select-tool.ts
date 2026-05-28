@@ -162,14 +162,22 @@ export const SelectTool: Tool = {
       const ids = editor.getSelectedIds()
       const initialLayouts = new Map<string, { x: number; y: number }>()
       const selectedWidgets = []
+      // Filter out locked widgets up-front — they ride along in the
+      // selection (so the property panel still works on them, Cmd+A
+      // still picks them up), but they cannot be the subject of a
+      // move gesture. Mixing them into `movingIds` would silently
+      // displace locked widgets by the drag delta.
+      const movableIds: string[] = []
       for (const id of ids) {
         const w = editor.getWidget(id)
-        if (w) {
-          initialLayouts.set(id, { x: w.layout.x, y: w.layout.y })
+        if (!w) continue
+        initialLayouts.set(id, { x: w.layout.x, y: w.layout.y })
+        if (!w.flags.locked) {
           selectedWidgets.push(w)
+          movableIds.push(id)
         }
       }
-      s.movingIds = ids
+      s.movingIds = movableIds
       s.initialLayouts = initialLayouts
       // Snapshot the visual bbox so snap targets stay stable for the
       // entire gesture (no jitter when intermediate positions snap on/off).
@@ -339,7 +347,12 @@ export const SelectTool: Tool = {
         if (rect.width > 4 && rect.height > 4) {
           // Hit-test against the rotated AABB so rotated widgets are
           // selectable by the marquee that visually overlaps them.
+          // Locked widgets are intentionally skipped — the whole point
+          // of locking is to take a widget out of the canvas's input
+          // model. Without this filter a marquee would still grab them,
+          // making lock feel half-broken.
           const hits = editor.getAllWidgets().filter((w) => {
+            if (w.flags.locked || w.flags.hidden) return false
             const aabb = rotatedAABB(w)
             return (
               aabb.x + aabb.width >= rect.x &&

@@ -7,7 +7,6 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '~/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { cn } from '~/lib/utils'
@@ -44,13 +43,21 @@ export function HelpSheet() {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
+      {/* Don't wrap the Button in `SheetTrigger asChild` AND
+          `TooltipTrigger asChild` at the same time — Radix's two
+          triggers fight over the click handler and the visible button
+          ends up doing neither. Drive the sheet open ourselves via
+          onClick and keep the Tooltip cleanly scoped to the Button. */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="帮助">
-              <Keyboard size={14} />
-            </Button>
-          </SheetTrigger>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="帮助"
+            onClick={() => setOpen(true)}
+          >
+            <Keyboard size={14} />
+          </Button>
         </TooltipTrigger>
         <TooltipContent>快捷键 · ?</TooltipContent>
       </Tooltip>

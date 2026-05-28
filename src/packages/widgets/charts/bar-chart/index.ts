@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { WidgetMeta } from '../../widget-meta'
 import { BarChartComponent } from './component'
 import { DEFAULT_BAR_PROPS } from './default-props'
+import { BarChartPreview } from './preview'
 import { BAR_CHART_PROPS_CONFIG, BAR_CHART_PROPS_GROUPS } from './props-config'
 import type { BarChartProps } from './types'
 
@@ -82,6 +83,7 @@ export const barChartMeta: WidgetMeta<BarChartProps> = {
   },
 
   Component: BarChartComponent,
+  Preview: BarChartPreview,
 
   capabilities: {
     resizable: true,
