@@ -34,6 +34,18 @@ export function PreviewOverlay() {
   const pages = useDocumentState(useShallow((s) => selectPages(s)))
   const currentPageId = useDocumentState((s) => s.project?.currentPageId ?? null)
 
+  // Re-fit on window resize. `computeFitScale` reads window dimensions
+  // directly, so without a re-render on resize the canvas keeps the
+  // scale it had when preview opened — dragging the browser window then
+  // either clips the canvas or strands it in a corner.
+  const [, forceResize] = React.useReducer((n: number) => n + 1, 0)
+  React.useEffect(() => {
+    if (mode !== 'preview') return
+    const onResize = () => forceResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [mode])
+
   // ESC exits preview. Wired here (not inside the canvas) so it works
   // even when focus is on the overlay's chrome rather than a widget.
   React.useEffect(() => {
@@ -68,7 +80,10 @@ export function PreviewOverlay() {
 
   const canvasW = page.canvas.width
   const canvasH = page.canvas.height
-  const fitScale = computeFitScale(canvasW, canvasH)
+  // Reserve the bottom page-switcher strip's height (36px) only when it
+  // actually renders — single-page projects use the full height.
+  const hasPageBar = pages.length > 1
+  const fitScale = computeFitScale(canvasW, canvasH, hasPageBar ? 36 : 0)
   const activeFilterCount = Object.values(filters).filter(Boolean).length
 
   return (
@@ -158,12 +173,16 @@ export function PreviewOverlay() {
   )
 }
 
-/** Compute scale that fits canvasW × canvasH inside window viewport. */
-function computeFitScale(canvasW: number, canvasH: number): number {
+/**
+ * Compute scale that fits canvasW × canvasH inside the window viewport.
+ * `reserveBottom` subtracts the optional page-switcher strip so the
+ * canvas never tucks behind it.
+ */
+function computeFitScale(canvasW: number, canvasH: number, reserveBottom = 0): number {
   if (typeof window === 'undefined') return 1
-  // Subtract the 36px header bar so the entire canvas remains visible.
+  // Subtract the 36px top header + 32px padding, plus any bottom strip.
   const availW = window.innerWidth - 32
-  const availH = window.innerHeight - 36 - 32
+  const availH = window.innerHeight - 36 - 32 - reserveBottom
   if (canvasW <= 0 || canvasH <= 0) return 1
   return Math.min(availW / canvasW, availH / canvasH, 1)
 }

@@ -8,6 +8,7 @@ import { Input } from '~/components/ui/input'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { cn } from '~/lib/utils'
 import { useDashboardEditor, useDocumentState } from '../editor/editor-context'
+import { addWidgetAtViewportCenter } from './add-widget-helper'
 
 /**
  * Left material panel (240px) — variant B style: top search box + category
@@ -163,25 +164,11 @@ const MaterialCard: React.FC<{ meta: WidgetMeta }> = ({ meta }) => {
   const Icon = meta.icon ?? ChartBar
 
   // Double-click shortcut — drop the widget at the centre of the
-  // current viewport. Matches Figma's library shortcut.
+  // visible canvas viewport. Shares the exact placement logic with the
+  // command palette via `addWidgetAtViewportCenter`, which measures the
+  // canvas element rather than guessing window centre.
   const handleDoubleClick = () => {
-    const page = editor.getCurrentPage()
-    if (!page) return
-    const size = meta.defaultLayout
-    let x = (page.canvas.width - size.width) / 2
-    let y = (page.canvas.height - size.height) / 2
-    if (typeof window !== 'undefined') {
-      const cx = window.innerWidth / 2
-      const cy = window.innerHeight / 2
-      const pt = editor.screenToCanvas({ x: cx, y: cy }, { left: 0, top: 0 })
-      x = Math.max(0, Math.min(page.canvas.width - size.width, pt.x - size.width / 2))
-      y = Math.max(0, Math.min(page.canvas.height - size.height, pt.y - size.height / 2))
-    }
-    editor.addWidget(meta.type, {
-      position: { x, y },
-      size,
-      props: meta.defaultProps as Record<string, unknown>,
-    })
+    addWidgetAtViewportCenter(editor, meta)
   }
 
   // Prefer the widget's curated SVG preview when it ships one; fall

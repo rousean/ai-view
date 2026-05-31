@@ -113,6 +113,22 @@ export class DashboardEditor {
     this.bus.on('history.undone', markDirty)
     this.bus.on('history.redone', markDirty)
 
+    // Reconcile the selection after undo/redo. The history stack only
+    // rewinds the *document* — `selectedIds` lives in EditorStore and is
+    // left untouched. Undoing a widget-add therefore strands a "ghost"
+    // id in the selection: the FloatingTools align buttons stay visible
+    // and the status strip reads "已选中 1 个" while the canvas is empty.
+    // Dropping ids whose widget no longer exists keeps the two stores
+    // consistent.
+    const reconcileSelection = () => {
+      const ids = useEditorStore.getState().selectedIds
+      if (ids.length === 0) return
+      const valid = ids.filter((id) => this.getWidget(id) !== null)
+      if (valid.length !== ids.length) this.select(valid)
+    }
+    this.bus.on('history.undone', reconcileSelection)
+    this.bus.on('history.redone', reconcileSelection)
+
     // Reset dirty on (re)load — a freshly loaded project is clean.
     this.bus.on('document.loaded', () => {
       this._dirty = false

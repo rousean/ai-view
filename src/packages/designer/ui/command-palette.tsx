@@ -18,6 +18,7 @@ import {
 } from '../editor/editor-context'
 import { DEFAULT_SHORTCUTS, type ShortcutDef } from '../editor/keyboard-shortcuts'
 import { selectPages } from '../stores/selectors'
+import { addWidgetAtViewportCenter } from './add-widget-helper'
 
 /**
  * `Cmd+K` command palette.
@@ -131,7 +132,7 @@ export function CommandPalette() {
                   key={`add-${meta.type}`}
                   value={`添加 ${meta.title} ${meta.type} ${meta.tags?.join(' ') ?? ''}`}
                   onSelect={() =>
-                    runAndClose(() => addWidgetAtCenter(editor, meta))
+                    runAndClose(() => addWidgetAtViewportCenter(editor, meta))
                   }
                 >
                   <Plus />
@@ -169,24 +170,6 @@ export function CommandPalette() {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────
-
-function addWidgetAtCenter(
-  editor: ReturnType<typeof useDashboardEditor>,
-  meta: WidgetMeta,
-): void {
-  const page = editor.getCurrentPage()
-  if (!page) return
-  const size = meta.defaultLayout
-  const position = {
-    x: Math.max(0, Math.floor((page.canvas.width - size.width) / 2)),
-    y: Math.max(0, Math.floor((page.canvas.height - size.height) / 2)),
-  }
-  editor.addWidget(meta.type, {
-    position,
-    size,
-    props: meta.defaultProps as Record<string, unknown>,
-  })
-}
 
 /**
  * Render a `ShortcutDef`'s key + modifiers as a compact glyph string

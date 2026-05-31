@@ -105,8 +105,16 @@ function PropGroupSection({
   // Toggle state — read the master switch's current value from props.
   const toggle = group.enableToggle
   const isToggled = toggle ? Boolean(getByPath(widget.props, toggle.path)) : true
+  // A disabled section normally collapses its body to a single header
+  // row. But when a search query *matches a field inside* that body,
+  // hiding it would leave the user staring at a header for a section
+  // they searched into with nothing to show — so we force the body open
+  // for the duration of the search even though the master switch is off.
   const shouldHideBody =
-    toggle != null && !isToggled && (toggle.collapsedWhenOff ?? true)
+    toggle != null &&
+    !isToggled &&
+    (toggle.collapsedWhenOff ?? true) &&
+    !searchHitInBody
 
   // Search hit → force-open. We use the memoised `searchHitInBody`
   // computed above (kept here for readability).
