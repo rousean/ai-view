@@ -273,7 +273,9 @@ function SourcePicker({
                   新建数据源
                 </DropdownMenuItem>
               </TooltipTrigger>
-              <TooltipContent side="left">数据源管理 · 即将上线</TooltipContent>
+              <TooltipContent side="left">
+                请在左侧导航栏「数据」面板中新建
+              </TooltipContent>
             </Tooltip>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -64,13 +64,22 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
   // token, swap the hex input for a compact chip ("= 主色") so the
   // author sees the alias rather than the literal hex. Clicking it
   // reveals the hex for one-off edits.
+  //
+  // `showHexOverride` is a one-shot state: clicking the chip flips it
+  // on, the input becomes editable, and the next prop value change
+  // (color picker or palette click) snaps back to chip mode. Without
+  // this React-side flag the previous classList-based reveal was
+  // wiped on the next render — making the chip click feel broken.
   const palette = usePalette()
   const match = React.useMemo(() => matchPaletteToken(palette, v), [palette, v])
-  const tokenLabel = match
+  const [showHexOverride, setShowHexOverride] = React.useState(false)
+  React.useEffect(() => setShowHexOverride(false), [v])
+  const tokenMatched = match
     ? match.kind === 'token'
       ? match.label
       : `系列 ${match.index + 1}`
     : null
+  const tokenLabel = showHexOverride ? null : tokenMatched
 
   const commit = (raw: string) => {
     const s = raw.trim().replace(/^#/, '')
@@ -142,29 +151,21 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
         </PopoverContent>
       </Popover>
       {tokenLabel ? (
-        <span
+        <button
+          type="button"
           className={cn(
-            'bg-primary/10 text-primary mr-auto rounded-sm px-1 py-px text-[10px] font-medium',
-            'cursor-text select-none',
+            'bg-primary/10 text-primary mr-auto cursor-text rounded-sm px-1 py-px text-[10px] font-medium select-none',
           )}
           title={`${tokenLabel} · ${v.toUpperCase()}（点击切换为 hex 编辑）`}
-          onClick={(e) => {
-            // Switch to hex edit: focus the (now visible) input on next tick.
-            const wrapper = (e.currentTarget as HTMLElement).parentElement
-            const inp = wrapper?.querySelector('input[data-color-hex]') as HTMLInputElement | null
-            if (inp) {
-              inp.classList.remove('hidden')
-              inp.focus()
-              inp.select()
-            }
-          }}
+          onClick={() => setShowHexOverride(true)}
         >
           = {tokenLabel}
-        </span>
+        </button>
       ) : null}
       <input
-        data-color-hex
         value={text}
+        // eslint-disable-next-line jsx-a11y/no-autofocus
+        autoFocus={showHexOverride}
         disabled={disabled}
         onChange={(e) => setText(e.target.value)}
         onBlur={(e) => commit(e.target.value)}

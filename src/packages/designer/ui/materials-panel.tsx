@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { ChartBar, ChevronRight, Database, Search } from 'lucide-react'
 import { Feedback } from '@dnd-kit/dom'
 import { useDraggable } from '@dnd-kit/react'
@@ -6,13 +7,19 @@ import type { WidgetMeta } from '@widgets/widget-meta'
 import { Input } from '~/components/ui/input'
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { cn } from '~/lib/utils'
-import { useDashboardEditor } from '../editor/editor-context'
+import { useDashboardEditor, useDocumentState } from '../editor/editor-context'
 
 /**
  * Left material panel (240px) — variant B style: top search box + category
  * tabs + scrollable widget grid + bottom data-source indicator.
  */
-export function MaterialsPanel() {
+export function MaterialsPanel({
+  onOpenDataSources,
+}: {
+  /** Click-through for the footer "数据源 · N 已连接" button. EditorRoot
+   *  wires this to switch the rail to the data-sources panel. */
+  onOpenDataSources?: () => void
+} = {}) {
   const editor = useDashboardEditor()
   const [, force] = React.useReducer((x) => x + 1, 0)
   React.useEffect(() => editor.registry.widgets.subscribe(() => force()), [editor])
@@ -135,13 +142,9 @@ export function MaterialsPanel() {
         </div>
       </ScrollArea>
 
-      {/* Footer — data source indicator (placeholder for P8) */}
-      <button className="border-border text-muted-foreground hover:bg-muted flex cursor-pointer items-center gap-1.5 border-t px-2.5 py-2 text-left text-xs transition-colors">
-        <Database size={14} />
-        <span className="flex-1">数据源</span>
-        <span className="text-muted-foreground/60 text-[11px]">0 个已连接</span>
-        <ChevronRight size={12} />
-      </button>
+      {/* Footer — data source indicator. Live count + jumps to the
+          data-sources rail panel on click. */}
+      <DataSourcesFooter onClick={onOpenDataSources} />
     </div>
   )
 }
@@ -200,6 +203,35 @@ const MaterialCard: React.FC<{ meta: WidgetMeta }> = ({ meta }) => {
         {meta.title}
       </div>
     </div>
+  )
+}
+
+// ─── Footer: data-source quick link ────────────────────────────────
+
+/**
+ * Footer row showing how many data sources the project has connected
+ * + a click-through to the data-sources rail panel. Reads the count
+ * live from the document store so it stays in sync as the user
+ * adds / deletes sources elsewhere.
+ */
+function DataSourcesFooter({ onClick }: { onClick?: () => void }) {
+  const count = useDocumentState(
+    useShallow((s) => s.project?.dataSources?.length ?? 0),
+  )
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className="border-border text-muted-foreground hover:bg-muted flex cursor-pointer items-center gap-1.5 border-t px-2.5 py-2 text-left text-xs transition-colors disabled:cursor-default disabled:opacity-60"
+    >
+      <Database size={14} />
+      <span className="flex-1">数据源</span>
+      <span className="text-muted-foreground/60 text-[11px]">
+        {count > 0 ? `${count} 个已连接` : '尚未配置'}
+      </span>
+      <ChevronRight size={12} />
+    </button>
   )
 }
 

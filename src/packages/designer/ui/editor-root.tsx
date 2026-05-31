@@ -214,7 +214,9 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
           <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="flex min-h-0 flex-1">
               <IconRail active={rail} onChange={setRail} />
-              {rail === 'mat' && <MaterialsPanel />}
+              {rail === 'mat' && (
+                <MaterialsPanel onOpenDataSources={() => setRail('data')} />
+              )}
               {rail === 'layers' && <LayersPanel />}
               {rail === 'data' && (
                 <SecondaryPanel title="数据源">
