@@ -294,6 +294,8 @@ export const widgetFlipCommand: Command<WidgetFlipPayload> = {
     const set = new Set(payload.ids)
     for (const node of page.widgets) {
       if (!set.has(node.id)) continue
+      // Locked widgets opt out of mirroring like every other transform.
+      if (node.flags.locked) continue
       if (payload.axis === 'x') node.layout.flipX = !node.layout.flipX
       else node.layout.flipY = !node.layout.flipY
     }
@@ -458,6 +460,11 @@ export const widgetAlignCommand: Command<WidgetAlignPayload> = {
     const anchorCenterY = anchorBox.y + anchorBox.height / 2
 
     for (const w of targets) {
+      // Locked widgets anchor the alignment (they're part of the
+      // selection's union bbox) but are never themselves moved —
+      // consistent with how lock takes a widget out of every other
+      // layout mutation (drag / nudge / resize).
+      if ((w as WidgetNode).flags.locked) continue
       // `rotatedAABB` gives the *visual* extent — needed for correct
       // alignment of rotated widgets, since `layout.x/y` is the un-rotated
       // top-left, not the visual one.
@@ -526,7 +533,10 @@ export const widgetDistributeCommand: Command<WidgetDistributePayload> = {
       const target = cursor
       const current = horizontal ? box.x : box.y
       const delta = target - current
-      if (delta !== 0) {
+      // Advance the cursor for every slot so spacing stays computed
+      // against the full set, but skip the actual move for locked
+      // widgets — they hold their position like in every other gesture.
+      if (delta !== 0 && !(w as WidgetNode).flags.locked) {
         if (horizontal) w.layout.x += delta
         else w.layout.y += delta
       }

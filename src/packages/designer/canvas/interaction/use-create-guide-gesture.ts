@@ -70,12 +70,14 @@ export function useCreateGuideGesture(viewportRef: React.RefObject<HTMLElement |
         stateRef.current = null
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onUp)
         useEditorStore.getState().actions.setInteraction({ kind: 'idle' })
 
         if (!s || interaction.kind !== 'creating-guide') return
 
         // Commit only if release happened over the viewport — releasing
-        // back on the ruler / outside means "cancel".
+        // back on the ruler / outside (or a `pointercancel`, where
+        // clientX/Y land outside the rect) means "cancel".
         const rect = viewportRef.current?.getBoundingClientRect()
         if (!rect) return
         const inside =
@@ -89,6 +91,10 @@ export function useCreateGuideGesture(viewportRef: React.RefObject<HTMLElement |
 
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
+      // A `pointercancel` (system gesture, touch interruption) must also
+      // tear the gesture down — otherwise the move listener leaks and
+      // the interaction state stays stuck on 'creating-guide'.
+      window.addEventListener('pointercancel', onUp)
     },
     [editor, viewportRef],
   )

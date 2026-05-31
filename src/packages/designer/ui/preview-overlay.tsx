@@ -64,15 +64,15 @@ export function PreviewOverlay() {
   // session starts clean — otherwise a leftover filter from a prior
   // session can make widgets look broken.
   React.useEffect(() => {
-    if (mode === 'preview') {
-      clearFilters()
-      // Highlights are id-keyed; we don't have the id list here, but
-      // RuntimeStore's clearAll handles them. Filters are project-wide
-      // so clearFilters is enough.
-    }
+    if (mode === 'preview') clearFilters()
     return () => {
       clearFilters()
-      clearHighlights([])
+      // Drop every still-active highlight. Passing the *current* id set
+      // matters — the old `clearHighlights([])` removed nothing, so a
+      // widget mid-pulse when the user hit ESC kept flashing into design
+      // mode until its (up to 5s) timer fired.
+      const active = useRuntimeStore.getState().highlightedIds
+      if (active.size > 0) clearHighlights([...active])
     }
   }, [mode, clearFilters, clearHighlights])
 

@@ -222,6 +222,10 @@ export class DashboardEditor {
   }
 
   async close(): Promise<void> {
+    // Cancel the pending autosave first — otherwise a debounced timer
+    // armed by the user's last edit fires ~30s after the project was
+    // swapped out, calling save() against the now-null document.
+    this._cancelAutoSave()
     for (const dispose of this.installedPlugins.values()) {
       try {
         dispose()

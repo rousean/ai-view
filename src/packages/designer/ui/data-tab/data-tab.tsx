@@ -10,7 +10,7 @@ import {
   X,
 } from 'lucide-react'
 import type { DataSlotDef, WidgetMeta } from '@widgets/widget-meta'
-import type { DataSource, WidgetNode } from '@schema/types'
+import type { DataSource, WidgetData, WidgetNode } from '@schema/types'
 import {
   autoMapToSlots,
   initInlineFromSample,
@@ -65,6 +65,14 @@ export function DataTab() {
     useShallow((s) => s.project?.dataSources ?? []),
   )
 
+  // Session cache of inline datasets, keyed by widget id. Without it,
+  // flipping 内联 → 数据源 → 内联 destroys the hand-entered table: the
+  // first switch overwrites `widget.data` with a bound spec, and the
+  // switch back re-seeds from the meta sample. The cache lets the user
+  // round-trip without losing their edits. Not persisted (a reloaded
+  // bound widget has no inline to restore) — purely an edit-session aid.
+  const inlineCacheRef = React.useRef(new Map<string, WidgetData>())
+
   if (selectedIds.length === 0) {
     return (
       <EmptyState
@@ -105,9 +113,17 @@ export function DataTab() {
   const handleModeChange = (next: 'inline' | 'bound') => {
     if (next === mode) return
     if (next === 'inline') {
-      const init = initInlineFromSample(meta)
+      // Restore the cached inline dataset if the user previously edited
+      // one this session; otherwise seed a fresh table from the sample.
+      const cached = inlineCacheRef.current.get(widget.id)
+      const init = cached ?? initInlineFromSample(meta)
       if (init) editor.setWidgetData(widget.id, init)
     } else {
+      // Cache the current inline dataset before it's overwritten by the
+      // bound spec, so switching back doesn't drop the user's edits.
+      if (widget.data?.mode === 'inline') {
+        inlineCacheRef.current.set(widget.id, widget.data)
+      }
       // Switching to bound with no source picked yet — set bound with
       // empty sourceId so the source picker appears. (`mapping: {}`
       // because no source means no columns to map.)

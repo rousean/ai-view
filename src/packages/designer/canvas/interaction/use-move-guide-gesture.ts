@@ -58,11 +58,15 @@ export function useMoveGuideGesture(viewportRef: React.RefObject<HTMLElement | n
         editor.updateGuide(id, pos)
       }
 
-      const onUp = (e: PointerEvent) => {
+      const teardown = () => {
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onCancel)
         useEditorStore.getState().actions.setInteraction({ kind: 'idle' })
+      }
 
+      const onUp = (e: PointerEvent) => {
+        teardown()
         const rect = viewportRef.current?.getBoundingClientRect()
         if (!rect) return
         const inside =
@@ -76,8 +80,18 @@ export function useMoveGuideGesture(viewportRef: React.RefObject<HTMLElement | n
         }
       }
 
+      // pointercancel (system gesture / touch interruption) must NOT
+      // route through onUp — its coordinates are unreliable and would
+      // land "outside" the viewport, wrongly deleting the guide the user
+      // was merely moving. Cancel = leave the guide at its last
+      // committed position and just tear the listeners down.
+      const onCancel = () => {
+        teardown()
+      }
+
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
+      window.addEventListener('pointercancel', onCancel)
     },
     [editor, viewportRef],
   )

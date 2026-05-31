@@ -290,11 +290,18 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
       const ctx = getToolContext(e)
       if (ctx) t.onKeyUp(e, ctx)
     }
+    // Window blur clears the transient-pan key. Without it, holding
+    // Space then Alt+Tab-ing away (releasing Space in another window)
+    // strands `spaceHeld = true`: the cursor stays "grab" and the next
+    // click pans instead of selecting, with no obvious way out.
+    const onBlur = () => setSpaceHeld(false)
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', onBlur)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onBlur)
     }
   }, [editor, getActiveTool, getToolContext])
 
