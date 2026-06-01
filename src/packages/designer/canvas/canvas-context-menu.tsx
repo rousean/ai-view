@@ -207,7 +207,7 @@ function CanvasMenu({
 
       <ContextMenuSeparator />
 
-      <ContextMenuItem onSelect={() => editor.resetView()}>
+      <ContextMenuItem onSelect={() => editor.fitToScreen()}>
         适应屏幕
         <ContextMenuShortcut>⌘1</ContextMenuShortcut>
       </ContextMenuItem>

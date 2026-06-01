@@ -113,7 +113,6 @@ export function TopBar() {
            disabled with explanatory tooltips so it's clear they exist on
            purpose but aren't wired yet. */}
       <div className="flex items-center gap-2">
-        <Avatars />
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -159,14 +158,6 @@ export function TopBar() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>保存当前项目到 localStorage</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" disabled>
-              <MoreHorizontal size={14} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>更多 · 即将上线</TooltipContent>
         </Tooltip>
       </div>
     </div>
@@ -321,7 +312,7 @@ function ZoomMenu({ scale }: { scale: number }) {
       <Button
         variant="ghost"
         size="icon-sm"
-        onClick={() => editor.zoomBy(-0.1)}
+        onClick={() => editor.zoomAtViewportCenter(-0.1)}
         aria-label="缩小"
       >
         <Minus size={14} />
@@ -350,7 +341,7 @@ function ZoomMenu({ scale }: { scale: number }) {
             variant="ghost"
             size="sm"
             className="w-full justify-between"
-            onClick={() => editor.resetView()}
+            onClick={() => editor.fitToScreen()}
           >
             <span>适应屏幕</span>
             <span className="text-muted-foreground/60">⌘1</span>
@@ -360,37 +351,11 @@ function ZoomMenu({ scale }: { scale: number }) {
       <Button
         variant="ghost"
         size="icon-sm"
-        onClick={() => editor.zoomBy(0.1)}
+        onClick={() => editor.zoomAtViewportCenter(0.1)}
         aria-label="放大"
       >
         <Plus size={14} />
       </Button>
-    </div>
-  )
-}
-
-// ─── Avatars (decorative placeholder) ───────────────────────────────
-
-function Avatars() {
-  const stack: Array<[string, string]> = [
-    ['Y', '#0d99ff'],
-    ['L', '#14ae5c'],
-    ['+2', '#8a8a8a'],
-  ]
-  return (
-    <div className="mr-1 flex">
-      {stack.map(([label, bg], i) => (
-        <div
-          key={i}
-          className="border-card flex h-6 w-6 items-center justify-center rounded-full border-2 text-[11px] font-medium text-white"
-          style={{
-            background: bg,
-            marginLeft: i === 0 ? 0 : -6,
-          }}
-        >
-          {label}
-        </div>
-      ))}
     </div>
   )
 }

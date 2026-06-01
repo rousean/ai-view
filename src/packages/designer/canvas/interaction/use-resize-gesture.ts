@@ -32,6 +32,9 @@ interface ResizeSession {
   rotated?: {
     /** widget.layout.rotate, degrees. */
     angle: number
+    /** Whether the widget is mirrored — the local frame is flipped too. */
+    flipX: boolean
+    flipY: boolean
     /** Anchor's screen-space position at gesture start — held fixed. */
     screenAnchor: { x: number; y: number }
     /** Starting layout snapshot (unrotated frame). */
@@ -92,13 +95,17 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
       //   3. Translate the new layout so the anchor corner (the one the
       //      user did NOT grab) stays at its original screen position.
       if (s.rotated) {
-        const { angle, screenAnchor, startLayout } = s.rotated
+        const { angle, flipX, flipY, screenAnchor, startLayout } = s.rotated
         const rad = (angle * Math.PI) / 180
         const cosA = Math.cos(rad)
         const sinA = Math.sin(rad)
-        // Inverse-rotate the pointer delta into widget-local coords.
-        const localDx = screenDx * cosA + screenDy * sinA
-        const localDy = -screenDx * sinA + screenDy * cosA
+        // Invert the render transform R(angle)·S(flip) to map a screen
+        // delta into the widget's unrotated, unflipped local frame:
+        //   localDelta = S · R⁻¹ · screenDelta   (S is its own inverse)
+        const fx = flipX ? -1 : 1
+        const fy = flipY ? -1 : 1
+        const localDx = fx * (screenDx * cosA + screenDy * sinA)
+        const localDy = fy * (-screenDx * sinA + screenDy * cosA)
 
         // Resize the unrotated layout in the local frame.
         const newLocalBBox = resizeBBox(
@@ -110,13 +117,16 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
         )
 
         // Anchor offset re-derived against the *new* size so the side
-        // length that didn't move (in local frame) stays anchored to
-        // the same screen point.
+        // length that didn't move (in local frame) stays anchored to the
+        // same screen point. Mirror it through S(flip) before R(angle) so
+        // flipped widgets keep the correct (visually-fixed) corner pinned.
         const anchorLocal = localAnchorOffset(s.handle, newLocalBBox.width, newLocalBBox.height)
-        // newCenter such that:  screenAnchor === newCenter + R(angle) * anchorLocal
+        const ax = anchorLocal.x * fx
+        const ay = anchorLocal.y * fy
+        // newCenter such that:  screenAnchor === newCenter + R(angle)·S(flip)·anchorLocal
         const newCenter = {
-          x: screenAnchor.x - (anchorLocal.x * cosA - anchorLocal.y * sinA),
-          y: screenAnchor.y - (anchorLocal.x * sinA + anchorLocal.y * cosA),
+          x: screenAnchor.x - (ax * cosA - ay * sinA),
+          y: screenAnchor.y - (ax * sinA + ay * cosA),
         }
 
         editor.updateLayout(s.initial[0]!.id, {
@@ -191,7 +201,13 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
         useSnapGuidesStore.getState().clear()
       }
 
-      const updates = distributeResize(s.initial, s.startBBox, snapped)
+      // Locked widgets ride along in the selection bbox (so the handles
+      // still frame them) but must never be moved/resized by the gesture —
+      // same invariant the move/nudge paths enforce.
+      const lockedIds = new Set(s.initial.filter((w) => w.flags.locked).map((w) => w.id))
+      const updates = distributeResize(s.initial, s.startBBox, snapped).filter(
+        (u) => !lockedIds.has(u.id),
+      )
       editor.updateLayoutBatch(updates as Array<{ id: string; layout: Partial<Layout> }>)
     },
     [editor],
@@ -226,15 +242,21 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
               const cx = layout.x + layout.width / 2
               const cy = layout.y + layout.height / 2
               const off = localAnchorOffset(handle, layout.width, layout.height)
+              const fx = layout.flipX ? -1 : 1
+              const fy = layout.flipY ? -1 : 1
+              const ox = off.x * fx
+              const oy = off.y * fy
               const r = (layout.rotate * Math.PI) / 180
               const cosA = Math.cos(r)
               const sinA = Math.sin(r)
               return {
                 angle: layout.rotate,
+                flipX: layout.flipX,
+                flipY: layout.flipY,
                 startLayout: { ...layout },
                 screenAnchor: {
-                  x: cx + (off.x * cosA - off.y * sinA),
-                  y: cy + (off.x * sinA + off.y * cosA),
+                  x: cx + (ox * cosA - oy * sinA),
+                  y: cy + (ox * sinA + oy * cosA),
                 },
               }
             })()

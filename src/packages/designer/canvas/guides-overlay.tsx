@@ -27,7 +27,13 @@ export const GuidesOverlay: React.FC<Props> = ({ viewportRef }) => {
   const showGuides = useEditorStore((s) => s.view.showGuides)
   const { start: startMove } = useMoveGuideGesture(viewportRef)
 
-  if (!page || !showGuides) return null
+  if (!page) return null
+  // Keep drawing the live drag preview even when the guides layer is
+  // toggled off — otherwise pulling a guide out of the ruler gives zero
+  // feedback and feels broken. Persisted guides still respect showGuides.
+  const isPreviewing =
+    interaction.kind === 'creating-guide' || interaction.kind === 'moving-guide'
+  if (!showGuides && !isPreviewing) return null
   const { width: canvasW, height: canvasH } = page.canvas
 
   // Hit-area width in screen px → divided by scale so it stays the
@@ -52,7 +58,7 @@ export const GuidesOverlay: React.FC<Props> = ({ viewportRef }) => {
         pointerEvents: 'none',
       }}
     >
-      {page.guides.map((g) => {
+      {showGuides && page.guides.map((g) => {
         if (g.id === draggingId) return null
         const isV = g.orientation === 'vertical'
         return (

@@ -404,12 +404,20 @@ export const SelectTool: Tool = {
   onKeyDown(e, ctx) {
     const editor = ctx.editor
     if (e.key === 'Delete' || e.key === 'Backspace') {
+      // preventDefault so the canvas keydown doesn't also run the global
+      // Delete shortcut on the same event — a second pass would re-toast
+      // "已跳过锁定的组件" when the whole selection is locked.
+      e.preventDefault()
       const ids = editor.getSelectedIds()
       if (ids.length > 0) editor.removeWidgets(ids)
     } else if (e.key === 'Escape') {
       // Esc: exit isolated mode first, otherwise clear selection. The
       // two-step lets users back out of a group without losing the rest
-      // of their context (Figma's behaviour).
+      // of their context (Figma's behaviour). preventDefault stops the
+      // canvas keydown from also running the global Esc shortcut, which
+      // would collapse both steps into one press (exit isolation AND
+      // clear the selection at the same time).
+      e.preventDefault()
       if (editor.getIsolatedGroupId() !== null) {
         editor.setIsolatedGroup(null)
       } else {

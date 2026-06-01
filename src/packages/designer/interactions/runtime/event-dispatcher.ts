@@ -77,9 +77,10 @@ function runAction(binding: EventBinding, ctx: DispatchContext): void {
     case 'navigatePage': {
       const pageId = String(params.pageId ?? '')
       if (!pageId) return
-      const project = ctx.editor.getProject()
-      if (!project?.pages.find((p) => p.id === pageId)) return
-      ctx.editor.execute('page.switch', { pageId })
+      // Route through the facade so the navigation resets volatile editor
+      // state and emits `page.changed`. switchPage validates that the
+      // target page exists and no-ops otherwise.
+      ctx.editor.switchPage(pageId)
       return
     }
 

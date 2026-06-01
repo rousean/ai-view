@@ -52,7 +52,12 @@ export function useRotateGesture(): (e: React.PointerEvent) => void {
       const curAngle = angleFromPivot(s.pivot, cur)
       let delta = curAngle - s.startAngle
       if (ev.shiftKey) delta = snapAngle(delta, 15)
-      const updates = distributeRotation(s.initial, s.pivot, delta)
+      // Locked widgets stay put while the rest rotate around the shared
+      // pivot — consistent with the move / resize / nudge gestures.
+      const lockedIds = new Set(s.initial.filter((w) => w.flags.locked).map((w) => w.id))
+      const updates = distributeRotation(s.initial, s.pivot, delta).filter(
+        (u) => !lockedIds.has(u.id),
+      )
       editor.updateLayoutBatch(updates as Array<{ id: string; layout: Partial<Layout> }>)
       // Publish the live delta so SelectionBounds can render the multi-
       // select chrome as a rigid rotation of `initialBBox` around the

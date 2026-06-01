@@ -27,12 +27,12 @@ export function useCreateGuideGesture(viewportRef: React.RefObject<HTMLElement |
   const editor = useDashboardEditor()
   const stateRef = React.useRef<{
     orientation: 'horizontal' | 'vertical'
+    /** Latest canvas-space position; updated on every move, read on commit. */
+    position: number
   } | null>(null)
 
   const start = React.useCallback(
     ({ orientation, clientX, clientY, viewportRect }: StartArgs) => {
-      stateRef.current = { orientation }
-
       // Compute the initial canvas-space position from the ruler click,
       // even before any pointer movement happens — so the preview shows
       // up immediately under the cursor.
@@ -41,6 +41,7 @@ export function useCreateGuideGesture(viewportRef: React.RefObject<HTMLElement |
         { left: viewportRect.left, top: viewportRect.top },
       )
       const position = orientation === 'vertical' ? canvas.x : canvas.y
+      stateRef.current = { orientation, position }
 
       useEditorStore.getState().actions.setInteraction({
         kind: 'creating-guide',
@@ -57,23 +58,28 @@ export function useCreateGuideGesture(viewportRef: React.RefObject<HTMLElement |
           { x: e.clientX, y: e.clientY },
           { left: rect.left, top: rect.top },
         )
+        s.position = s.orientation === 'vertical' ? c.x : c.y
         useEditorStore.getState().actions.setInteraction({
           kind: 'creating-guide',
           orientation: s.orientation,
-          position: s.orientation === 'vertical' ? c.x : c.y,
+          position: s.position,
         })
       }
 
       const onUp = (e: PointerEvent) => {
         const s = stateRef.current
-        const interaction = useEditorStore.getState().interaction
         stateRef.current = null
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
         window.removeEventListener('pointercancel', onUp)
         useEditorStore.getState().actions.setInteraction({ kind: 'idle' })
 
-        if (!s || interaction.kind !== 'creating-guide') return
+        // Commit from the gesture's OWN captured state, not the store's
+        // `interaction`: SelectTool.onPointerUp fires first (React delegates
+        // at the root, which bubbles before this window listener) and resets
+        // the store interaction to idle — reading it here would always look
+        // like a cancel. The ref survives that.
+        if (!s) return
 
         // Commit only if release happened over the viewport — releasing
         // back on the ruler / outside (or a `pointercancel`, where
@@ -86,7 +92,7 @@ export function useCreateGuideGesture(viewportRef: React.RefObject<HTMLElement |
           e.clientY >= rect.top &&
           e.clientY <= rect.bottom
         if (!inside) return
-        editor.addGuide(s.orientation, interaction.position)
+        editor.addGuide(s.orientation, s.position)
       }
 
       window.addEventListener('pointermove', onMove)

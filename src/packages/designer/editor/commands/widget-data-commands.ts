@@ -230,9 +230,14 @@ export const widgetInlineColumnRenameCommand: Command<WidgetInlineColumnRenamePa
   apply: (draft, _ctx, payload) => {
     const node = findWidget(draft, payload.id)
     if (!node?.data || node.data.mode !== 'inline') return
-    // renameColumn throws on collision — we let it bubble; the UI's
-    // rename input validates before committing so a collision would
-    // already have been blocked.
+    // Guard the collision here instead of letting renameColumn throw:
+    // `execute()` re-throws, which would surface as an uncaught error
+    // inside the rename input's onBlur. The UI validates first, so this is
+    // defense-in-depth — silently no-op on a conflict / missing column.
+    if (payload.oldName === payload.newName) return
+    const fields = node.data.dataset.fields
+    if (!fields.some((f) => f.name === payload.oldName)) return
+    if (fields.some((f) => f.name === payload.newName)) return
     const nextDs = renameColumn(node.data.dataset, payload.oldName, payload.newName)
     // Update slot mappings to point at the new column name.
     const mapping: SlotMapping = {}

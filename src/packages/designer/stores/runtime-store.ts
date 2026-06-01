@@ -151,6 +151,9 @@ export const useRuntimeStore = create<RuntimeState>()(
               widgetErrors: {},
               animationPreviewTokens: {},
               highlightedIds: new Set(),
+              // A fresh document load should never inherit a stale preview
+              // mode from the previously-open project.
+              mode: 'design',
             },
             false,
             'runtime/clearAll',

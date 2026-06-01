@@ -365,9 +365,9 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
     run: (ed) => ed.fitToSelection(),
     description: '缩放到选中',
   },
-  { key: '=', mod: 'cmd', run: (ed) => ed.zoomBy(0.1), description: '放大' },
-  { key: '+', mod: 'cmd', run: (ed) => ed.zoomBy(0.1), description: '放大' },
-  { key: '-', mod: 'cmd', run: (ed) => ed.zoomBy(-0.1), description: '缩小' },
+  { key: '=', mod: 'cmd', run: (ed) => ed.zoomAtViewportCenter(0.1), description: '放大' },
+  { key: '+', mod: 'cmd', run: (ed) => ed.zoomAtViewportCenter(0.1), description: '放大' },
+  { key: '-', mod: 'cmd', run: (ed) => ed.zoomAtViewportCenter(-0.1), description: '缩小' },
 
   // ── Toggles ─────────────────────────────────────────────────────────
   { key: "'", mod: 'cmd', run: (ed) => ed.toggleView('showGrid'), description: '显示 / 隐藏网格' },

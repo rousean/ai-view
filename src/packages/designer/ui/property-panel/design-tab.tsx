@@ -148,6 +148,16 @@ function SingleLayoutSection({ widget }: { widget: WidgetNode }) {
           }
         />
       </PropRow>
+      <PropRow label="对齐画布">
+        <ToggleGroup type="single" size="sm" spacing={0} className="h-7">
+          <AlignItem value="l" icon={AlignStartVertical} label="左对齐画布" onSelect={() => editor.alignSelection('left', 'page')} />
+          <AlignItem value="cx" icon={AlignCenterVertical} label="水平居中画布" onSelect={() => editor.alignSelection('h-center', 'page')} />
+          <AlignItem value="r" icon={AlignEndVertical} label="右对齐画布" onSelect={() => editor.alignSelection('right', 'page')} />
+          <AlignItem value="t" icon={AlignStartHorizontal} label="顶对齐画布" onSelect={() => editor.alignSelection('top', 'page')} />
+          <AlignItem value="cy" icon={AlignCenterHorizontal} label="垂直居中画布" onSelect={() => editor.alignSelection('v-center', 'page')} />
+          <AlignItem value="b" icon={AlignEndHorizontal} label="底对齐画布" onSelect={() => editor.alignSelection('bottom', 'page')} />
+        </ToggleGroup>
+      </PropRow>
       <PropRow label="锁定">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -217,19 +227,11 @@ function MultiLayoutSection({
     editor.updateLayoutBatch(updates)
   }
   const distributeAll = (axis: 'x' | 'y') => {
-    if (widgets.length < 3) return
-    const sorted = [...widgets].sort((a, b) => a.layout[axis] - b.layout[axis])
-    const first = sorted[0]!
-    const last = sorted[sorted.length - 1]!
-    const startPos = first.layout[axis]
-    const endPos = last.layout[axis]
-    const gap = (endPos - startPos) / (sorted.length - 1)
-    editor.updateLayoutBatch(
-      sorted.map((w, i) => ({
-        id: w.id,
-        layout: { [axis]: startPos + gap * i } as Partial<Layout>,
-      })),
-    )
+    // Delegate to the gap-based `widget.distribute` command (the same one
+    // the floating toolbar uses) so the panel and canvas agree — and so
+    // spacing accounts for each widget's size, not just its top-left
+    // origin (which left unequal visual gaps for differently-sized items).
+    editor.distributeSelection(axis === 'x' ? 'horizontal' : 'vertical')
   }
 
   // Homogeneous selection → also render shared propsGroups (the

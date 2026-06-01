@@ -218,24 +218,33 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
     if (ctx) t.onDoubleClick(e.nativeEvent, ctx)
   }
 
-  const handleWheel = (e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
+  // Wheel handling lives in a NON-passive native listener (below) rather
+  // than React's synthetic `onWheel`: React registers wheel listeners as
+  // passive, so `preventDefault()` there is silently ignored and the
+  // browser's native Ctrl/⌘-wheel page-zoom fires alongside our canvas
+  // zoom. A manually-attached `{ passive: false }` listener lets us
+  // actually suppress it.
+  React.useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
       e.preventDefault()
-      const rect = containerRef.current?.getBoundingClientRect()
-      const anchor = {
-        x: e.clientX - (rect?.left ?? 0),
-        y: e.clientY - (rect?.top ?? 0),
+      if (e.ctrlKey || e.metaKey) {
+        const rect = el.getBoundingClientRect()
+        const anchor = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+        editor.zoomBy(-e.deltaY * 0.002, anchor)
+      } else {
+        editor.panBy(-e.deltaX, -e.deltaY)
       }
-      editor.zoomBy(-e.deltaY * 0.002, anchor)
-    } else {
-      editor.panBy(-e.deltaX, -e.deltaY)
+      const t = getActiveTool()
+      if (t?.onWheel) {
+        const ctx = getToolContext(e)
+        if (ctx) t.onWheel(e, ctx)
+      }
     }
-    const t = getActiveTool()
-    if (t?.onWheel) {
-      const ctx = getToolContext(e.nativeEvent)
-      if (ctx) t.onWheel(e.nativeEvent, ctx)
-    }
-  }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [editor, getActiveTool, getToolContext])
 
   // Publish viewport size to EditorStore so facades like `fitToScreen`
   // can scale content to actual on-screen room. Reads stay in canvas-
@@ -331,7 +340,6 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onDoubleClick={handleDoubleClick}
-        onWheel={handleWheel}
       >
         <CameraTransformLayer>
           <PageBackgroundWithAssets />

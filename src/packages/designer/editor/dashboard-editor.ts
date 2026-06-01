@@ -704,6 +704,21 @@ export class DashboardEditor {
     })
   }
 
+  /**
+   * Zoom keeping the viewport centre fixed — used by the keyboard
+   * (+ / − / =) and toolbar zoom buttons so the content under the middle
+   * of the screen stays put instead of the camera origin (top-left).
+   * Falls back to a plain `zoomBy` before the first viewport measurement.
+   */
+  zoomAtViewportCenter(delta: number): void {
+    const { width, height } = useEditorStore.getState().viewportSize
+    if (width > 0 && height > 0) {
+      this.zoomBy(delta, { x: width / 2, y: height / 2 })
+    } else {
+      this.zoomBy(delta)
+    }
+  }
+
   resetView(): void {
     this.setCamera({ x: 0, y: 0, scale: 1 })
   }
@@ -785,7 +800,15 @@ export class DashboardEditor {
   // Pages ──────────────────────────────────────────────────────────
 
   switchPage(pageId: string): void {
-    this.execute('page.switch', { pageId })
+    const project = useDocumentStore.getState().project
+    if (!project || project.currentPageId === pageId) return
+    if (!project.pages.some((p) => p.id === pageId)) return
+    // `currentPageId` is a view concern, not an undoable edit — set it
+    // directly instead of routing through a command. Going through the
+    // (ephemeral) `page.switch` command still emits `history.applied`,
+    // which marks the document dirty and arms an autosave for what is a
+    // pure page navigation.
+    useDocumentStore.getState()._setProject({ ...project, currentPageId: pageId })
     useEditorStore.getState().actions.resetVolatile()
     this.bus.emit('page.changed', { pageId })
   }
@@ -795,7 +818,17 @@ export class DashboardEditor {
   }
 
   removePage(pageId: string): void {
+    const wasCurrent = useDocumentStore.getState().project?.currentPageId === pageId
     this.execute('page.remove', { pageId })
+    // Deleting the active page moves currentPageId to a sibling; the old
+    // selection then points at widgets that no longer exist on the shown
+    // page. Reset volatile state so we don't strand a ghost selection
+    // (align buttons / "已选中 N 个" referencing deleted widgets).
+    if (wasCurrent) {
+      useEditorStore.getState().actions.resetVolatile()
+      const nextId = useDocumentStore.getState().project?.currentPageId
+      if (nextId) this.bus.emit('page.changed', { pageId: nextId })
+    }
   }
 
   renamePage(pageId: string, name: string): void {
@@ -830,6 +863,12 @@ export class DashboardEditor {
 
   addGuide(orientation: 'horizontal' | 'vertical', position: number): void {
     this.execute('guide.add', { orientation, position })
+    // A guide the user just pulled out of the ruler has to be visible —
+    // otherwise, if the guides layer was toggled off, it lands hidden and
+    // the whole drag looks like it did nothing.
+    if (!useEditorStore.getState().view.showGuides) {
+      useEditorStore.getState().actions.setView({ showGuides: true })
+    }
   }
 
   removeGuide(id: string): void {
