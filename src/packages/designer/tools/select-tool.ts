@@ -6,6 +6,8 @@ import { useSnapGuidesStore } from '../snap/snap-store'
 import { useEditorStore } from '../stores/editor-store'
 import type { Tool, ToolContext } from './tool.interface'
 
+type EditorHandle = ToolContext['editor']
+
 /** Read user-visible snap toggles from EditorStore.view. */
 function shouldRunSnap(): boolean {
   const v = useEditorStore.getState().view
@@ -22,6 +24,12 @@ interface SelectState {
   /** Initial visual bbox (rotated AABB union) of the moving selection. */
   initialBBox?: { x: number; y: number; width: number; height: number }
   marqueeOrigin?: { x: number; y: number }
+  /** Pre-drag selection snapshot — unioned in for an additive marquee. */
+  marqueeBaseIds?: string[]
+  /** Whether Shift / Ctrl / Cmd was held at marquee start (additive mode). */
+  marqueeAdditive?: boolean
+  /** Whether Alt (alone) was held at marquee start (subtract mode). */
+  marqueeSubtract?: boolean
   hitWidgetId?: string
   /**
    * Whether Alt was held at pointer-down. We don't act on it until the
@@ -29,9 +37,23 @@ interface SelectState {
    * select; Alt+drag = duplicate-then-move).
    */
   altOnDown?: boolean
+  /** Latest pointer screen position — drives the auto-pan loop. */
+  lastClient?: { x: number; y: number }
+  /** Modifier keys at the last pointer event (replayed by the auto-pan loop). */
+  lastMods?: { alt: boolean; shift: boolean }
+  /** Active auto-pan rAF handle, or null when not panning. */
+  edgeRAF?: number | null
+  /** Teardown for the auto-pan's window pointerup / pointercancel guards. */
+  edgeTeardown?: () => void
 }
 
 const MOVE_THRESHOLD = 4 // px in screen space
+
+// Auto-pan: when the pointer gets within EDGE_MARGIN px of a viewport edge
+// during a move / marquee, the camera scrolls toward it at up to
+// EDGE_MAX_SPEED px per frame, so you can drag past the visible area.
+const EDGE_MARGIN = 44
+const EDGE_MAX_SPEED = 16
 
 function getState(ctx: ToolContext): SelectState {
   return ctx.state as unknown as SelectState
@@ -73,6 +95,184 @@ function findStackedWidgetIds(clientX: number, clientY: number): string[] {
   return out
 }
 
+// ── Auto-pan helpers ─────────────────────────────────────────────────
+
+function getViewportRect(): DOMRect | null {
+  if (typeof document === 'undefined') return null
+  const el = document.querySelector('[data-canvas-viewport]')
+  return el ? el.getBoundingClientRect() : null
+}
+
+/**
+ * Camera pan (screen px / frame) that scrolls toward whichever edge the
+ * pointer is hugging; `{0, 0}` when the pointer is clear of every edge.
+ * Positive x reveals content on the left, negative reveals the right
+ * (mirrors `panBy`, which translates the camera).
+ */
+function edgeVelocity(client: { x: number; y: number }, rect: DOMRect): { x: number; y: number } {
+  let x = 0
+  let y = 0
+  const left = client.x - rect.left
+  const right = rect.right - client.x
+  const top = client.y - rect.top
+  const bottom = rect.bottom - client.y
+  if (left < EDGE_MARGIN) x = ((EDGE_MARGIN - left) / EDGE_MARGIN) * EDGE_MAX_SPEED
+  else if (right < EDGE_MARGIN) x = -((EDGE_MARGIN - right) / EDGE_MARGIN) * EDGE_MAX_SPEED
+  if (top < EDGE_MARGIN) y = ((EDGE_MARGIN - top) / EDGE_MARGIN) * EDGE_MAX_SPEED
+  else if (bottom < EDGE_MARGIN) y = -((EDGE_MARGIN - bottom) / EDGE_MARGIN) * EDGE_MAX_SPEED
+  return { x, y }
+}
+
+/**
+ * Apply the move gesture for a given canvas-space pointer position. The
+ * delta is derived from `canvasStart → canvasNow` (not a fixed screen
+ * delta), so it stays correct while auto-pan scrolls the camera mid-drag.
+ * Idempotent: it sets absolute layouts, so a real pointer-move and an
+ * auto-pan frame in the same tick converge on the same result.
+ */
+function applyMoveAt(
+  editor: EditorHandle,
+  s: SelectState,
+  canvasNow: { x: number; y: number },
+  mods: { alt: boolean; shift: boolean },
+): void {
+  if (!s.canvasStart) return
+  const rawX = canvasNow.x - s.canvasStart.x
+  const rawY = canvasNow.y - s.canvasStart.y
+  let cdx = rawX
+  let cdy = rawY
+  const scale = editor.getCamera().scale
+
+  // ── Snap pass ──────────────────────────────────────────────────────
+  // Alt held = bypass snap (free positioning). Also respects the
+  // EditorStore.view.snapTo* toggles. Defensive: skip if editor.snap is
+  // missing (e.g. a stale HMR instance).
+  if (!mods.alt && s.initialBBox && editor.snap && shouldRunSnap()) {
+    try {
+      const view = useEditorStore.getState().view
+      editor.snap.configure({
+        toElements: view.snapToElements,
+        toGuides: view.snapToGuides,
+        toCanvas: view.snapToElements,
+        toGrid: view.snapToGrid,
+      })
+      const movedBBox = {
+        x: s.initialBBox.x + cdx,
+        y: s.initialBBox.y + cdy,
+        width: s.initialBBox.width,
+        height: s.initialBBox.height,
+      }
+      const result = editor.snap.snap(
+        movedBBox,
+        { left: true, right: true, top: true, bottom: true, centerX: true, centerY: true },
+        buildSnapContext(editor, s.movingIds ?? []),
+        scale,
+      )
+      cdx += result.delta.x
+      cdy += result.delta.y
+      useSnapGuidesStore.getState().set(result.guides)
+    } catch (err) {
+      console.warn('[snap] move snap failed', err)
+      useSnapGuidesStore.getState().clear()
+    }
+  } else {
+    useSnapGuidesStore.getState().clear()
+  }
+
+  // Shift = axis-lock to the dominant direction, decided from the
+  // un-snapped delta so the lock stays stable across the drag.
+  if (mods.shift) {
+    if (Math.abs(rawX) > Math.abs(rawY)) cdy = 0
+    else cdx = 0
+  }
+
+  const updates = (s.movingIds ?? []).map((id) => {
+    const init = s.initialLayouts?.get(id)
+    return { id, layout: { x: (init?.x ?? 0) + cdx, y: (init?.y ?? 0) + cdy } }
+  })
+  editor.updateLayoutBatch(updates)
+}
+
+/** Emit the live marquee rect for the given canvas-space pointer. */
+function applyMarqueeAt(
+  editor: EditorHandle,
+  s: SelectState,
+  canvasNow: { x: number; y: number },
+): void {
+  if (!s.marqueeOrigin) return
+  const a = s.marqueeOrigin
+  editor.bus.emit('plugin.marquee.update', {
+    x: Math.min(a.x, canvasNow.x),
+    y: Math.min(a.y, canvasNow.y),
+    width: Math.abs(canvasNow.x - a.x),
+    height: Math.abs(canvasNow.y - a.y),
+  })
+}
+
+function stopEdgePan(s: SelectState): void {
+  if (s.edgeRAF != null) {
+    cancelAnimationFrame(s.edgeRAF)
+    s.edgeRAF = null
+  }
+  if (s.edgeTeardown) {
+    s.edgeTeardown()
+    s.edgeTeardown = undefined
+  }
+}
+
+function edgePanTick(editor: EditorHandle, s: SelectState): void {
+  if (s.phase !== 'moving' && s.phase !== 'marquee') {
+    stopEdgePan(s)
+    return
+  }
+  const rect = getViewportRect()
+  if (!rect || !s.lastClient) {
+    stopEdgePan(s)
+    return
+  }
+  const vel = edgeVelocity(s.lastClient, rect)
+  if (vel.x === 0 && vel.y === 0) {
+    stopEdgePan(s)
+    return
+  }
+  editor.panBy(vel.x, vel.y)
+  const canvasNow = editor.screenToCanvas(s.lastClient, { left: rect.left, top: rect.top })
+  if (s.phase === 'moving') {
+    applyMoveAt(editor, s, canvasNow, s.lastMods ?? { alt: false, shift: false })
+  } else {
+    applyMarqueeAt(editor, s, canvasNow)
+  }
+  s.edgeRAF = requestAnimationFrame(() => edgePanTick(editor, s))
+}
+
+/**
+ * Start / keep / stop the auto-pan loop based on the latest pointer
+ * position. Called after every move / marquee update. A window-level
+ * pointerup / pointercancel guard force-stops the loop even if the normal
+ * onPointerUp somehow doesn't fire (e.g. a touch cancel).
+ */
+function maybeEdgePan(editor: EditorHandle, s: SelectState): void {
+  const rect = getViewportRect()
+  if (!rect || !s.lastClient) {
+    stopEdgePan(s)
+    return
+  }
+  const vel = edgeVelocity(s.lastClient, rect)
+  if (vel.x === 0 && vel.y === 0) {
+    stopEdgePan(s)
+    return
+  }
+  if (s.edgeRAF != null) return // already looping
+  const onEnd = () => stopEdgePan(s)
+  window.addEventListener('pointerup', onEnd)
+  window.addEventListener('pointercancel', onEnd)
+  s.edgeTeardown = () => {
+    window.removeEventListener('pointerup', onEnd)
+    window.removeEventListener('pointercancel', onEnd)
+  }
+  s.edgeRAF = requestAnimationFrame(() => edgePanTick(editor, s))
+}
+
 export const SelectTool: Tool = {
   type: 'select',
   label: '选择',
@@ -81,6 +281,11 @@ export const SelectTool: Tool = {
 
   onActivate(ctx) {
     Object.assign(ctx.state, { phase: 'idle' } satisfies SelectState)
+  },
+
+  onDeactivate(ctx) {
+    // Stop any in-flight auto-pan if the user switches tools mid-drag.
+    stopEdgePan(getState(ctx))
   },
 
   onPointerDown(e, ctx) {
@@ -185,13 +390,20 @@ export const SelectTool: Tool = {
       editor.mark('Move widgets')
     } else {
       // Empty canvas click → marquee or clear selection. Also exits
-      // isolated-group mode if we were in one.
-      if (!(e.shiftKey || e.ctrlKey || e.metaKey)) {
+      // isolated-group mode if we were in one. Modifiers change the mode:
+      // Shift / Ctrl / Cmd = additive (union the box's hits into the
+      // current selection); Alt = subtract (remove the box's hits from it).
+      const additive = e.shiftKey || e.ctrlKey || e.metaKey
+      const subtract = e.altKey && !additive
+      if (!additive && !subtract) {
         editor.selectNone()
         if (editor.getIsolatedGroupId() !== null) editor.setIsolatedGroup(null)
       }
       s.phase = 'marquee'
       s.marqueeOrigin = ctx.pointer.canvas
+      s.marqueeAdditive = additive
+      s.marqueeSubtract = subtract
+      s.marqueeBaseIds = additive || subtract ? editor.getSelectedIds() : undefined
     }
 
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
@@ -211,11 +423,10 @@ export const SelectTool: Tool = {
       }
       if (s.phase !== 'moving') {
         // Crossed the move threshold.
-        // (a) If Alt was held at pointer-down, this is alt-drag
-        //     duplicate. Clone the selection in place, then re-snapshot
-        //     initialLayouts / initialBBox against the clones so the
-        //     drag (and snap) acts on the new copies, leaving the
-        //     originals untouched.
+        // (a) If Alt was held at pointer-down, this is alt-drag duplicate.
+        //     Clone the selection in place, then re-snapshot initialLayouts
+        //     / initialBBox against the clones so the drag (and snap) acts
+        //     on the new copies, leaving the originals untouched.
         if (s.altOnDown) {
           editor.duplicateSelection({ offset: { x: 0, y: 0 } })
           const newIds = editor.getSelectedIds()
@@ -233,9 +444,8 @@ export const SelectTool: Tool = {
           s.initialBBox = unionBBox(newWidgets) ?? undefined
           s.altOnDown = false // already consumed
         }
-        // (b) Surface the gesture to EditorStore so HUD overlays know
-        // to switch their readout (X, Y instead of W × H). Cleared in
-        // onPointerUp.
+        // (b) Surface the gesture to EditorStore so HUD overlays switch
+        // their readout (X, Y instead of W × H). Cleared in onPointerUp.
         useEditorStore.getState().actions.setInteraction({
           kind: 'moving',
           ids: s.movingIds ?? [],
@@ -243,96 +453,24 @@ export const SelectTool: Tool = {
         })
       }
       s.phase = 'moving'
-
-      // Convert delta from screen → canvas.
-      const scale = editor.getCamera().scale
-      let cdx = dx / scale
-      let cdy = dy / scale
-
-      // ── Snap pass ──────────────────────────────────────────────
-      // Alt held = bypass snap (free positioning). Also respects
-      // EditorStore.view.snapTo* toggles. Defensive: skip entirely if
-      // editor.snap is missing (e.g. stale HMR instance).
-      if (!e.altKey && s.initialBBox && editor.snap && shouldRunSnap()) {
-        try {
-          const view = useEditorStore.getState().view
-          // Sync per-axis toggles into the manager each call — cheap.
-          editor.snap.configure({
-            toElements: view.snapToElements,
-            toGuides: view.snapToGuides,
-            toCanvas: view.snapToElements,
-            toGrid: view.snapToGrid,
-          })
-          const movedBBox = {
-            x: s.initialBBox.x + cdx,
-            y: s.initialBBox.y + cdy,
-            width: s.initialBBox.width,
-            height: s.initialBBox.height,
-          }
-          const snapCtx = buildSnapContext(editor, s.movingIds ?? [])
-          const result = editor.snap.snap(
-            movedBBox,
-            {
-              left: true,
-              right: true,
-              top: true,
-              bottom: true,
-              centerX: true,
-              centerY: true,
-            },
-            snapCtx,
-            scale,
-          )
-          cdx += result.delta.x
-          cdy += result.delta.y
-          useSnapGuidesStore.getState().set(result.guides)
-        } catch (err) {
-          console.warn('[snap] move snap failed', err)
-          useSnapGuidesStore.getState().clear()
-        }
-      } else {
-        useSnapGuidesStore.getState().clear()
-      }
-
-      // Shift = axis-lock to the dominant direction. Applied after snap
-      // so snapping doesn't fight us by reintroducing the other axis.
-      // The "dominant" axis is decided from the un-snapped delta so the
-      // lock direction stays stable across the drag.
-      if (e.shiftKey) {
-        const rawDx = dx / scale
-        const rawDy = dy / scale
-        if (Math.abs(rawDx) > Math.abs(rawDy)) cdy = 0
-        else cdx = 0
-      }
-
-      const updates = (s.movingIds ?? []).map((id) => {
-        const init = s.initialLayouts?.get(id)
-        return {
-          id,
-          layout: {
-            x: (init?.x ?? 0) + cdx,
-            y: (init?.y ?? 0) + cdy,
-          },
-        }
-      })
-      editor.updateLayoutBatch(updates)
+      s.lastClient = { x: e.clientX, y: e.clientY }
+      s.lastMods = { alt: e.altKey, shift: e.shiftKey }
+      // Camera-aware: derive the delta from the live canvas pointer so the
+      // move stays correct while auto-pan scrolls the camera mid-drag.
+      applyMoveAt(editor, s, ctx.pointer.canvas, s.lastMods)
+      maybeEdgePan(editor, s)
     } else if (s.phase === 'marquee') {
       if (!s.marqueeOrigin) return
-      const a = s.marqueeOrigin
-      const b = ctx.pointer.canvas
-      const rect = {
-        x: Math.min(a.x, b.x),
-        y: Math.min(a.y, b.y),
-        width: Math.abs(b.x - a.x),
-        height: Math.abs(b.y - a.y),
-      }
-      editor.bus.emit('plugin.marquee.update', rect)
+      s.lastClient = { x: e.clientX, y: e.clientY }
+      applyMarqueeAt(editor, s, ctx.pointer.canvas)
+      maybeEdgePan(editor, s)
     }
   },
 
   onPointerUp(_e, ctx) {
     const editor = ctx.editor
     const s = getState(ctx)
+    stopEdgePan(s)
     if (s.phase === 'marquee') {
       // Commit selection from marquee.
       const a = s.marqueeOrigin
@@ -351,17 +489,31 @@ export const SelectTool: Tool = {
           // of locking is to take a widget out of the canvas's input
           // model. Without this filter a marquee would still grab them,
           // making lock feel half-broken.
-          const hits = editor.getAllWidgets().filter((w) => {
-            if (w.flags.locked || w.flags.hidden) return false
-            const aabb = rotatedAABB(w)
-            return (
-              aabb.x + aabb.width >= rect.x &&
-              aabb.x <= rect.x + rect.width &&
-              aabb.y + aabb.height >= rect.y &&
-              aabb.y <= rect.y + rect.height
-            )
-          })
-          editor.select(hits.map((w) => w.id))
+          const hitIds = editor
+            .getAllWidgets()
+            .filter((w) => {
+              if (w.flags.locked || w.flags.hidden) return false
+              const aabb = rotatedAABB(w)
+              return (
+                aabb.x + aabb.width >= rect.x &&
+                aabb.x <= rect.x + rect.width &&
+                aabb.y + aabb.height >= rect.y &&
+                aabb.y <= rect.y + rect.height
+              )
+            })
+            .map((w) => w.id)
+          if (s.marqueeSubtract && s.marqueeBaseIds) {
+            // Remove the box's hits from the pre-drag selection.
+            const remove = new Set(hitIds)
+            editor.select(s.marqueeBaseIds.filter((id) => !remove.has(id)))
+          } else if (s.marqueeAdditive && s.marqueeBaseIds) {
+            // Union the box's hits into the pre-drag selection.
+            const set = new Set(s.marqueeBaseIds)
+            for (const id of hitIds) set.add(id)
+            editor.select([...set])
+          } else {
+            editor.select(hitIds)
+          }
         }
       }
       editor.bus.emit('plugin.marquee.update', null)
@@ -371,7 +523,14 @@ export const SelectTool: Tool = {
     // Surface "no gesture in flight" to EditorStore so HUD overlays
     // revert to their default (W × H) readout. Idempotent — safe even
     // if the interaction was never bumped (pre-move cancelled, etc.).
-    if (useEditorStore.getState().interaction.kind !== 'idle') {
+    //
+    // Skip guide gestures (creating-guide / moving-guide): they run on
+    // their own window-level pointer listeners and clear their own
+    // interaction. This handler fires FIRST (React delegates at the root,
+    // which bubbles before window), so resetting here would cancel an
+    // in-progress ruler-drag before its own listener can commit it.
+    const liveKind = useEditorStore.getState().interaction.kind
+    if (liveKind !== 'idle' && liveKind !== 'creating-guide' && liveKind !== 'moving-guide') {
       useEditorStore.getState().actions.setInteraction({ kind: 'idle' })
     }
     Object.assign(ctx.state, { phase: 'idle' } satisfies SelectState)

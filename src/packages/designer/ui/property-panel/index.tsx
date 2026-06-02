@@ -40,7 +40,7 @@ type RightTab = 'canvas' | 'design' | 'data' | 'events' | 'motion'
  * (homogeneous vs mixed). The 数据 / 交互 / 动画 tabs disable themselves
  * when the selection is multi.
  */
-export function PropertyPanel() {
+export function PropertyPanel({ onCollapse }: { onCollapse?: () => void } = {}) {
   const editor = useDashboardEditor()
   const selectedIds = useEditorState((s) => s.selectedIds)
   const primaryId = useEditorState((s) => s.primarySelectionId)
@@ -90,7 +90,7 @@ export function PropertyPanel() {
   }, [isSingle])
 
   return (
-    <aside className="border-border bg-card flex w-[300px] shrink-0 flex-col border-l">
+    <aside className="border-border bg-card flex h-full w-full flex-col border-l">
       {/* Header — widget identity + status, only when something is selected */}
       {primaryWidget && (
         <WidgetHeader
@@ -111,6 +111,7 @@ export function PropertyPanel() {
         onSearch={setSearch}
         onResetAll={isSingle ? handleResetAll : undefined}
         onAiBeautify={isSingle ? handleAiBeautify : undefined}
+        onCollapse={onCollapse}
       />
 
       <AiBeautifyDialog

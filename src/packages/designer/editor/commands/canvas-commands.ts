@@ -20,6 +20,10 @@ export interface GridSetPayload {
   grid: Partial<GridConfig>
 }
 
+export interface CanvasSetSafeAreaPayload {
+  safeArea: { enabled: boolean; margin: number } | undefined
+}
+
 export const canvasSetSizeCommand: Command<CanvasSetSizePayload> = {
   type: 'canvas.setSize',
   label: '调整画布尺寸',
@@ -30,6 +34,8 @@ export const canvasSetSizeCommand: Command<CanvasSetSizePayload> = {
     page.canvas.height = payload.height
     page.canvas.orientation = payload.width >= payload.height ? 'landscape' : 'portrait'
   },
+  // Coalesce a scrub / rapid resize into a single undo entry.
+  mergeKey: () => 'canvas.setSize',
 }
 
 export const canvasSetBackgroundCommand: Command<CanvasSetBackgroundPayload> = {
@@ -40,6 +46,8 @@ export const canvasSetBackgroundCommand: Command<CanvasSetBackgroundPayload> = {
     const page = getCurrentPage(draft)
     page.canvas.background = payload.background
   },
+  // Coalesce angle scrubs / continuous colour picking into one entry.
+  mergeKey: () => 'canvas.setBackground',
 }
 
 export const canvasToggleOrientationCommand: Command<CanvasToggleOrientationPayload> = {
@@ -63,6 +71,20 @@ export const gridSetCommand: Command<GridSetPayload> = {
     const page = getCurrentPage(draft)
     page.grid = { ...page.grid, ...payload.grid }
   },
+  // Coalesce a grid-size scrub into one undo entry.
+  mergeKey: () => 'grid.set',
+}
+
+export const canvasSetSafeAreaCommand: Command<CanvasSetSafeAreaPayload> = {
+  type: 'canvas.setSafeArea',
+  label: '安全区',
+  undoable: true,
+  apply: (draft, _ctx, payload) => {
+    const page = getCurrentPage(draft)
+    if (payload.safeArea === undefined) delete page.canvas.safeArea
+    else page.canvas.safeArea = payload.safeArea
+  },
+  mergeKey: () => 'canvas.setSafeArea',
 }
 
 export const canvasCommands: Command<any>[] = [
@@ -70,4 +92,5 @@ export const canvasCommands: Command<any>[] = [
   canvasSetBackgroundCommand,
   canvasToggleOrientationCommand,
   gridSetCommand,
+  canvasSetSafeAreaCommand,
 ]

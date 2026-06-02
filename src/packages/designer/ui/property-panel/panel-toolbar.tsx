@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { RotateCcw, Search, Sparkles, X } from 'lucide-react'
+import { ChevronRight, RotateCcw, Search, Sparkles, X } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { cn } from '~/lib/utils'
@@ -22,11 +22,13 @@ export function PanelToolbar({
   onSearch,
   onResetAll,
   onAiBeautify,
+  onCollapse,
 }: {
   search: string
   onSearch: (next: string) => void
   onResetAll?: () => void
   onAiBeautify?: () => void
+  onCollapse?: () => void
 }) {
   const inputRef = React.useRef<HTMLInputElement>(null)
 
@@ -95,6 +97,16 @@ export function PanelToolbar({
         </TooltipTrigger>
         <TooltipContent>AI 美化</TooltipContent>
       </Tooltip>
+      {onCollapse && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon-sm" onClick={onCollapse} aria-label="收起属性面板">
+              <ChevronRight size={14} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>收起面板</TooltipContent>
+        </Tooltip>
+      )}
     </div>
   )
 }

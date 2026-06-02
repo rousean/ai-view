@@ -1,6 +1,15 @@
 import * as React from 'react'
+import { ChevronDown, Lock, Trash2, Unlock } from 'lucide-react'
 import type { Background } from '@schema/types'
-import { useDashboardEditor, useDocumentState } from '../../editor/editor-context'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
+import { Button } from '~/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { useDashboardEditor, useDocumentState, useEditorState } from '../../editor/editor-context'
 import { selectCurrentPage } from '../../stores/selectors'
 import {
   ColorInput,
@@ -22,6 +31,7 @@ import {
 export function CanvasProps() {
   const editor = useDashboardEditor()
   const page = useDocumentState((s) => selectCurrentPage(s))
+  const view = useEditorState((s) => s.view)
   if (!page) return null
 
   const bg = page.canvas.background
@@ -44,15 +54,58 @@ export function CanvasProps() {
   return (
     <>
       <PropSection title="尺寸">
+        <PropRow label="预设">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="border-border bg-background hover:bg-muted flex h-7 w-full cursor-pointer items-center justify-between rounded-sm border px-2 text-xs"
+              >
+                <span className="truncate">
+                  {presetLabel(page.canvas.width, page.canvas.height)}
+                </span>
+                <ChevronDown size={12} className="text-muted-foreground/60 shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[200px]">
+              {SIZE_PRESETS.map((p) => (
+                <DropdownMenuItem
+                  key={p.label}
+                  onSelect={() => editor.setCanvasSize(p.w, p.h)}
+                  className="justify-between gap-4"
+                >
+                  <span>{p.label}</span>
+                  <span className="text-muted-foreground/60 tabular-nums">
+                    {p.w}×{p.h}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </PropRow>
         <PropRow label="宽 × 高">
           <NumInput
             value={page.canvas.width}
+            prefix="W"
             onChange={(w) => editor.setCanvasSize(w, page.canvas.height)}
           />
-          <span className="text-muted-foreground/60">×</span>
           <NumInput
             value={page.canvas.height}
+            prefix="H"
             onChange={(h) => editor.setCanvasSize(page.canvas.width, h)}
+          />
+        </PropRow>
+        <PropRow label="方向">
+          <Segmented
+            value={page.canvas.width >= page.canvas.height ? '横屏' : '竖屏'}
+            onChange={(v) => {
+              const isLandscape = page.canvas.width >= page.canvas.height
+              if ((v === '横屏') !== isLandscape) editor.toggleOrientation()
+            }}
+            options={[
+              { value: '横屏', label: '横屏' },
+              { value: '竖屏', label: '竖屏' },
+            ]}
           />
         </PropRow>
         <PropRow label="比例">
@@ -184,12 +237,113 @@ export function CanvasProps() {
             onChange={(n) => editor.setGrid({ size: n })}
           />
         </PropRow>
-        <PropRow label="对齐栅格">
-          <Toggle on={page.grid.snap} onChange={(on) => editor.setGrid({ snap: on })} />
+        <PropRow label="网格样式">
+          <Segmented
+            value={(page.grid.style ?? 'lines') === 'dots' ? '点阵' : '线框'}
+            onChange={(v) => editor.setGrid({ style: v === '点阵' ? 'dots' : 'lines' })}
+            options={[
+              { value: '线框', label: '线框' },
+              { value: '点阵', label: '点阵' },
+            ]}
+          />
         </PropRow>
+        <PropRow label="对齐栅格">
+          <Toggle on={view.snapToGrid} onChange={() => editor.toggleView('snapToGrid')} />
+        </PropRow>
+        <PropRow label="栅格颜色">
+          <ColorInput
+            value={page.grid.color ?? '#888888'}
+            onChange={(c) => editor.setGrid({ color: c })}
+          />
+        </PropRow>
+      </PropSection>
+
+      <PropSection title="安全区">
+        <PropRow label="显示">
+          <Toggle
+            on={!!page.canvas.safeArea?.enabled}
+            onChange={(on) =>
+              editor.setSafeArea({ enabled: on, margin: page.canvas.safeArea?.margin ?? 60 })
+            }
+          />
+        </PropRow>
+        <PropRow label="边距">
+          <NumInput
+            value={page.canvas.safeArea?.margin ?? 60}
+            suffix="px"
+            min={0}
+            disabled={!page.canvas.safeArea?.enabled}
+            onChange={(m) =>
+              editor.setSafeArea({ enabled: page.canvas.safeArea?.enabled ?? true, margin: m })
+            }
+          />
+        </PropRow>
+      </PropSection>
+
+      <PropSection title="参考线">
+        {page.guides.length === 0 ? (
+          <div className="text-muted-foreground/60 px-3 py-2 text-[11px]">
+            从标尺拖出，或双击标尺添加
+          </div>
+        ) : (
+          <>
+            {page.guides.map((g) => (
+              <PropRow key={g.id} label={g.orientation === 'vertical' ? 'X' : 'Y'}>
+                <NumInput
+                  value={Math.round(g.position)}
+                  disabled={g.locked}
+                  onChange={(p) => editor.updateGuide(g.id, p)}
+                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="shrink-0"
+                      aria-label={g.locked ? '解锁' : '锁定'}
+                      onClick={() => editor.setGuideLocked(g.id, !g.locked)}
+                    >
+                      {g.locked ? <Lock size={12} /> : <Unlock size={12} />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{g.locked ? '已锁定' : '锁定'}</TooltipContent>
+                </Tooltip>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-muted-foreground/60 hover:text-destructive shrink-0"
+                  aria-label="删除参考线"
+                  onClick={() => editor.removeGuide(g.id)}
+                >
+                  <Trash2 size={12} />
+                </Button>
+              </PropRow>
+            ))}
+            <div className="px-3 pt-1">
+              <Button variant="ghost" size="xs" onClick={() => editor.clearGuides()}>
+                清除全部
+              </Button>
+            </div>
+          </>
+        )}
       </PropSection>
     </>
   )
+}
+
+const SIZE_PRESETS: { label: string; w: number; h: number }[] = [
+  { label: '720P', w: 1280, h: 720 },
+  { label: '1080P · FHD', w: 1920, h: 1080 },
+  { label: '2K · QHD', w: 2560, h: 1440 },
+  { label: '4K · UHD', w: 3840, h: 2160 },
+  { label: '带鱼屏 · 21:9', w: 2560, h: 1080 },
+  { label: '带鱼屏 · 2K', w: 3440, h: 1440 },
+  { label: '竖屏 · 1080P', w: 1080, h: 1920 },
+]
+
+function presetLabel(w: number, h: number): string {
+  const hit = SIZE_PRESETS.find((p) => p.w === w && p.h === h)
+  return hit ? hit.label : `自定义 · ${Math.round(w)}×${Math.round(h)}`
 }
 
 function ratioOf(w: number, h: number): string {

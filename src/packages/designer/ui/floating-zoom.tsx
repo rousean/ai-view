@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ChevronDown, Crosshair, Maximize, Minus, Plus } from 'lucide-react'
+import { ChevronDown, Crosshair, Map, Maximize, Minus, Plus } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
@@ -11,7 +11,9 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { Separator } from '~/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { cn } from '~/lib/utils'
 import { useDashboardEditor, useEditorState } from '../editor/editor-context'
+import { useEditorStore } from '../stores/editor-store'
 
 /**
  * Bottom-right floating zoom control.
@@ -29,6 +31,7 @@ export function FloatingZoom() {
   const scale = useEditorState((s) => s.camera.scale)
   const viewportSize = useEditorState((s) => s.viewportSize)
   const hasSelection = useEditorState((s) => s.selectedIds.length > 0)
+  const minimapOn = useEditorState((s) => s.panels.minimap)
 
   // Jump to a preset zoom while keeping whatever point is currently
   // under the viewport centre still under the viewport centre — so the
@@ -130,6 +133,21 @@ export function FloatingZoom() {
           </Button>
         </TooltipTrigger>
         <TooltipContent>适应屏幕 (⌘1)</TooltipContent>
+      </Tooltip>
+      <Separator orientation="vertical" className="mx-1 h-4 self-center" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => useEditorStore.getState().actions.togglePanel('minimap')}
+            aria-label="小地图"
+            className={cn(minimapOn && 'text-primary')}
+          >
+            <Map size={14} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>小地图导航</TooltipContent>
       </Tooltip>
     </div>
   )

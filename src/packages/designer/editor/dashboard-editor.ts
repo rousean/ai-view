@@ -91,6 +91,10 @@ export class DashboardEditor {
   private _autoSaveMs = 30_000 // override via prefs.autoSaveInterval
   private _autoSaveEnabled = true
 
+  // Session-scoped "style" (props) clipboard — kept separate from the
+  // widget clipboard so copying a style doesn't clobber a copied widget.
+  private _styleClipboard: { type: string; props: Record<string, unknown> } | null = null
+
   constructor(opts: EditorOptions) {
     this.adapter = opts.adapter
     this.history = new HistoryManager(this.bus)
@@ -502,6 +506,46 @@ export class DashboardEditor {
     this.select(newIds)
   }
 
+  /**
+   * Copy the primary selection's props as a reusable "style". Stored in a
+   * dedicated in-memory slot (session-scoped) so it never interferes with
+   * the widget copy/paste clipboard.
+   */
+  copyStyleFromSelection(): void {
+    const id = this.getSelectedIds()[0]
+    const w = id ? this.getWidget(id) : null
+    if (!w) return
+    this._styleClipboard = { type: w.type, props: structuredClone(w.props) }
+  }
+
+  /** Whether a style has been copied this session. */
+  hasStyleClipboard(): boolean {
+    return this._styleClipboard !== null
+  }
+
+  /** The widget type the copied style came from (for menu hints), or null. */
+  getStyleClipboardType(): string | null {
+    return this._styleClipboard?.type ?? null
+  }
+
+  /**
+   * Apply the copied style to every selected widget of the *same type*
+   * (props are type-specific). Locked widgets are skipped, mirroring
+   * align / distribute. Grouped into a single undo entry. No-op when
+   * nothing was copied or no selected widget matches the copied type.
+   */
+  pasteStyleToSelection(): void {
+    const clip = this._styleClipboard
+    if (!clip) return
+    const targets = this.getSelectedWidgets().filter(
+      (w) => w.type === clip.type && !w.flags.locked,
+    )
+    if (targets.length === 0) return
+    this.batch('粘贴样式', () => {
+      for (const t of targets) this.updateProps(t.id, structuredClone(clip.props))
+    })
+  }
+
   async copySelection(): Promise<void> {
     const widgets = this.getSelectedWidgets()
     if (widgets.length === 0) return
@@ -770,6 +814,48 @@ export class DashboardEditor {
     this.setCamera({ x, y, scale: cappedScale })
   }
 
+  /**
+   * Pan (without zooming) just enough to bring the current selection into
+   * view, leaving `padding` screen pixels of margin. No-ops when the
+   * selection is already comfortably inside the viewport — so it's safe to
+   * call after *any* selection change: canvas clicks select things already
+   * on screen (instant no-op), while "blind" selections (layers panel,
+   * Tab-cycle, select-same-type, command palette) get revealed.
+   *
+   * If the selection is larger than the available area on an axis, it's
+   * centred on that axis instead of clamped.
+   */
+  revealSelection(padding = 80): void {
+    const widgets = this.getSelectedWidgets()
+    if (widgets.length === 0) return
+    const bb = unionBBox(widgets)
+    const cam = this.getCamera()
+    const { width: vw, height: vh } = useEditorStore.getState().viewportSize
+    if (!bb || vw <= 0 || vh <= 0) return
+
+    // Selection bbox in viewport-relative screen pixels.
+    const sx = bb.x * cam.scale + cam.x
+    const sy = bb.y * cam.scale + cam.y
+    const sw = bb.width * cam.scale
+    const sh = bb.height * cam.scale
+
+    const fitsX = sw <= vw - padding * 2
+    const fitsY = sh <= vh - padding * 2
+
+    let dx = 0
+    if (!fitsX) dx = vw / 2 - (sx + sw / 2)
+    else if (sx < padding) dx = padding - sx
+    else if (sx + sw > vw - padding) dx = vw - padding - (sx + sw)
+
+    let dy = 0
+    if (!fitsY) dy = vh / 2 - (sy + sh / 2)
+    else if (sy < padding) dy = padding - sy
+    else if (sy + sh > vh - padding) dy = vh - padding - (sy + sh)
+
+    if (dx === 0 && dy === 0) return
+    this.panBy(dx, dy)
+  }
+
   panBy(dx: number, dy: number): void {
     const cam = this.getCamera()
     this.setCamera({ x: cam.x + dx, y: cam.y + dy })
@@ -857,6 +943,10 @@ export class DashboardEditor {
     this.execute('canvas.setBackground', { background })
   }
 
+  setSafeArea(safeArea: { enabled: boolean; margin: number } | undefined): void {
+    this.execute('canvas.setSafeArea', { safeArea })
+  }
+
   setGrid(grid: Partial<Page['grid']>): void {
     this.execute('grid.set', { grid })
   }
@@ -877,6 +967,10 @@ export class DashboardEditor {
 
   updateGuide(id: string, position: number): void {
     this.execute('guide.update', { id, position })
+  }
+
+  setGuideLocked(id: string, locked: boolean): void {
+    this.execute('guide.setLocked', { id, locked })
   }
 
   clearGuides(): void {
@@ -1027,6 +1121,13 @@ export class DashboardEditor {
   nudgeSelection(dx: number, dy: number, step = 1): void {
     const ids = this.getSelectedIds()
     if (ids.length === 0) return
+    // When grid-snap is on, arrow keys move in whole grid cells and land
+    // the widget on the grid line; otherwise it's the raw 1px / 10px step.
+    const page = this.getCurrentPage()
+    const gridSize = page?.grid.size ?? 0
+    const useGrid =
+      useEditorStore.getState().view.snapToGrid && !!page?.grid.enabled && gridSize > 0
+    const effStep = useGrid ? (step >= 10 ? gridSize * 5 : gridSize) : step
     const updates: Array<{ id: string; layout: Partial<Layout> }> = []
     for (const id of ids) {
       const w = this.getWidget(id)
@@ -1035,12 +1136,44 @@ export class DashboardEditor {
       // the selection so the property panel stays consistent, but the
       // user explicitly opted them out of layout mutations.
       if (w.flags.locked) continue
-      updates.push({
-        id,
-        layout: { x: w.layout.x + dx * step, y: w.layout.y + dy * step },
-      })
+      let nx = w.layout.x + dx * effStep
+      let ny = w.layout.y + dy * effStep
+      if (useGrid) {
+        nx = Math.round(nx / gridSize) * gridSize
+        ny = Math.round(ny / gridSize) * gridSize
+      }
+      updates.push({ id, layout: { x: nx, y: ny } })
     }
     if (updates.length === 0) return
+    this.execute('widget.updateLayoutBatch', { updates })
+  }
+
+  /**
+   * Round every selected widget's layout (x / y / w / h) to whole pixels —
+   * a one-shot "snap to pixel" that cleans up the fractional values left by
+   * dragging / resizing at non-100% zoom. Skips locked widgets; collapses
+   * into a single undo entry.
+   */
+  roundSelectionToPixel(): void {
+    const updates: Array<{ id: string; layout: Partial<Layout> }> = []
+    for (const w of this.getSelectedWidgets()) {
+      if (w.flags.locked) continue
+      const x = Math.round(w.layout.x)
+      const y = Math.round(w.layout.y)
+      const width = Math.round(w.layout.width)
+      const height = Math.round(w.layout.height)
+      if (
+        x === w.layout.x &&
+        y === w.layout.y &&
+        width === w.layout.width &&
+        height === w.layout.height
+      ) {
+        continue
+      }
+      updates.push({ id: w.id, layout: { x, y, width, height } })
+    }
+    if (updates.length === 0) return
+    this.mark('对齐到像素')
     this.execute('widget.updateLayoutBatch', { updates })
   }
 
@@ -1080,7 +1213,26 @@ export class DashboardEditor {
     const currentId = useEditorStore.getState().primarySelectionId
     const idx = currentId ? all.findIndex((w) => w.id === currentId) : -1
     const next = all[(idx + 1) % all.length]
-    if (next) this.selectOne(next.id)
+    if (next) {
+      this.selectOne(next.id)
+      this.revealSelection()
+    }
+  }
+
+  /**
+   * Cycle selection backward through the current page's widget list.
+   * Used by `Shift+Tab`. With nothing selected, picks the last widget.
+   */
+  selectPrev(): void {
+    const all = this.getAllWidgets()
+    if (all.length === 0) return
+    const currentId = useEditorStore.getState().primarySelectionId
+    const idx = currentId ? all.findIndex((w) => w.id === currentId) : -1
+    const prev = idx < 0 ? all[all.length - 1] : all[(idx - 1 + all.length) % all.length]
+    if (prev) {
+      this.selectOne(prev.id)
+      this.revealSelection()
+    }
   }
 
   // History ────────────────────────────────────────────────────────

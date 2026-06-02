@@ -8,6 +8,7 @@ export const CanvasConfigSchema = z.object({
   height: z.number().positive(),
   orientation: z.enum(['landscape', 'portrait']),
   background: BackgroundSchema,
+  safeArea: z.object({ enabled: z.boolean(), margin: z.number() }).optional(),
 })
 
 export const GridConfigSchema = z.object({
@@ -15,6 +16,7 @@ export const GridConfigSchema = z.object({
   size: z.number().positive(),
   snap: z.boolean(),
   color: z.string().optional(),
+  style: z.enum(['lines', 'dots']).optional(),
 })
 
 export const PageTransitionSchema = z.object({

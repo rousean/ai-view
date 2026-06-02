@@ -7,6 +7,7 @@ import { useEditorStore } from '../stores/editor-store'
 import type { Tool, ToolContext } from '../tools/tool.interface'
 import { CameraTransformLayer } from './camera-transform-layer'
 import { GridLayer } from './grid-layer'
+import { SafeAreaOverlay } from './safe-area-overlay'
 import { CanvasEmptyState } from './empty-state'
 import { GuidesOverlay } from './guides-overlay'
 import { useCreateGuideGesture } from './interaction/use-create-guide-gesture'
@@ -16,6 +17,7 @@ import { MarqueeOverlay } from './overlay/marquee'
 import { HoverIndicator, SelectionBounds } from './overlay/selection-bounds'
 import { PageBackgroundWithAssets } from './page-background'
 import { AxisX, AxisY, RULER_SIZE } from './ruler'
+import { SelectionToolbar } from './selection-toolbar'
 import { WidgetLayer } from './widget-layer'
 
 /**
@@ -349,6 +351,7 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
           <SelectionBounds />
           <AlignmentGuidesOverlay />
           <DistanceGuides />
+          <SafeAreaOverlay />
           <GuidesOverlay viewportRef={containerRef} />
           <MarqueeOverlay />
         </CameraTransformLayer>
@@ -357,6 +360,9 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
             of the artboard geometry — otherwise it drifts off-screen
             on a 1920×1080 canvas viewed through a 1280px editor. */}
         <CanvasEmptyState />
+        {/* Selection quick-actions — viewport-relative, constant size,
+            tracks the selection. Sits outside the camera transform. */}
+        <SelectionToolbar />
       </div>
 
       {/* Rulers — absolute overlay; self-measuring. Drag-from-ruler
@@ -370,6 +376,9 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
             className="absolute top-0 right-0"
             style={{ left: RULER_SIZE, height: RULER_SIZE }}
             onStartGuide={(e) => {
+              // Primary button only — right/middle clicks fall through to
+              // the context menu / pan instead of spawning a guide.
+              if (e.button !== 0) return
               const rect = containerRef.current?.getBoundingClientRect()
               if (!rect) return
               e.preventDefault()
@@ -380,11 +389,25 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
                 viewportRect: rect,
               })
             }}
+            onDoubleClick={(e) => {
+              // Double-click the ruler → drop a guide at the clicked
+              // coordinate (precise, no drag needed).
+              const rect = containerRef.current?.getBoundingClientRect()
+              if (!rect) return
+              const c = editor.screenToCanvas(
+                { x: e.clientX, y: e.clientY },
+                { left: rect.left, top: rect.top },
+              )
+              editor.addGuide('vertical', Math.round(c.x))
+            }}
           />
           <AxisY
             className="absolute bottom-0 left-0"
             style={{ top: RULER_SIZE, width: RULER_SIZE }}
             onStartGuide={(e) => {
+              // Primary button only — right/middle clicks fall through to
+              // the context menu / pan instead of spawning a guide.
+              if (e.button !== 0) return
               const rect = containerRef.current?.getBoundingClientRect()
               if (!rect) return
               e.preventDefault()
@@ -394,6 +417,15 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
                 clientY: e.clientY,
                 viewportRect: rect,
               })
+            }}
+            onDoubleClick={(e) => {
+              const rect = containerRef.current?.getBoundingClientRect()
+              if (!rect) return
+              const c = editor.screenToCanvas(
+                { x: e.clientX, y: e.clientY },
+                { left: rect.left, top: rect.top },
+              )
+              editor.addGuide('horizontal', Math.round(c.y))
             }}
           />
           {/* Top-left corner */}

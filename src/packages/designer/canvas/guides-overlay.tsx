@@ -61,9 +61,10 @@ export const GuidesOverlay: React.FC<Props> = ({ viewportRef }) => {
       {showGuides && page.guides.map((g) => {
         if (g.id === draggingId) return null
         const isV = g.orientation === 'vertical'
+        const locked = !!g.locked
         return (
           <g key={g.id}>
-            {/* Visible line */}
+            {/* Visible line — dashed when locked. */}
             <line
               x1={isV ? g.position : 0}
               x2={isV ? g.position : canvasW}
@@ -72,33 +73,36 @@ export const GuidesOverlay: React.FC<Props> = ({ viewportRef }) => {
               stroke="var(--primary)"
               strokeWidth={stroke}
               strokeOpacity={0.7}
+              strokeDasharray={locked ? `${6 / scale} ${4 / scale}` : undefined}
             />
-            {/* Wide invisible hit area for grabbing */}
-            <line
-              x1={isV ? g.position : 0}
-              x2={isV ? g.position : canvasW}
-              y1={isV ? 0 : g.position}
-              y2={isV ? canvasH : g.position}
-              stroke="transparent"
-              strokeWidth={hitPx}
-              style={{
-                pointerEvents: 'stroke',
-                cursor: isV ? 'col-resize' : 'row-resize',
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation()
-                e.preventDefault()
-                const rect = viewportRef.current?.getBoundingClientRect()
-                if (!rect) return
-                startMove({
-                  id: g.id,
-                  orientation: g.orientation,
-                  clientX: e.clientX,
-                  clientY: e.clientY,
-                  viewportRect: rect,
-                })
-              }}
-            />
+            {/* Wide invisible hit area for grabbing — omitted when locked. */}
+            {!locked && (
+              <line
+                x1={isV ? g.position : 0}
+                x2={isV ? g.position : canvasW}
+                y1={isV ? 0 : g.position}
+                y2={isV ? canvasH : g.position}
+                stroke="transparent"
+                strokeWidth={hitPx}
+                style={{
+                  pointerEvents: 'stroke',
+                  cursor: isV ? 'col-resize' : 'row-resize',
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  const rect = viewportRef.current?.getBoundingClientRect()
+                  if (!rect) return
+                  startMove({
+                    id: g.id,
+                    orientation: g.orientation,
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                    viewportRect: rect,
+                  })
+                }}
+              />
+            )}
           </g>
         )
       })}

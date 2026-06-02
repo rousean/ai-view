@@ -148,7 +148,7 @@ export function NumInput({
         // label for scrubbing. We don't ship a custom Tooltip because
         // the property panel is dense and an extra popover would
         // obscure neighbouring rows during fast iteration.
-        title="↑↓ ±1 · Shift ↑↓ ±10 · 拖动前缀标签连续调整"
+        title="↑↓ ±1 · Shift ↑↓ ±10 · 拖动前/后缀标签连续调整"
         onChange={(e) => setText(e.target.value)}
         onBlur={(e) => commit(e.target.value)}
         onKeyDown={(e) => {
@@ -168,7 +168,11 @@ export function NumInput({
         className="text-foreground placeholder:text-muted-foreground/60 w-full border-none bg-transparent text-[11px] tabular-nums outline-none"
       />
       {suffix && (
-        <span className="text-muted-foreground/80 shrink-0 text-[11px]">{suffix}</span>
+        <ScrubHandle
+          label={suffix}
+          disabled={disabled || !onChange}
+          onScrub={(delta) => bump(delta)}
+        />
       )}
     </PropInput>
   )

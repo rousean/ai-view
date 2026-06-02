@@ -3,11 +3,8 @@ import {
   GripVertical,
   Hand,
   Maximize,
-  Minus,
   MousePointer2,
   Sparkles,
-  Square,
-  Type as TextIcon,
 } from 'lucide-react'
 import { Feedback } from '@dnd-kit/dom'
 import { useDragDropMonitor, useDraggable, type DragEndEvent } from '@dnd-kit/react'
@@ -106,10 +103,6 @@ export function FloatingTools() {
           onClick={() => editor.setTool('pan')}
           active={tool === 'pan'}
         />
-        <Divider />
-        <ToolButton label="矩形 · R" icon={Square} placeholder />
-        <ToolButton label="连线 · L" icon={Minus} placeholder />
-        <ToolButton label="文本 · T" icon={TextIcon} placeholder />
         <Divider />
         <ToolButton label="AI 生成 · G" icon={Sparkles} placeholder />
         <Divider />

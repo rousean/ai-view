@@ -40,7 +40,10 @@ export function parseCsv(raw: string, opts: ParseCsvOptions = {}): Dataset {
         continue
       }
       const num = Number(cell)
-      if (Number.isFinite(num) && /^-?[\d.eE+-]+$/.test(cell)) {
+      // Skip coercion for leading-zero integers (zip codes, IDs like
+      // "010000") so the zero isn't silently dropped. "0" / "0.5" still pass.
+      const leadingZero = /^-?0\d/.test(cell)
+      if (Number.isFinite(num) && !leadingZero && /^-?[\d.eE+-]+$/.test(cell)) {
         row[key] = num
         sampled[i]!.push(num)
         continue

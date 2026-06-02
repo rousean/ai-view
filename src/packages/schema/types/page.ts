@@ -8,6 +8,8 @@ export interface CanvasConfig {
   height: number
   orientation: 'landscape' | 'portrait'
   background: Background
+  /** Optional safe-area frame: a margin (px) inset from every edge. */
+  safeArea?: { enabled: boolean; margin: number }
 }
 
 /** Grid configuration: visibility + snap behavior. */
@@ -18,6 +20,8 @@ export interface GridConfig {
   /** Whether widgets snap to grid. */
   snap: boolean
   color?: string
+  /** Grid rendering style. Defaults to 'lines'. */
+  style?: 'lines' | 'dots'
 }
 
 /** Page transition (large-screen carousels). */

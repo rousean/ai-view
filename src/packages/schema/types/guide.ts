@@ -7,4 +7,6 @@ export interface Guide {
   orientation: 'horizontal' | 'vertical'
   /** canvas-space pixel coordinate. */
   position: number
+  /** Locked guides can't be dragged on the canvas (still editable in the list). */
+  locked?: boolean
 }

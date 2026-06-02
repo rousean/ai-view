@@ -1,7 +1,8 @@
 import * as React from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useDocumentStore } from '../../stores/document-store'
 import { useEditorStore } from '../../stores/editor-store'
-import { selectCurrentPage, selectWidget } from '../../stores/selectors'
+import { selectCurrentPage, selectWidget, selectWidgets } from '../../stores/selectors'
 import { rotatedAABB } from '../transformer/geometry'
 import type { BBox } from '../transformer/geometry'
 
@@ -44,6 +45,7 @@ export const DistanceGuides: React.FC = () => {
   )
   const b = useDocumentStore((s) => (isEligible ? selectWidget(hoverId!)(s) : null))
   const page = useDocumentStore((s) => selectCurrentPage(s))
+  const all = useDocumentStore(useShallow((s) => (isEligible ? selectWidgets(s) : [])))
 
   if (!isEligible || !a || !b || !page) return null
 
@@ -58,6 +60,10 @@ export const DistanceGuides: React.FC = () => {
   const color = '#ec4899' // tailwind pink-500 — distinct from selection/snap
 
   const segments = computeSegments(ra, rb)
+  // Equal-spacing hint: if `a` is equidistant from a third widget on the
+  // opposite side, surface that gap too so the two equal gaps read as "equal".
+  const others = all.filter((w) => w.id !== a.id && w.id !== b.id).map(rotatedAABB)
+  segments.push(...findEqualSpacing(ra, rb, others))
 
   return (
     <svg
@@ -176,4 +182,62 @@ function computeSegments(a: BBox, b: BBox): Segment[] {
   }
 
   return segs
+}
+
+/**
+ * If the selected rect `a` is the same distance from a third widget on the
+ * opposite side as it is from the hovered rect `b`, return that third gap as
+ * a Segment — rendered alongside the a–b gap, the two equal-length bars read
+ * as an "equal spacing" hint.
+ */
+function findEqualSpacing(a: BBox, b: BBox, others: BBox[]): Segment[] {
+  const TOL = 1 // canvas px — treat gaps within 1px as equal
+  const overlapY = !(a.y + a.height <= b.y || b.y + b.height <= a.y)
+  const overlapX = !(a.x + a.width <= b.x || b.x + b.width <= a.x)
+  const out: Segment[] = []
+
+  if (overlapY && !overlapX) {
+    const bRight = b.x >= a.x + a.width
+    const gapB = bRight ? b.x - (a.x + a.width) : a.x - (b.x + b.width)
+    if (gapB <= 0) return out
+    let best: { r: BBox; gap: number } | null = null
+    for (const r of others) {
+      if (a.y + a.height <= r.y || r.y + r.height <= a.y) continue // not same row
+      const onLeft = r.x + r.width <= a.x
+      const onRight = r.x >= a.x + a.width
+      if (bRight ? !onLeft : !onRight) continue // must be opposite side from b
+      const gapC = bRight ? a.x - (r.x + r.width) : r.x - (a.x + a.width)
+      if (gapC <= 0) continue
+      if (!best || gapC < best.gap) best = { r, gap: gapC }
+    }
+    if (best && Math.abs(best.gap - gapB) <= TOL) {
+      const y =
+        (Math.max(a.y, best.r.y) + Math.min(a.y + a.height, best.r.y + best.r.height)) / 2
+      const label = `${Math.round(best.gap)}`
+      if (bRight) out.push({ x1: best.r.x + best.r.width, y1: y, x2: a.x, y2: y, label })
+      else out.push({ x1: a.x + a.width, y1: y, x2: best.r.x, y2: y, label })
+    }
+  } else if (overlapX && !overlapY) {
+    const bBelow = b.y >= a.y + a.height
+    const gapB = bBelow ? b.y - (a.y + a.height) : a.y - (b.y + b.height)
+    if (gapB <= 0) return out
+    let best: { r: BBox; gap: number } | null = null
+    for (const r of others) {
+      if (a.x + a.width <= r.x || r.x + r.width <= a.x) continue // not same column
+      const above = r.y + r.height <= a.y
+      const below = r.y >= a.y + a.height
+      if (bBelow ? !above : !below) continue
+      const gapC = bBelow ? a.y - (r.y + r.height) : r.y - (a.y + a.height)
+      if (gapC <= 0) continue
+      if (!best || gapC < best.gap) best = { r, gap: gapC }
+    }
+    if (best && Math.abs(best.gap - gapB) <= TOL) {
+      const x =
+        (Math.max(a.x, best.r.x) + Math.min(a.x + a.width, best.r.x + best.r.width)) / 2
+      const label = `${Math.round(best.gap)}`
+      if (bBelow) out.push({ x1: x, y1: best.r.y + best.r.height, x2: x, y2: a.y, label })
+      else out.push({ x1: x, y1: a.y + a.height, x2: x, y2: best.r.y, label })
+    }
+  }
+  return out
 }

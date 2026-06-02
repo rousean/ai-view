@@ -37,9 +37,16 @@ export function parseJson(raw: string): ParseJsonResult {
 function pickArray(value: unknown): unknown[] | null {
   if (Array.isArray(value)) return value
   if (value && typeof value === 'object') {
-    for (const v of Object.values(value as Record<string, unknown>)) {
-      if (Array.isArray(v)) return v
-    }
+    const arrays = Object.values(value as Record<string, unknown>).filter(
+      Array.isArray,
+    ) as unknown[][]
+    // Prefer an array of objects (the typical "rows" payload) over a scalar
+    // array like `tags: [...]`; fall back to the first array found.
+    return (
+      arrays.find((a) => a.some((el) => el != null && typeof el === 'object')) ??
+      arrays[0] ??
+      null
+    )
   }
   return null
 }

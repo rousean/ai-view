@@ -42,7 +42,7 @@ interface SecondaryPanelProps {
  */
 export function SecondaryPanel({ title, action, children }: SecondaryPanelProps) {
   return (
-    <div className="border-border bg-card flex w-60 shrink-0 flex-col border-r">
+    <div className="border-border bg-card flex h-full w-full flex-col border-r">
       <div className="border-border flex h-9 items-center gap-2 border-b px-3">
         <span className="text-[13px] font-medium">{title}</span>
         <div className="flex-1" />
@@ -195,7 +195,10 @@ export function LayersPanel() {
     if (srcIdx < 0 || targetIdx < 0) return
     const next = [...items]
     const [moved] = next.splice(srcIdx, 1)
-    next.splice(targetIdx, 0, moved!)
+    // Removing the source shifts every later item down one slot, so a
+    // forward (downward) drop must compensate or it lands one row too low.
+    const insertAt = srcIdx < targetIdx ? targetIdx - 1 : targetIdx
+    next.splice(insertAt, 0, moved!)
     // top-down (visual) → bottom-up (z-order) for the schema.
     const orderedIds = next
       .flatMap((it) => (it.kind === 'widget' ? [it.widget.id] : it.members.map((m) => m.id)))
@@ -204,7 +207,7 @@ export function LayersPanel() {
   }
 
   return (
-    <div className="border-border bg-card flex w-60 shrink-0 flex-col border-r">
+    <div className="border-border bg-card flex h-full w-full flex-col border-r">
       {/* Title bar (matches SecondaryPanel) */}
       <div className="border-border flex h-9 items-center gap-2 border-b px-3">
         <span className="text-[13px] font-medium">图层</span>
@@ -281,11 +284,12 @@ export function LayersPanel() {
                   widget={it.widget}
                   selected={selectedSet.has(it.widget.id)}
                   indent={0}
-                  onSelect={(e) =>
-                    e.shiftKey || e.ctrlKey || e.metaKey
-                      ? editor.toggleSelect(it.widget.id)
-                      : editor.selectOne(it.widget.id)
-                  }
+                  onSelect={(e) => {
+                    if (e.shiftKey || e.ctrlKey || e.metaKey)
+                      editor.toggleSelect(it.widget.id)
+                    else editor.selectOne(it.widget.id)
+                    editor.revealSelection()
+                  }}
                   onToggleHidden={() =>
                     editor.setHidden([it.widget.id], !it.widget.flags.hidden)
                   }
@@ -347,6 +351,7 @@ function GroupRow({
     } else {
       editor.select(memberIds)
     }
+    editor.revealSelection()
   }
 
   return (

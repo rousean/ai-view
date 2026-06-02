@@ -75,7 +75,7 @@ export function MaterialsPanel({
   }, [all, grouped, activeCat, isSearching, q])
 
   return (
-    <div className="border-border bg-card flex w-60 shrink-0 flex-col border-r">
+    <div className="border-border bg-card flex h-full w-full flex-col border-r">
       {/* Search */}
       <div className="relative px-2.5 pt-2.5">
         <Search

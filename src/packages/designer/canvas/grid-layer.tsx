@@ -33,6 +33,34 @@ export const GridLayer: React.FC = () => {
   const yCount = Math.floor(height / step)
   const customStroke = page.grid.color
 
+  // Dot grid — a single tiled <pattern> (cheap at any density) instead of
+  // thousands of <circle>s. Dots sit at cell centres.
+  if ((page.grid.style ?? 'lines') === 'dots') {
+    return (
+      <svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        className="text-primary pointer-events-none absolute inset-0"
+        data-skip-snapshot
+      >
+        <defs>
+          <pattern id="aiview-grid-dots" width={step} height={step} patternUnits="userSpaceOnUse">
+            <circle
+              cx={step / 2}
+              cy={step / 2}
+              r={0.9}
+              fill={customStroke ?? 'currentColor'}
+              fillOpacity={0.5}
+            />
+          </pattern>
+        </defs>
+        <rect x={0} y={0} width={width} height={height} fill="url(#aiview-grid-dots)" />
+      </svg>
+    )
+  }
+
   return (
     <svg
       width={width}

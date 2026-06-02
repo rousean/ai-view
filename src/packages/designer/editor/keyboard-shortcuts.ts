@@ -192,12 +192,16 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
         .getAllWidgets()
         .filter((w) => w.type === primary.type)
         .map((w) => w.id)
-      if (sameType.length > 0) ed.select(sameType)
+      if (sameType.length > 0) {
+        ed.select(sameType)
+        ed.revealSelection()
+      }
     },
     description: '选择所有同类型',
   },
   { key: 'Escape', when: hasSelection, run: (ed) => ed.selectNone(), description: '取消选择' },
   { key: 'Tab', run: (ed) => ed.selectNext(), description: '选择下一个部件' },
+  { key: 'Tab', mod: 'shift', run: (ed) => ed.selectPrev(), description: '选择上一个部件' },
   {
     key: 'F2',
     when: hasSelection,
@@ -245,6 +249,20 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
     when: hasSelection,
     run: (ed) => ed.duplicateSelection(),
     description: '复制副本',
+  },
+  {
+    key: 'c',
+    mod: 'cmd+alt',
+    when: hasSelection,
+    run: (ed) => ed.copyStyleFromSelection(),
+    description: '复制样式',
+  },
+  {
+    key: 'v',
+    mod: 'cmd+alt',
+    when: hasSelection,
+    run: (ed) => ed.pasteStyleToSelection(),
+    description: '粘贴样式',
   },
 
   // ── Delete ──────────────────────────────────────────────────────────

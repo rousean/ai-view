@@ -69,9 +69,14 @@ interface RulerProps {
    * resize variant matching the eventual guide orientation.
    */
   onStartGuide?: (e: React.PointerEvent) => void
+  /**
+   * Double-click on the ruler. The caller adds a guide at the clicked
+   * coordinate — a precise, drag-free alternative to dragging one out.
+   */
+  onDoubleClick?: (e: React.MouseEvent) => void
 }
 
-export const AxisX: React.FC<RulerProps> = ({ style, className, onStartGuide }) => {
+export const AxisX: React.FC<RulerProps> = ({ style, className, onStartGuide, onDoubleClick }) => {
   const camera = useEditorStore((s) => s.camera)
   const { ref, size } = useElementSize<HTMLDivElement>()
   const { width, height } = size
@@ -91,6 +96,7 @@ export const AxisX: React.FC<RulerProps> = ({ style, className, onStartGuide }) 
       className={className}
       style={{ ...style, cursor: onStartGuide ? 'col-resize' : style?.cursor }}
       onPointerDown={onStartGuide ? (e) => onStartGuide(e) : undefined}
+      onDoubleClick={onDoubleClick}
     >
       {width > 0 && height > 0 && (
         <svg
@@ -143,7 +149,7 @@ export const AxisX: React.FC<RulerProps> = ({ style, className, onStartGuide }) 
   )
 }
 
-export const AxisY: React.FC<RulerProps> = ({ style, className, onStartGuide }) => {
+export const AxisY: React.FC<RulerProps> = ({ style, className, onStartGuide, onDoubleClick }) => {
   const camera = useEditorStore((s) => s.camera)
   const { ref, size } = useElementSize<HTMLDivElement>()
   const { width, height } = size
@@ -163,6 +169,7 @@ export const AxisY: React.FC<RulerProps> = ({ style, className, onStartGuide }) 
       className={className}
       style={{ ...style, cursor: onStartGuide ? 'row-resize' : style?.cursor }}
       onPointerDown={onStartGuide ? (e) => onStartGuide(e) : undefined}
+      onDoubleClick={onDoubleClick}
     >
       {width > 0 && height > 0 && (
         <svg

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {
   ContextMenu,
+  ContextMenuCheckboxItem,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
@@ -8,6 +9,7 @@ import {
   ContextMenuTrigger,
 } from '~/components/ui/context-menu'
 import { useDashboardEditor, useEditorState } from '../editor/editor-context'
+import type { EditorViewOptions } from '../stores/editor-store'
 
 /**
  * Right-click menu for the canvas surface.
@@ -101,6 +103,17 @@ function WidgetMenu({
         复制副本
         <ContextMenuShortcut>⌘D</ContextMenuShortcut>
       </ContextMenuItem>
+      <ContextMenuItem onSelect={() => editor.copyStyleFromSelection()}>
+        复制样式
+        <ContextMenuShortcut>⌘⌥C</ContextMenuShortcut>
+      </ContextMenuItem>
+      <ContextMenuItem
+        disabled={!editor.hasStyleClipboard()}
+        onSelect={() => editor.pasteStyleToSelection()}
+      >
+        粘贴样式
+        <ContextMenuShortcut>⌘⌥V</ContextMenuShortcut>
+      </ContextMenuItem>
 
       <ContextMenuSeparator />
 
@@ -159,6 +172,9 @@ function WidgetMenu({
         垂直翻转
         <ContextMenuShortcut>⇧V</ContextMenuShortcut>
       </ContextMenuItem>
+      <ContextMenuItem onSelect={() => editor.roundSelectionToPixel()}>
+        对齐到像素
+      </ContextMenuItem>
 
       <ContextMenuSeparator />
 
@@ -177,7 +193,7 @@ function CanvasMenu({
   view,
 }: {
   editor: ReturnType<typeof useDashboardEditor>
-  view: { showGrid: boolean; showGuides: boolean; showRulers: boolean }
+  view: EditorViewOptions
 }) {
   return (
     <>
@@ -194,7 +210,7 @@ function CanvasMenu({
 
       <ContextMenuItem onSelect={() => editor.toggleView('showGrid')}>
         {view.showGrid ? '隐藏网格' : '显示网格'}
-        <ContextMenuShortcut>⌘'</ContextMenuShortcut>
+        <ContextMenuShortcut>{"⌘'"}</ContextMenuShortcut>
       </ContextMenuItem>
       <ContextMenuItem onSelect={() => editor.toggleView('showGuides')}>
         {view.showGuides ? '隐藏参考线' : '显示参考线'}
@@ -203,6 +219,33 @@ function CanvasMenu({
       <ContextMenuItem onSelect={() => editor.toggleView('showRulers')}>
         {view.showRulers ? '隐藏标尺' : '显示标尺'}
         <ContextMenuShortcut>⌘⇧R</ContextMenuShortcut>
+      </ContextMenuItem>
+
+      <ContextMenuSeparator />
+
+      <ContextMenuCheckboxItem
+        checked={view.snapToElements}
+        onCheckedChange={() => editor.toggleView('snapToElements')}
+      >
+        吸附到元素
+      </ContextMenuCheckboxItem>
+      <ContextMenuCheckboxItem
+        checked={view.snapToGuides}
+        onCheckedChange={() => editor.toggleView('snapToGuides')}
+      >
+        吸附到参考线
+      </ContextMenuCheckboxItem>
+      <ContextMenuCheckboxItem
+        checked={view.snapToGrid}
+        onCheckedChange={() => editor.toggleView('snapToGrid')}
+      >
+        吸附到网格
+      </ContextMenuCheckboxItem>
+      <ContextMenuItem
+        disabled={(editor.getCurrentPage()?.guides.length ?? 0) === 0}
+        onSelect={() => editor.clearGuides()}
+      >
+        清除参考线
       </ContextMenuItem>
 
       <ContextMenuSeparator />

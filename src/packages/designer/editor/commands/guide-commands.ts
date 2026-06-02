@@ -21,6 +21,11 @@ export interface GuideClearPayload {
   noop?: never
 }
 
+export interface GuideSetLockedPayload {
+  id: string
+  locked: boolean
+}
+
 export const guideAddCommand: Command<GuideAddPayload> = {
   type: 'guide.add',
   label: '添加参考线',
@@ -59,6 +64,17 @@ export const guideUpdateCommand: Command<GuideUpdatePayload> = {
   mergeKey: (p) => `guide:${p.id}`,
 }
 
+export const guideSetLockedCommand: Command<GuideSetLockedPayload> = {
+  type: 'guide.setLocked',
+  label: (p) => (p.locked ? '锁定参考线' : '解锁参考线'),
+  undoable: true,
+  apply: (draft, _ctx, payload) => {
+    const page = getCurrentPage(draft)
+    const g = page.guides.find((x) => x.id === payload.id)
+    if (g) g.locked = payload.locked
+  },
+}
+
 export const guideClearCommand: Command<GuideClearPayload> = {
   type: 'guide.clear',
   label: '清除所有参考线',
@@ -73,5 +89,6 @@ export const guideCommands: Command<any>[] = [
   guideAddCommand,
   guideRemoveCommand,
   guideUpdateCommand,
+  guideSetLockedCommand,
   guideClearCommand,
 ]
