@@ -1,5 +1,6 @@
 import * as React from 'react'
-import { PropInput } from '../../ui/property-controls'
+import { Input } from '~/components/ui/input'
+import { Textarea } from '~/components/ui/textarea'
 import type { SetterProps } from '../setter.interface'
 
 interface StringSetterProps {
@@ -10,8 +11,8 @@ interface StringSetterProps {
 }
 
 /**
- * String input. Uses the shared `PropInput` chrome so it matches the
- * property-panel row treatment.
+ * String input — shadcn `Input` / `Textarea`, styled to the property
+ * panel's compact row (bg-muted, 26px / 60px min, 11px).
  */
 export const StringSetter: React.FC<SetterProps<string>> = ({
   value,
@@ -24,8 +25,8 @@ export const StringSetter: React.FC<SetterProps<string>> = ({
 
   if (opts.multiline) {
     return (
-      <textarea
-        className="bg-muted hover:bg-muted/80 focus:bg-card focus:border-primary text-foreground min-h-[60px] w-full resize-y rounded-sm border border-transparent px-2 py-1.5 text-[11px] outline-none"
+      <Textarea
+        className="min-h-[60px] resize-y border-transparent bg-muted px-2 py-1.5 text-[11px]"
         rows={opts.rows ?? 3}
         value={v}
         placeholder={opts.placeholder}
@@ -36,15 +37,13 @@ export const StringSetter: React.FC<SetterProps<string>> = ({
     )
   }
   return (
-    <PropInput disabled={disabled}>
-      <input
-        value={v}
-        placeholder={opts.placeholder}
-        maxLength={opts.maxLength}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className="text-foreground w-full border-none bg-transparent text-[11px] outline-none"
-      />
-    </PropInput>
+    <Input
+      className="h-[26px] border-transparent bg-muted px-1.5 text-[11px]"
+      value={v}
+      placeholder={opts.placeholder}
+      maxLength={opts.maxLength}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value)}
+    />
   )
 }

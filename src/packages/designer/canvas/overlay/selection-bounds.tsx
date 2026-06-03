@@ -182,48 +182,54 @@ export const SelectionBounds: React.FC = () => {
       : undefined
 
   return (
-    <div
-      className="pointer-events-none absolute origin-center"
-      data-skip-snapshot
-      style={{
-        left: bbox.x,
-        top: bbox.y,
-        width: bbox.width,
-        height: bbox.height,
-        transform: chromeTransform,
-      }}
-    >
+    <>
       <div
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute origin-center"
+        data-skip-snapshot
         style={{
-          // Dashed outline when the selection is locked — same colour
-          // (primary) so it still reads as "this is selected", but the
-          // pattern reinforces "you can't move/resize it".
-          outline: bbox.allLocked
-            ? `${stroke}px dashed var(--primary)`
-            : `${stroke}px solid var(--primary)`,
-          outlineOffset: `-${stroke}px`,
+          left: bbox.x,
+          top: bbox.y,
+          width: bbox.width,
+          height: bbox.height,
+          transform: chromeTransform,
         }}
-      />
-      {!isMarquee && !bbox.allLocked && (
-        <>
-          {rotatable && (
-            <RotationHandle bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }} />
-          )}
-          {resizable !== false && (
-            <ResizeHandles
-              bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }}
-              rotation={bbox.count === 1 ? bbox.rotate : 0}
-              resizable={resizable}
-            />
-          )}
-        </>
-      )}
-      {bbox.allLocked && (
-        <LockBadge bbox={bbox} scale={scale} />
-      )}
+      >
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            // Dashed outline when the selection is locked — same colour
+            // (primary) so it still reads as "this is selected", but the
+            // pattern reinforces "you can't move/resize it".
+            outline: bbox.allLocked
+              ? `${stroke}px dashed var(--primary)`
+              : `${stroke}px solid var(--primary)`,
+            outlineOffset: `-${stroke}px`,
+          }}
+        />
+        {!isMarquee && !bbox.allLocked && (
+          <>
+            {rotatable && (
+              <RotationHandle
+                bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }}
+                rotation={bbox.count === 1 ? bbox.rotate : 0}
+              />
+            )}
+            {resizable !== false && (
+              <ResizeHandles
+                bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }}
+                rotation={bbox.count === 1 ? bbox.rotate : 0}
+                resizable={resizable}
+              />
+            )}
+          </>
+        )}
+        {bbox.allLocked && <LockBadge bbox={bbox} scale={scale} />}
+      </div>
+      {/* Size / coord readout — rendered OUTSIDE the rotated chrome so it
+          stays at the selection's visual bottom-centre and horizontal,
+          instead of orbiting to the side as the selection rotates. */}
       {showBadge && <SizeBadge bbox={bbox} interaction={interaction} scale={scale} />}
-    </div>
+    </>
   )
 }
 
@@ -284,21 +290,22 @@ function SizeBadge({
     // idle / resizing — both show the current size
     text = `${Math.round(bbox.width)} × ${Math.round(bbox.height)}`
   }
-  // Everything in canvas-space px; divide by camera scale to land at
-  // pixel-perfect 11px on screen.
-  //
-  // The badge lives inside the chrome's rotated transform, which means
-  // it would tilt with the widget. To keep the readout horizontal we
-  // counter-rotate by the same amount around the badge's anchor — Figma
-  // does the same to keep the W × H tag legible at any angle.
-  const counterRotate = bbox.rotate ? `rotate(${-bbox.rotate}deg)` : ''
+  // Pin to the selection's *visual* bottom-centre in canvas space. The
+  // badge is rendered outside the chrome's rotate transform, so we offset
+  // down by half the rotated AABB height — this clears the spinning box and
+  // keeps the readout horizontal and below the selection at any angle
+  // (instead of orbiting to the side with the old in-chrome anchor).
+  const rad = (bbox.rotate * Math.PI) / 180
+  const rotH = Math.abs(bbox.width * Math.sin(rad)) + Math.abs(bbox.height * Math.cos(rad))
+  const cx = bbox.x + bbox.width / 2
+  const cy = bbox.y + bbox.height / 2
   return (
     <div
       className="bg-primary text-primary-foreground pointer-events-none absolute font-medium whitespace-nowrap tabular-nums"
       style={{
-        left: bbox.width / 2,
-        top: bbox.height + 8 / scale,
-        transform: `translate(-50%, 0) ${counterRotate}`.trim(),
+        left: cx,
+        top: cy + rotH / 2 + 8 / scale,
+        transform: 'translate(-50%, 0)',
         transformOrigin: 'top center',
         fontSize: 11 / scale,
         padding: `${2 / scale}px ${6 / scale}px`,

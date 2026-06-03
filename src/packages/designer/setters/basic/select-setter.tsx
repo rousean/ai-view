@@ -1,6 +1,11 @@
 import * as React from 'react'
-import { ChevronDown } from 'lucide-react'
-import { cn } from '~/lib/utils'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
 import type { SetterProps } from '../setter.interface'
 
 export interface SelectOption {
@@ -14,10 +19,10 @@ interface SelectSetterProps {
 }
 
 /**
- * Dropdown styled to match the rest of the property panel rows. Uses the
- * native `<select>` element so we get the OS-level keyboard + screen reader
- * support for free — for longer lists or rich items we can later swap to a
- * Popover implementation without changing the SetterRegistry contract.
+ * Dropdown — shadcn `Select` (radix), styled to the property panel's
+ * compact row (bg-muted, 26px, 11px). Keyboard + screen-reader support
+ * comes from radix; richer item rendering can be layered on later without
+ * changing the SetterRegistry contract.
  */
 export const SelectSetter: React.FC<SetterProps<string>> = ({
   value,
@@ -28,31 +33,20 @@ export const SelectSetter: React.FC<SetterProps<string>> = ({
   const opts = (setterProps ?? {}) as SelectSetterProps
   const options = opts.options ?? []
   return (
-    <label
-      data-disabled={disabled || undefined}
-      className={cn(
-        'bg-muted hover:bg-muted/80 focus-within:bg-card focus-within:border-primary flex h-[26px] min-w-0 items-center rounded-sm border border-transparent px-1.5 pr-1 text-[11px] transition-colors',
-        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
-      )}
-    >
-      <select
-        value={value ?? ''}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className="text-foreground w-full cursor-[inherit] appearance-none border-none bg-transparent text-[11px] outline-none"
+    <Select value={value || undefined} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger
+        size="sm"
+        className="h-[26px] w-full gap-1 border-transparent bg-muted px-1.5 text-[11px] font-normal"
       >
-        {opts.placeholder !== undefined && (
-          <option value="" disabled>
-            {opts.placeholder}
-          </option>
-        )}
+        <SelectValue placeholder={opts.placeholder} />
+      </SelectTrigger>
+      <SelectContent>
         {options.map((o) => (
-          <option key={o.value} value={o.value}>
+          <SelectItem key={o.value} value={o.value} className="text-[11px]">
             {o.label}
-          </option>
+          </SelectItem>
         ))}
-      </select>
-      <ChevronDown size={12} className="text-muted-foreground/80 pointer-events-none" />
-    </label>
+      </SelectContent>
+    </Select>
   )
 }

@@ -48,6 +48,11 @@ export const DONUT_CHART_PROPS_GROUPS: PropGroupDef[] = [
         label: '文字',
         setterProps: { placeholder: '环形图标题' },
       },
+      {
+        path: 'titleFont',
+        setter: 'FontSetter',
+        label: '字体',
+      },
     ],
   },
   {

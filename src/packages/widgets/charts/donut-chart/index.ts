@@ -7,8 +7,16 @@ import { DonutChartPreview } from './preview'
 import { DONUT_CHART_PROPS_CONFIG, DONUT_CHART_PROPS_GROUPS } from './props-config'
 import type { DonutChartProps } from './types'
 
+const FontStyleSchema = z.object({
+  color: z.string().optional(),
+  size: z.number().optional(),
+  weight: z.union([z.literal('normal'), z.literal('bold'), z.number()]).optional(),
+  italic: z.boolean().optional(),
+})
+
 const DonutChartPropsSchema = z.object({
   title: z.string(),
+  titleFont: FontStyleSchema,
   innerRadiusPercent: z.number().min(0).max(100),
   cornerRadius: z.number().min(0),
   padAngle: z.number().min(0),

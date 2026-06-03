@@ -1,6 +1,11 @@
 import * as React from 'react'
 import { ChevronDown } from 'lucide-react'
+import { ColorArea, ColorPicker, ColorSlider, ColorThumb, SliderTrack } from '~/components/ui/color'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/collapsible'
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Separator } from '~/components/ui/separator'
+import { Switch } from '~/components/ui/switch'
+import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 import { cn } from '~/lib/utils'
 
 /** Collapsible section in the property panel. Mirrors the design's PropSection. */
@@ -13,25 +18,20 @@ export function PropSection({
   defaultOpen?: boolean
   children: React.ReactNode
 }) {
-  const [open, setOpen] = React.useState(defaultOpen)
   return (
-    <div>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full cursor-pointer items-center justify-between bg-transparent px-3 pt-2.5 pb-2 font-[inherit]"
-      >
+    <Collapsible defaultOpen={defaultOpen} className="group/section">
+      <CollapsibleTrigger className="flex w-full cursor-pointer items-center justify-between bg-transparent px-3 pt-2.5 pb-2 font-[inherit]">
         <span className="text-muted-foreground/80 text-[11px] font-semibold tracking-wide uppercase">
           {title}
         </span>
         <ChevronDown
           size={12}
-          className="text-muted-foreground/80 transition-transform duration-150"
-          style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+          className="text-muted-foreground/80 transition-transform duration-150 group-data-[state=closed]/section:-rotate-90"
         />
-      </button>
-      {open && <div className="pb-2">{children}</div>}
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pb-2">{children}</CollapsibleContent>
       <Separator />
-    </div>
+    </Collapsible>
   )
 }
 
@@ -257,7 +257,7 @@ function parseNumericExpression(raw: string, fallback: number | undefined): numb
   return fallback ?? Number.NaN
 }
 
-/** Color swatch + hex input (read-only stub for now). */
+/** Colour swatch (shadcn ColorPicker in a Popover) + hex text input. */
 export function ColorInput({
   value,
   onChange,
@@ -268,24 +268,47 @@ export function ColorInput({
   const v = typeof value === 'string' && value.length > 0 ? value : '#000000'
   const [text, setText] = React.useState(hexLabel(v))
   React.useEffect(() => setText(hexLabel(v)), [v])
+  const swatch = (
+    <span
+      className="h-3.5 w-3.5 shrink-0 rounded-[3px] ring-1 ring-black/10"
+      style={{ background: v }}
+    />
+  )
   return (
     <PropInput className="gap-1.5">
-      <label
-        className={cn(
-          'h-3.5 w-3.5 shrink-0 rounded-[3px] ring-1 ring-black/10',
-          onChange ? 'cursor-pointer' : 'cursor-default',
-        )}
-        style={{ background: v }}
-      >
-        {onChange && (
-          <input
-            type="color"
-            value={v.startsWith('#') ? v.slice(0, 7) : v}
-            onChange={(e) => onChange(e.target.value)}
-            className="absolute h-0 w-0 opacity-0"
-          />
-        )}
-      </label>
+      {onChange ? (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button type="button" aria-label="打开取色器" className="shrink-0 cursor-pointer">
+              {swatch}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" sideOffset={4} className="w-64">
+            <ColorPicker
+              value={v}
+              onChange={(c) => onChange(typeof c === 'string' ? c : c.toString('hex'))}
+            >
+              <div className="space-y-3">
+                <ColorArea
+                  colorSpace="hsb"
+                  xChannel="saturation"
+                  yChannel="brightness"
+                  className="size-full"
+                >
+                  <ColorThumb />
+                </ColorArea>
+                <ColorSlider colorSpace="hsb" channel="hue">
+                  <SliderTrack className="w-full">
+                    <ColorThumb />
+                  </SliderTrack>
+                </ColorSlider>
+              </div>
+            </ColorPicker>
+          </PopoverContent>
+        </Popover>
+      ) : (
+        swatch
+      )}
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -309,7 +332,7 @@ function formatNumber(n: number | undefined): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '')
 }
 
-/** Tiny custom toggle matching the design (28×16 pill). */
+/** Property-panel switch — shadcn `Switch` at its compact `sm` size. */
 export function Toggle({
   on,
   onChange,
@@ -320,27 +343,16 @@ export function Toggle({
   disabled?: boolean
 }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
+    <Switch
+      size="sm"
+      checked={on}
       disabled={disabled}
-      onClick={() => onChange?.(!on)}
-      className={cn(
-        'flex h-4 w-7 items-center rounded-lg p-0.5 transition-colors duration-150',
-        on ? 'bg-primary' : 'bg-input',
-        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
-      )}
-    >
-      <span
-        className="block h-3 w-3 rounded-full bg-white shadow-sm transition-transform duration-150"
-        style={{ transform: on ? 'translateX(12px)' : 'translateX(0)' }}
-      />
-    </button>
+      onCheckedChange={(next) => onChange?.(next)}
+    />
   )
 }
 
-/** Inline radio-like segmented button group. */
+/** Inline radio-like segmented control — shadcn `ToggleGroup` (single). */
 export function Segmented<T extends string>({
   value,
   onChange,
@@ -351,24 +363,26 @@ export function Segmented<T extends string>({
   options: { value: T; label: string }[]
 }) {
   return (
-    <div className="flex gap-1">
-      {options.map((o) => {
-        const isSel = value === o.value
-        return (
-          <button
-            key={o.value}
-            onClick={() => onChange?.(o.value)}
-            className={cn(
-              'h-6 cursor-pointer rounded-sm px-2 text-[11px] transition-colors',
-              isSel
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-            )}
-          >
-            {o.label}
-          </button>
-        )
-      })}
-    </div>
+    <ToggleGroup
+      type="single"
+      size="sm"
+      value={value}
+      onValueChange={(next) => {
+        // Radix emits '' when the active item is toggled off; keep it a
+        // required single-select by ignoring the empty value.
+        if (next) onChange?.(next as T)
+      }}
+      className="gap-1"
+    >
+      {options.map((o) => (
+        <ToggleGroupItem
+          key={o.value}
+          value={o.value}
+          className="h-6 cursor-pointer px-2 text-[11px] data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+        >
+          {o.label}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   )
 }

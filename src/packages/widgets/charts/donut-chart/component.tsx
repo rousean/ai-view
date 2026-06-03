@@ -84,8 +84,10 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
         .attr('x', layout.width / 2)
         .attr('y', 16)
         .attr('text-anchor', 'middle')
-        .attr('fill', '#1e1e1e')
-        .attr('font-size', 14)
+        .attr('fill', props.titleFont.color ?? '#e6e6e6')
+        .attr('font-size', props.titleFont.size ?? 14)
+        .attr('font-weight', props.titleFont.weight ?? 500)
+        .attr('font-style', props.titleFont.italic ? 'italic' : 'normal')
         .text(props.title)
     }
 
@@ -150,6 +152,7 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
     layout.width,
     layout.height,
     props.title,
+    props.titleFont,
     props.padding,
     props.innerRadiusPercent,
     props.cornerRadius,

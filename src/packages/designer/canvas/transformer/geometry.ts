@@ -286,8 +286,21 @@ export function distributeResize(
 }
 
 /**
+ * Wrap an angle to (-180, 180]. Keeps `rotate` from accumulating past a
+ * full turn when the user spins a widget around several times — so a widget
+ * brought back to upright reads 0°, not 360° / 720° / …
+ */
+export function normalizeAngle(deg: number): number {
+  let n = deg % 360
+  if (n > 180) n -= 360
+  else if (n <= -180) n += 360
+  return n
+}
+
+/**
  * Rotate all widgets around a single pivot by `deltaDeg`. Each widget's
- * center moves around the pivot, and its own `rotate` is incremented.
+ * center moves around the pivot, and its own `rotate` is incremented then
+ * normalized to (-180, 180] so repeated turns don't pile up.
  */
 export function distributeRotation(
   widgets: WidgetNode[],
@@ -305,7 +318,7 @@ export function distributeRotation(
       layout: {
         x: nc.x - w.layout.width / 2,
         y: nc.y - w.layout.height / 2,
-        rotate: w.layout.rotate + deltaDeg,
+        rotate: normalizeAngle(w.layout.rotate + deltaDeg),
       },
     }
   })

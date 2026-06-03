@@ -1,7 +1,11 @@
+import type { FontStyle } from '@designer/setters'
+
 /** Donut-chart-specific props. Validated by zod inside meta.ts. */
 export interface DonutChartProps {
   /** Optional title rendered above the ring. Empty = hidden. */
   title: string
+  /** Title font style (colour + size + weight). */
+  titleFont: FontStyle
   /**
    * Inner radius as a percentage of the outer radius (0–100).
    * 0 = full pie (no hole). 100 = razor-thin ring.
