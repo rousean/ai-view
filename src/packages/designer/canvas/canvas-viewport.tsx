@@ -6,6 +6,7 @@ import { runShortcut, shouldSkipKeydown } from '../editor/keyboard-shortcuts'
 import { useEditorStore } from '../stores/editor-store'
 import type { Tool, ToolContext } from '../tools/tool.interface'
 import { CameraTransformLayer } from './camera-transform-layer'
+import { ColumnGridOverlay } from './column-grid-overlay'
 import { GridLayer } from './grid-layer'
 import { SafeAreaOverlay } from './safe-area-overlay'
 import { CanvasEmptyState } from './empty-state'
@@ -15,6 +16,7 @@ import { AlignmentGuidesOverlay } from './overlay/alignment-guides'
 import { DistanceGuides } from './overlay/distance-guides'
 import { MarqueeOverlay } from './overlay/marquee'
 import { HoverIndicator, SelectionBounds } from './overlay/selection-bounds'
+import { SizeMatchGuides } from './overlay/size-match-guides'
 import { PageBackgroundWithAssets } from './page-background'
 import { AxisX, AxisY, RULER_SIZE } from './ruler'
 import { SelectionToolbar } from './selection-toolbar'
@@ -346,10 +348,12 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
         <CameraTransformLayer>
           <PageBackgroundWithAssets />
           <GridLayer />
+          <ColumnGridOverlay />
           <WidgetLayer />
           <HoverIndicator />
           <SelectionBounds />
           <AlignmentGuidesOverlay />
+          <SizeMatchGuides />
           <DistanceGuides />
           <SafeAreaOverlay />
           <GuidesOverlay viewportRef={containerRef} />

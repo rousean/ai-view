@@ -255,11 +255,12 @@ function DataRow({
       <TableCell className="text-muted-foreground/40 w-7 px-1.5 py-0.5 text-center text-[10px] tabular-nums">
         {rowIndex + 1}
       </TableCell>
-      {fields.map((f) => (
+      {fields.map((f, colIndex) => (
         <TableCell key={f.name} className="border-border/40 border-l p-0">
           <CellInput
             widgetId={widgetId}
             rowIndex={rowIndex}
+            colIndex={colIndex}
             columnName={f.name}
             type={f.type}
             value={row[f.name]}
@@ -286,6 +287,7 @@ function DataRow({
 interface CellInputProps {
   widgetId: string
   rowIndex: number
+  colIndex: number
   columnName: string
   type: FieldType
   value: unknown
@@ -299,7 +301,7 @@ interface CellInputProps {
  * Local draft state for text inputs so partial values like "12." don't
  * round-trip through `coerceCell` mid-typing and lose the trailing dot.
  */
-function CellInput({ widgetId, rowIndex, columnName, type, value }: CellInputProps) {
+function CellInput({ widgetId, rowIndex, colIndex, columnName, type, value }: CellInputProps) {
   const editor = useDashboardEditor()
 
   const [text, setText] = React.useState(() => formatCell(value, type))
@@ -329,12 +331,23 @@ function CellInput({ widgetId, rowIndex, columnName, type, value }: CellInputPro
     <input
       type="text"
       inputMode={inputMode}
+      data-cell={`${rowIndex}:${colIndex}`}
       value={text}
       onChange={(e) => setText(e.target.value)}
       onBlur={(e) => editor.updateInlineCell(widgetId, rowIndex, columnName, e.target.value)}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
-          ;(e.target as HTMLInputElement).blur()
+          // Commit (via the next focus's blur) and move down a row, same column.
+          e.preventDefault()
+          const next = document.querySelector<HTMLInputElement>(
+            `input[data-cell="${rowIndex + 1}:${colIndex}"]`,
+          )
+          if (next) {
+            next.focus()
+            next.select()
+          } else {
+            ;(e.target as HTMLInputElement).blur()
+          }
         } else if (e.key === 'Escape') {
           setText(formatCell(value, type))
           ;(e.target as HTMLInputElement).blur()

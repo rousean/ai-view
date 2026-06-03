@@ -24,6 +24,23 @@ export interface GridConfig {
   style?: 'lines' | 'dots'
 }
 
+/**
+ * Layout column grid (大屏排版列栅格) — N evenly-sized columns with a gap
+ * (`gutter`) between them and an outer `margin` on the left/right. Acts as
+ * a visual overlay + snap target so widgets line up to a column system the
+ * way print / web layout grids do. Independent of the square `grid`.
+ */
+export interface ColumnGridConfig {
+  enabled: boolean
+  /** Number of columns (>= 1). */
+  columns: number
+  /** Gap between columns, in canvas px. */
+  gutter: number
+  /** Left/right outer margin, in canvas px. */
+  margin: number
+  color?: string
+}
+
 /** Page transition (large-screen carousels). */
 export interface PageTransition {
   /** Registry key: 'fade' | 'slide' | 'none' | ... */
@@ -40,6 +57,9 @@ export interface Page {
 
   canvas: CanvasConfig
   grid: GridConfig
+
+  /** Optional layout column grid (排版列栅格). Absent → disabled. */
+  columnGrid?: ColumnGridConfig
 
   /** User-drawn guidelines. */
   guides: Guide[]

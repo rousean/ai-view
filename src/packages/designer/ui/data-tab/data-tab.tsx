@@ -3,10 +3,13 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   ChartBar,
   ChevronDown,
+  ClipboardPaste,
   Database,
   FileSpreadsheet,
+  FileText,
+  Globe,
   Info,
-  Plus,
+  Pencil,
   X,
 } from 'lucide-react'
 import type { DataSlotDef, WidgetMeta } from '@widgets/widget-meta'
@@ -14,9 +17,18 @@ import type { DataSource, WidgetData, WidgetNode } from '@schema/types'
 import {
   autoMapToSlots,
   initInlineFromSample,
+  parseCsv,
   resolveWidgetData,
 } from '@designer/data'
 import { Button } from '~/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '~/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,11 +44,12 @@ import {
   TableHeader,
   TableRow,
 } from '~/components/ui/table'
-import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { toast } from '~/components/ui/sonner'
 import { cn } from '~/lib/utils'
 import { PropRow, PropSection, Segmented } from '../property-controls'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../../editor/editor-context'
 import { selectWidget } from '../../stores/selectors'
+import { createDataSource, DataSourceEditor } from '../data-sources-panel'
 import { DatasetTableEditor } from './dataset-table-editor'
 
 /**
@@ -178,15 +191,9 @@ export function DataTab() {
         dataSources={dataSources}
       />
 
-      {/* Body — inline gives full table editor; bound shows readonly
-          preview of the source's fetched data. */}
-      {mode === 'inline' && widget.data?.mode === 'inline' && (
-        <PropSection title={`数据表 · ${widget.data.dataset.rows.length} 行`}>
-          <div className="px-3 pt-1 pb-2">
-            <DatasetTableEditor widgetId={widget.id} dataset={widget.data.dataset} />
-          </div>
-        </PropSection>
-      )}
+      {/* Inline data — edit in a roomy dialog (the 300px panel is too
+          cramped for a table) + one-click paste from Excel / CSV. */}
+      {mode !== 'bound' && <InlineDataSection widget={widget} meta={meta} slots={slots} />}
 
       {/* Resolved preview — what the component actually receives.
           Always shown so users can sanity-check their mapping. */}
@@ -230,6 +237,13 @@ function SourcePicker({
 }) {
   const editor = useDashboardEditor()
   const current = sources.find((s) => s.id === currentSourceId)
+  const [editingSource, setEditingSource] = React.useState<DataSource | null>(null)
+
+  const handleCreate = (type: 'api' | 'csv' | 'json' | 'static') => {
+    const src = createDataSource(editor, sources.length, type)
+    editor.setBoundSource(widgetId, src.id, {})
+    setEditingSource(src)
+  }
 
   const pickSource = (id: string) => {
     const src = sources.find((s) => s.id === id)
@@ -282,17 +296,22 @@ function SourcePicker({
               ))
             )}
             <DropdownMenuSeparator />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuItem disabled>
-                  <Plus />
-                  新建数据源
-                </DropdownMenuItem>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                请在左侧导航栏「数据」面板中新建
-              </TooltipContent>
-            </Tooltip>
+            <DropdownMenuItem onSelect={() => handleCreate('api')}>
+              <Globe />
+              新建 · HTTP API
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleCreate('csv')}>
+              <FileSpreadsheet />
+              新建 · CSV / TSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleCreate('json')}>
+              <FileText />
+              新建 · JSON
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleCreate('static')}>
+              <Database />
+              新建 · 静态
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </PropRow>
@@ -300,6 +319,9 @@ function SourcePicker({
         <PropRow label="状态">
           <span className="text-amber-500 text-[11px]">数据源已被删除</span>
         </PropRow>
+      )}
+      {editingSource && (
+        <DataSourceEditor source={editingSource} onClose={() => setEditingSource(null)} />
       )}
     </PropSection>
   )
@@ -530,5 +552,144 @@ function PreviewPane({
         )}
       </div>
     </PropSection>
+  )
+}
+
+// ─── Inline data — edit dialog + paste import ─────────────────────────
+
+/** Read the clipboard as TSV / CSV and replace the widget's inline data. */
+async function pasteDataIntoWidget(
+  editor: ReturnType<typeof useDashboardEditor>,
+  widgetId: string,
+  slots: DataSlotDef[],
+): Promise<void> {
+  let text = ''
+  try {
+    text = await navigator.clipboard.readText()
+  } catch {
+    toast.error('无法读取剪贴板', { description: '请检查浏览器剪贴板权限' })
+    return
+  }
+  if (!text.trim()) {
+    toast.error('剪贴板为空')
+    return
+  }
+  // Excel/Sheets copy as tab-separated; plain CSV as comma. Detect either.
+  const delimiter = text.includes('\t') ? '\t' : ','
+  const dataset = parseCsv(text, { delimiter, hasHeader: true })
+  if (dataset.fields.length === 0) {
+    toast.error('未能识别出表格数据')
+    return
+  }
+  editor.setWidgetData(widgetId, {
+    mode: 'inline',
+    dataset,
+    mapping: autoMapToSlots(dataset.fields, slots),
+  })
+  toast.success('已导入数据', {
+    description: `${dataset.rows.length} 行 · ${dataset.fields.length} 列`,
+  })
+}
+
+function InlineDataSection({
+  widget,
+  meta,
+  slots,
+}: {
+  widget: WidgetNode
+  meta: WidgetMeta | undefined
+  slots: DataSlotDef[]
+}) {
+  const editor = useDashboardEditor()
+  const [open, setOpen] = React.useState(false)
+  const inlineData = widget.data?.mode === 'inline' ? widget.data : null
+  const dataset = inlineData ? inlineData.dataset : meta?.dataSchema?.sample
+  const rows = dataset?.rows.length ?? 0
+  const cols = dataset?.fields.length ?? 0
+
+  const openEditor = () => {
+    // Promote sample → inline so the dialog has a real dataset to edit.
+    if (!inlineData) editor.ensureInlineWidgetData(widget.id)
+    setOpen(true)
+  }
+
+  return (
+    <PropSection title="数据表">
+      <div className="flex items-center gap-2 px-3 py-1.5">
+        <span className="text-muted-foreground/80 text-[11px]">
+          {rows} 行 · {cols} 列{!inlineData && ' · 示例'}
+        </span>
+        <div className="flex-1" />
+        <Button
+          variant="outline"
+          size="xs"
+          onClick={() => void pasteDataIntoWidget(editor, widget.id, slots)}
+        >
+          <ClipboardPaste />
+          粘贴导入
+        </Button>
+        <Button size="xs" onClick={openEditor}>
+          <Pencil />
+          编辑数据
+        </Button>
+      </div>
+      <DataEditorDialog widgetId={widget.id} slots={slots} open={open} onOpenChange={setOpen} />
+    </PropSection>
+  )
+}
+
+function DataEditorDialog({
+  widgetId,
+  slots,
+  open,
+  onOpenChange,
+}: {
+  widgetId: string
+  slots: DataSlotDef[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const editor = useDashboardEditor()
+  const widget = useDocumentState((s) => selectWidget(widgetId)(s) ?? null)
+  const dataset = widget?.data?.mode === 'inline' ? widget.data.dataset : null
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>编辑数据</DialogTitle>
+          <DialogDescription>
+            直接编辑表格，或从 Excel / CSV 整块粘贴。Tab 切换单元格，Enter 下移一行。
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => void pasteDataIntoWidget(editor, widgetId, slots)}
+          >
+            <ClipboardPaste />
+            粘贴导入（替换全部）
+          </Button>
+        </div>
+
+        {dataset ? (
+          <div className="max-h-[55vh] overflow-auto">
+            <DatasetTableEditor widgetId={widgetId} dataset={dataset} />
+          </div>
+        ) : (
+          <div className="text-muted-foreground/70 py-6 text-center text-[12px]">
+            该组件暂无可编辑的内联数据
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button size="sm" onClick={() => onOpenChange(false)}>
+            完成
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

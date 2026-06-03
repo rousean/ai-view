@@ -114,6 +114,15 @@ export class SnapManager {
       }
     }
 
+    // Layout column-grid edges — vertical only, same priority band as
+    // user guides (they're an explicit layout intent, like a guide).
+    if (this.toggles.toGuides && ctx.columns) {
+      const th = DEFAULT_THRESHOLDS.guide / scale
+      for (const cx of ctx.columns) {
+        x.push({ position: cx, type: 'column', priority: 0, threshold: th })
+      }
+    }
+
     // Element edges and centres.
     if (this.toggles.toElements) {
       const th = DEFAULT_THRESHOLDS.element / scale

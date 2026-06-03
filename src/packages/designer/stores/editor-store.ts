@@ -130,9 +130,7 @@ export interface EditorState {
   // Preferences (persisted)
   preferences: EditorPreferences
 
-  // Dock layout — left secondary panel + right property panel (persisted)
-  leftWidth: number
-  rightWidth: number
+  // Right property panel collapse (persisted)
   rightCollapsed: boolean
 
   // Actions
@@ -154,8 +152,6 @@ export interface EditorState {
     setPanel: (key: keyof EditorPanelVisibility, visible: boolean) => void
     setView: (view: Partial<EditorViewOptions>) => void
     setPreferences: (prefs: Partial<EditorPreferences>) => void
-    setLeftWidth: (w: number) => void
-    setRightWidth: (w: number) => void
     setRightCollapsed: (collapsed: boolean) => void
     /** Reset volatile state (selection, interaction, clipboard) on document load. */
     resetVolatile: () => void
@@ -206,8 +202,6 @@ export const useEditorStore = create<EditorState>()(
         panels: { ...DEFAULT_PANELS },
         view: { ...DEFAULT_VIEW },
         preferences: { ...DEFAULT_PREFERENCES },
-        leftWidth: 240,
-        rightWidth: 300,
         rightCollapsed: false,
 
         actions: {
@@ -265,8 +259,6 @@ export const useEditorStore = create<EditorState>()(
               false,
               'editor/setPreferences',
             ),
-          setLeftWidth: (w) => set({ leftWidth: w }, false, 'editor/setLeftWidth'),
-          setRightWidth: (w) => set({ rightWidth: w }, false, 'editor/setRightWidth'),
           setRightCollapsed: (collapsed) =>
             set({ rightCollapsed: collapsed }, false, 'editor/setRightCollapsed'),
           resetVolatile: () =>
@@ -294,8 +286,6 @@ export const useEditorStore = create<EditorState>()(
           preferences: s.preferences,
           panels: s.panels,
           view: s.view,
-          leftWidth: s.leftWidth,
-          rightWidth: s.rightWidth,
           rightCollapsed: s.rightCollapsed,
         }),
       },

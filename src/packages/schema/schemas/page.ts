@@ -19,6 +19,14 @@ export const GridConfigSchema = z.object({
   style: z.enum(['lines', 'dots']).optional(),
 })
 
+export const ColumnGridConfigSchema = z.object({
+  enabled: z.boolean(),
+  columns: z.number().int().positive(),
+  gutter: z.number().min(0),
+  margin: z.number().min(0),
+  color: z.string().optional(),
+})
+
 export const PageTransitionSchema = z.object({
   type: z.string(),
   duration: z.number(),
@@ -35,6 +43,7 @@ export const PageSchema = z.object({
   name: z.string(),
   canvas: CanvasConfigSchema,
   grid: GridConfigSchema,
+  columnGrid: ColumnGridConfigSchema.optional(),
   guides: z.array(GuideSchema),
   widgets: z.array(WidgetNodeSchema),
   transition: PageTransitionSchema.optional(),

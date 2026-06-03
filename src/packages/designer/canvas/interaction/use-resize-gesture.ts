@@ -1,7 +1,9 @@
 import * as React from 'react'
 import type { Layout, WidgetNode } from '@schema/types'
+import type { WidgetMeta } from '@widgets/widget-meta'
 import { useDashboardEditor } from '../../editor/editor-context'
 import { buildSnapContext } from '../../snap/build-context'
+import { useSizeMatchStore, type SizeMatchSegment } from '../../snap/size-match-store'
 import { useSnapGuidesStore } from '../../snap/snap-store'
 import { useEditorStore } from '../../stores/editor-store'
 import {
@@ -16,6 +18,25 @@ import {
 function shouldRunSnap(): boolean {
   const v = useEditorStore.getState().view
   return v.snapToElements || v.snapToGuides || v.snapToGrid
+}
+
+/** Nearest rect in `rects` whose `dim` is within `th` of `value`, or null. */
+function nearestSizeRect(
+  rects: BBox[],
+  dim: 'width' | 'height',
+  value: number,
+  th: number,
+): BBox | null {
+  let best: BBox | null = null
+  let bestD = th
+  for (const r of rects) {
+    const d = Math.abs(r[dim] - value)
+    if (d <= bestD) {
+      bestD = d
+      best = r
+    }
+  }
+  return best
 }
 
 interface ResizeSession {
@@ -39,6 +60,18 @@ interface ResizeSession {
     screenAnchor: { x: number; y: number }
     /** Starting layout snapshot (unrotated frame). */
     startLayout: Layout
+  }
+  /**
+   * Per-widget resize bounds + aspect lock, read from the single
+   * selected widget's `WidgetMeta.capabilities`. Undefined for
+   * multi-select (mixed capabilities have no sensible union).
+   */
+  caps?: {
+    minWidth: number
+    minHeight: number
+    maxWidth: number
+    maxHeight: number
+    forceAspect: boolean
   }
 }
 
@@ -113,7 +146,14 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
           s.handle,
           localDx,
           localDy,
-          { lockAspect: ev.shiftKey, fromCenter: ev.altKey },
+          {
+            lockAspect: ev.shiftKey || s.caps?.forceAspect,
+            fromCenter: ev.altKey,
+            minWidth: s.caps?.minWidth,
+            minHeight: s.caps?.minHeight,
+            maxWidth: s.caps?.maxWidth,
+            maxHeight: s.caps?.maxHeight,
+          },
         )
 
         // Anchor offset re-derived against the *new* size so the side
@@ -136,14 +176,25 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
           height: newLocalBBox.height,
         })
         useSnapGuidesStore.getState().clear()
+        useSizeMatchStore.getState().clear()
         return
       }
 
       const dx = screenDx
       const dy = screenDy
       const newBBox = resizeBBox(s.startBBox, s.handle, dx, dy, {
-        lockAspect: ev.shiftKey,
+        // A multi-selection containing a rotated widget is forced to keep
+        // aspect: a non-uniform scale can't be expressed on a rotated rect
+        // without shearing (which widgets don't support), so it would drift.
+        lockAspect:
+          ev.shiftKey ||
+          !!s.caps?.forceAspect ||
+          (s.initial.length > 1 && s.initial.some((w) => w.layout.rotate !== 0)),
         fromCenter: ev.altKey,
+        minWidth: s.caps?.minWidth,
+        minHeight: s.caps?.minHeight,
+        maxWidth: s.caps?.maxWidth,
+        maxHeight: s.caps?.maxHeight,
       })
 
       // ── Snap the moving edges ────────────────────────────────────
@@ -192,13 +243,63 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
               snapped.height += result.delta.y
             }
           }
+
+          // ── Size snap ──────────────────────────────────────────────
+          // Single-widget resize: match the moving width/height to a
+          // sibling's identical dimension (so cards/tiles share a size),
+          // but only on an axis the position snap didn't already claim.
+          // The anchored edge holds; the moving edge absorbs the change.
+          //
+          // Skipped while aspect is locked (Shift or a widget that pins its
+          // ratio): changing one axis alone there would break the ratio.
+          const aspectLocked = ev.shiftKey || !!s.caps?.forceAspect
+          if (s.initial.length === 1 && view.snapToElements && !aspectLocked) {
+            const sizeTh = 6 / scale
+            let wT: BBox | null = null
+            let hT: BBox | null = null
+            if (result.delta.x === 0 && (sides.movesLeft || sides.movesRight)) {
+              wT = nearestSizeRect(ctx.staticRects, 'width', snapped.width, sizeTh)
+              if (wT) {
+                if (sides.movesLeft) snapped.x -= wT.width - snapped.width
+                snapped.width = wT.width
+              }
+            }
+            if (result.delta.y === 0 && (sides.movesTop || sides.movesBottom)) {
+              hT = nearestSizeRect(ctx.staticRects, 'height', snapped.height, sizeTh)
+              if (hT) {
+                if (sides.movesTop) snapped.y -= hT.height - snapped.height
+                snapped.height = hT.height
+              }
+            }
+            // Pink "equal size" markers: one bar on the moving widget, one
+            // on the sibling it matched, per snapped axis.
+            const segs: SizeMatchSegment[] = []
+            if (wT) {
+              const yA = snapped.y + snapped.height / 2
+              segs.push({ orientation: 'h', x1: snapped.x, y1: yA, x2: snapped.x + snapped.width, y2: yA })
+              const yB = wT.y + wT.height / 2
+              segs.push({ orientation: 'h', x1: wT.x, y1: yB, x2: wT.x + wT.width, y2: yB })
+            }
+            if (hT) {
+              const xA = snapped.x + snapped.width / 2
+              segs.push({ orientation: 'v', x1: xA, y1: snapped.y, x2: xA, y2: snapped.y + snapped.height })
+              const xB = hT.x + hT.width / 2
+              segs.push({ orientation: 'v', x1: xB, y1: hT.y, x2: xB, y2: hT.y + hT.height })
+            }
+            useSizeMatchStore.getState().set(segs)
+          } else {
+            useSizeMatchStore.getState().clear()
+          }
+
           useSnapGuidesStore.getState().set(result.guides)
         } catch (err) {
           console.warn('[snap] resize snap failed', err)
           useSnapGuidesStore.getState().clear()
+          useSizeMatchStore.getState().clear()
         }
       } else {
         useSnapGuidesStore.getState().clear()
+        useSizeMatchStore.getState().clear()
       }
 
       // Locked widgets ride along in the selection bbox (so the handles
@@ -216,6 +317,7 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
   const onUp = React.useCallback(() => {
     sessionRef.current = null
     useSnapGuidesStore.getState().clear()
+    useSizeMatchStore.getState().clear()
     useEditorStore.getState().actions.setInteraction({ kind: 'idle' })
     window.removeEventListener('pointermove', onMove)
     window.removeEventListener('pointerup', onUp)
@@ -235,6 +337,24 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
       // (the multi-select chrome itself is axis-aligned at resize time)
       // and we'd rather under-promise than ship a buggy half-fix.
       const single = initial.length === 1 ? initial[0] : null
+
+      // Single-selection only: honour the widget's declared resize bounds
+      // + aspect lock. Multi-select keeps the legacy free-resize (mixed
+      // capabilities have no sensible union).
+      let caps: ResizeSession['caps']
+      if (single) {
+        const meta = editor.registry.widgets.get(single.type) as WidgetMeta | undefined
+        const c = meta?.capabilities
+        if (c) {
+          caps = {
+            minWidth: c.minSize?.width ?? 4,
+            minHeight: c.minSize?.height ?? 4,
+            maxWidth: c.maxSize?.width ?? Infinity,
+            maxHeight: c.maxSize?.height ?? Infinity,
+            forceAspect: c.aspectRatio != null,
+          }
+        }
+      }
       const rotated =
         single && single.layout.rotate
           ? (() => {
@@ -269,6 +389,7 @@ export function useResizeGesture(): (handle: ResizeHandle, e: React.PointerEvent
         // Snapshot initial layouts; we re-derive from these every move.
         initial: initial.map((w) => structuredClone(w)),
         rotated,
+        caps,
       }
       // Surface the gesture to EditorStore so HUD overlays can render
       // the right readout (W × H during resize).

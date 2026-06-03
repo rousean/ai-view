@@ -53,6 +53,52 @@ import { useRuntimeStore } from '../stores/runtime-store'
  * RuntimeStore.fetchStatus for api sources; csv/json display their
  * parsed row count.
  */
+type EditorHandle = ReturnType<typeof useDashboardEditor>
+
+/**
+ * Build a blank data source of the given type, add it to the project, and
+ * return it — so callers (the panel here, or the widget data tab) can open
+ * it for editing / bind a widget to it.
+ */
+export function createDataSource(
+  editor: EditorHandle,
+  index: number,
+  type: 'api' | 'csv' | 'json' | 'static',
+): DataSource {
+  const id = `ds_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+  const name = `数据源 ${index + 1}`
+  let next: DataSource
+  if (type === 'api') {
+    next = {
+      id,
+      name,
+      type: 'api',
+      url: '',
+      method: 'GET',
+      responsePath: '',
+      pollingInterval: 0,
+      cache: { enabled: true, ttl: 30_000 },
+      extensions: {},
+    } satisfies ApiDataSource
+  } else if (type === 'csv') {
+    next = {
+      id,
+      name,
+      type: 'csv',
+      raw: '',
+      delimiter: ',',
+      hasHeader: true,
+      extensions: {},
+    } satisfies CsvDataSource
+  } else if (type === 'json') {
+    next = { id, name, type: 'json', raw: '', extensions: {} } satisfies JsonDataSource
+  } else {
+    next = { id, name, type: 'static', dataset: { fields: [], rows: [] }, extensions: {} }
+  }
+  editor.execute('dataSource.add', { source: next })
+  return next
+}
+
 export function DataSourcesPanel() {
   const editor = useDashboardEditor()
   const sources = useDocumentState(
@@ -61,50 +107,7 @@ export function DataSourcesPanel() {
   const [editorOpen, setEditorOpen] = React.useState<{ source: DataSource } | null>(null)
 
   const createSource = (type: 'api' | 'csv' | 'json' | 'static') => {
-    const id = `ds_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
-    const name = `数据源 ${sources.length + 1}`
-    let next: DataSource
-    if (type === 'api') {
-      next = {
-        id,
-        name,
-        type: 'api',
-        url: '',
-        method: 'GET',
-        responsePath: '',
-        pollingInterval: 0,
-        cache: { enabled: true, ttl: 30_000 },
-        extensions: {},
-      } satisfies ApiDataSource
-    } else if (type === 'csv') {
-      next = {
-        id,
-        name,
-        type: 'csv',
-        raw: '',
-        delimiter: ',',
-        hasHeader: true,
-        extensions: {},
-      } satisfies CsvDataSource
-    } else if (type === 'json') {
-      next = {
-        id,
-        name,
-        type: 'json',
-        raw: '',
-        extensions: {},
-      } satisfies JsonDataSource
-    } else {
-      next = {
-        id,
-        name,
-        type: 'static',
-        dataset: { fields: [], rows: [] },
-        extensions: {},
-      }
-    }
-    editor.execute('dataSource.add', { source: next })
-    setEditorOpen({ source: next })
+    setEditorOpen({ source: createDataSource(editor, sources.length, type) })
   }
 
   return (
@@ -278,7 +281,7 @@ function formatAge(deltaMs: number): string {
 
 // ─── Editor dialog ────────────────────────────────────────────────
 
-function DataSourceEditor({
+export function DataSourceEditor({
   source,
   onClose,
 }: {

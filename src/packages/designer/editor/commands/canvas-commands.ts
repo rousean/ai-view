@@ -1,4 +1,4 @@
-import type { Background, GridConfig } from '@schema/types'
+import type { Background, ColumnGridConfig, GridConfig } from '@schema/types'
 import type { Command } from '../command-registry'
 import { getCurrentPage } from './helpers'
 
@@ -18,6 +18,10 @@ export interface CanvasToggleOrientationPayload {
 
 export interface GridSetPayload {
   grid: Partial<GridConfig>
+}
+
+export interface ColumnGridSetPayload {
+  columnGrid: Partial<ColumnGridConfig>
 }
 
 export interface CanvasSetSafeAreaPayload {
@@ -75,6 +79,24 @@ export const gridSetCommand: Command<GridSetPayload> = {
   mergeKey: () => 'grid.set',
 }
 
+export const columnGridSetCommand: Command<ColumnGridSetPayload> = {
+  type: 'columnGrid.set',
+  label: '调整列栅格',
+  undoable: true,
+  apply: (draft, _ctx, payload) => {
+    const page = getCurrentPage(draft)
+    const base: ColumnGridConfig = page.columnGrid ?? {
+      enabled: false,
+      columns: 12,
+      gutter: 16,
+      margin: 48,
+    }
+    page.columnGrid = { ...base, ...payload.columnGrid }
+  },
+  // Coalesce a columns / gutter scrub into one undo entry.
+  mergeKey: () => 'columnGrid.set',
+}
+
 export const canvasSetSafeAreaCommand: Command<CanvasSetSafeAreaPayload> = {
   type: 'canvas.setSafeArea',
   label: '安全区',
@@ -92,5 +114,6 @@ export const canvasCommands: Command<any>[] = [
   canvasSetBackgroundCommand,
   canvasToggleOrientationCommand,
   gridSetCommand,
+  columnGridSetCommand,
   canvasSetSafeAreaCommand,
 ]

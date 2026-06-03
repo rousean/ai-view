@@ -1,6 +1,7 @@
 import type {
   Background,
   Camera,
+  ColumnGridConfig,
   DataSource,
   FieldType,
   Layout,
@@ -951,6 +952,10 @@ export class DashboardEditor {
     this.execute('grid.set', { grid })
   }
 
+  setColumnGrid(columnGrid: Partial<ColumnGridConfig>): void {
+    this.execute('columnGrid.set', { columnGrid })
+  }
+
   addGuide(orientation: 'horizontal' | 'vertical', position: number): void {
     this.execute('guide.add', { orientation, position })
     // A guide the user just pulled out of the ruler has to be visible —
@@ -1143,6 +1148,34 @@ export class DashboardEditor {
         ny = Math.round(ny / gridSize) * gridSize
       }
       updates.push({ id, layout: { x: nx, y: ny } })
+    }
+    if (updates.length === 0) return
+    this.execute('widget.updateLayoutBatch', { updates })
+  }
+
+  /**
+   * Resize every selected widget by `(dw * step, dh * step)` px, growing
+   * toward the bottom-right (top-left stays anchored). Used by the keyboard
+   * resize shortcuts (Alt+Arrow / Alt+Shift+Arrow). Honours each widget's
+   * min/max capabilities; locked widgets are skipped. Coalesces into one
+   * undo entry via the batch command's merge window.
+   */
+  resizeSelection(dw: number, dh: number, step = 1): void {
+    const ids = this.getSelectedIds()
+    if (ids.length === 0) return
+    const updates: Array<{ id: string; layout: Partial<Layout> }> = []
+    for (const id of ids) {
+      const w = this.getWidget(id)
+      if (!w || w.flags.locked) continue
+      const caps = (this.registry.widgets.get(w.type) as WidgetMeta | undefined)?.capabilities
+      const minW = caps?.minSize?.width ?? 4
+      const minH = caps?.minSize?.height ?? 4
+      const maxW = caps?.maxSize?.width ?? Infinity
+      const maxH = caps?.maxSize?.height ?? Infinity
+      const nw = Math.min(maxW, Math.max(minW, w.layout.width + dw * step))
+      const nh = Math.min(maxH, Math.max(minH, w.layout.height + dh * step))
+      if (nw === w.layout.width && nh === w.layout.height) continue
+      updates.push({ id, layout: { width: nw, height: nh } })
     }
     if (updates.length === 0) return
     this.execute('widget.updateLayoutBatch', { updates })

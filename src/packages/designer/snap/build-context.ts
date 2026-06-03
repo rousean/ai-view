@@ -1,4 +1,5 @@
 import type { DashboardEditor } from '../editor/dashboard-editor'
+import { columnEdges } from '../canvas/column-grid'
 import { rotatedAABB } from '../canvas/transformer/geometry'
 import type { SnapContext } from './types'
 
@@ -20,5 +21,9 @@ export function buildSnapContext(editor: DashboardEditor, excludeIds: string[]):
     canvas: page ? { width: page.canvas.width, height: page.canvas.height } : null,
     guides: page?.guides ?? [],
     grid: page && page.grid.enabled ? { size: page.grid.size } : null,
+    columns:
+      page && page.columnGrid?.enabled
+        ? columnEdges(page.canvas.width, page.columnGrid)
+        : null,
   }
 }

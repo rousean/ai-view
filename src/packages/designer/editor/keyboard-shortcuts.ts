@@ -160,6 +160,27 @@ function nudge(
   }
 }
 
+// ─── Arrow-key resize factory ──────────────────────────────────────────
+// Alt+Arrow grows/shrinks the selection by 1px (10px with Shift), top-left
+// anchored. Coalesced into one undo entry by widget.updateLayoutBatch.
+
+function resizeKey(
+  key: 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown',
+  dw: number,
+  dh: number,
+  step: 1 | 10,
+): ShortcutDef {
+  const axis = dw !== 0 ? '宽' : '高'
+  const verb = dw + dh < 0 ? '减小' : '增大'
+  return {
+    key,
+    mod: step === 10 ? 'alt+shift' : 'alt',
+    when: hasSelection,
+    run: (ed) => ed.resizeSelection(dw, dh, step),
+    description: `${verb}${axis} ${step}px`,
+  }
+}
+
 // ─── Default bindings ──────────────────────────────────────────────────
 //
 // Anything that requires a future API (duplicate / copy / paste / nudge /
@@ -218,6 +239,63 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
   nudge('ArrowRight', 1, 0, 10),
   nudge('ArrowUp', 0, -1, 10),
   nudge('ArrowDown', 0, 1, 10),
+
+  // ── Keyboard resize (Alt+Arrow, Alt+Shift = 10×) ────────────────────
+  resizeKey('ArrowRight', 1, 0, 1),
+  resizeKey('ArrowLeft', -1, 0, 1),
+  resizeKey('ArrowDown', 0, 1, 1),
+  resizeKey('ArrowUp', 0, -1, 1),
+  resizeKey('ArrowRight', 1, 0, 10),
+  resizeKey('ArrowLeft', -1, 0, 10),
+  resizeKey('ArrowDown', 0, 1, 10),
+  resizeKey('ArrowUp', 0, -1, 10),
+
+  // ── Align (Alt + L/R/T/B/C/M) ───────────────────────────────────────
+  // Single selection aligns to the page; multi-selection to the union
+  // bbox. These use plain Alt+letter and may collide with a browser's
+  // Alt-accelerator on some platforms — remap here if needed.
+  {
+    key: 'l',
+    mod: 'alt',
+    when: hasSelection,
+    run: (ed) => ed.alignSelection('left'),
+    description: '左对齐',
+  },
+  {
+    key: 'r',
+    mod: 'alt',
+    when: hasSelection,
+    run: (ed) => ed.alignSelection('right'),
+    description: '右对齐',
+  },
+  {
+    key: 't',
+    mod: 'alt',
+    when: hasSelection,
+    run: (ed) => ed.alignSelection('top'),
+    description: '顶对齐',
+  },
+  {
+    key: 'b',
+    mod: 'alt',
+    when: hasSelection,
+    run: (ed) => ed.alignSelection('bottom'),
+    description: '底对齐',
+  },
+  {
+    key: 'c',
+    mod: 'alt',
+    when: hasSelection,
+    run: (ed) => ed.alignSelection('h-center'),
+    description: '水平居中',
+  },
+  {
+    key: 'm',
+    mod: 'alt',
+    when: hasSelection,
+    run: (ed) => ed.alignSelection('v-center'),
+    description: '垂直居中',
+  },
 
   // ── Clipboard / duplicate ───────────────────────────────────────────
   // copy / cut / paste are async (system clipboard); we void the

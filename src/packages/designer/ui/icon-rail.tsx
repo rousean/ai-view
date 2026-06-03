@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Database, History, Image, Layers, Plus, Settings } from 'lucide-react'
+import { History, Image, Layers, Plus, Settings } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { cn } from '~/lib/utils'
@@ -18,7 +18,6 @@ const ITEMS: {
 }[] = [
   { id: 'mat', label: '物料', Icon: Plus },
   { id: 'layers', label: '图层', Icon: Layers },
-  { id: 'data', label: '数据', Icon: Database },
   { id: 'assets', label: '资源', Icon: Image },
   { id: 'history', label: '历史', Icon: History },
 ]

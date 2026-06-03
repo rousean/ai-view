@@ -11,6 +11,14 @@ interface Props {
    * each handle is actually pointing in.
    */
   rotation?: number
+  /**
+   * Which resize directions the widget allows (from
+   * `WidgetMeta.capabilities.resizable`). `'horizontal'` keeps only the
+   * left/right edge handles, `'vertical'` only top/bottom; `true`
+   * (default) shows all 8. `false` is handled upstream by not rendering
+   * this component at all.
+   */
+  resizable?: boolean | 'horizontal' | 'vertical'
 }
 
 /** Outward direction (degrees CW from up = 0) of each handle's resize axis. */
@@ -39,7 +47,7 @@ function cursorForAngle(angleDeg: number): string {
 }
 
 /** 8 resize handles around a bounding box, drawn at constant screen size. */
-export const ResizeHandles: React.FC<Props> = ({ bbox, rotation = 0 }) => {
+export const ResizeHandles: React.FC<Props> = ({ bbox, rotation = 0, resizable = true }) => {
   const start = useResizeGesture()
   const scale = useEditorStore((s) => s.camera.scale)
   // Each handle is 10×10 screen px regardless of zoom.
@@ -61,9 +69,18 @@ export const ResizeHandles: React.FC<Props> = ({ bbox, rotation = 0 }) => {
     { handle: 'left', cx: bbox.x, cy: bbox.y + bbox.height / 2 },
   ]
 
+  // Single-axis `resizable` keeps only the matching edge handles; corner
+  // handles imply both axes so they're dropped for a single-axis widget.
+  const visibleHandles =
+    resizable === 'horizontal'
+      ? handles.filter((h) => h.handle === 'left' || h.handle === 'right')
+      : resizable === 'vertical'
+        ? handles.filter((h) => h.handle === 'top' || h.handle === 'bottom')
+        : handles
+
   return (
     <>
-      {handles.map((h) => (
+      {visibleHandles.map((h) => (
         <div
           key={h.handle}
           onPointerDown={(e) => start(h.handle, e)}

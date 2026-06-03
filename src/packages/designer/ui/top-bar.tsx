@@ -6,6 +6,7 @@ import {
   History,
   Minus,
   MoreHorizontal,
+  PanelRight,
   Plus,
   Redo2,
   Send,
@@ -21,6 +22,7 @@ import {
 } from '~/components/ui/popover'
 import { Separator } from '~/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import { cn } from '~/lib/utils'
 import {
   useDashboardEditor,
   useDocumentState,
@@ -39,6 +41,8 @@ export function TopBar() {
   const editor = useDashboardEditor()
   const projectName = useDocumentState((s) => s.project?.name ?? '')
   const scale = useEditorState((s) => s.camera.scale)
+  const rightCollapsed = useEditorState((s) => s.rightCollapsed)
+  const setRightCollapsed = useEditorState((s) => s.actions.setRightCollapsed)
 
   // Force re-evaluate canUndo / canRedo + dirty state on history /
   // save events. One reducer covers all of them — the cost of an extra
@@ -113,6 +117,20 @@ export function TopBar() {
            disabled with explanatory tooltips so it's clear they exist on
            purpose but aren't wired yet. */}
       <div className="flex items-center gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setRightCollapsed(!rightCollapsed)}
+              aria-label="属性面板"
+              className={cn(!rightCollapsed && 'text-primary')}
+            >
+              <PanelRight size={14} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{rightCollapsed ? '显示属性面板' : '隐藏属性面板'}</TooltipContent>
+        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

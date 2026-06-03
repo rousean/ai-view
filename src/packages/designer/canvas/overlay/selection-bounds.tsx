@@ -1,6 +1,8 @@
 import * as React from 'react'
 import { Lock } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
+import type { WidgetMeta } from '@widgets/widget-meta'
+import { useDashboardEditor } from '../../editor/editor-context'
 import { useDocumentStore } from '../../stores/document-store'
 import { useEditorStore } from '../../stores/editor-store'
 import { selectWidget, selectWidgets } from '../../stores/selectors'
@@ -34,6 +36,11 @@ interface SelectionBBox {
    * fail since the underlying gestures filter locked widgets out.
    */
   allLocked: boolean
+  /**
+   * The single selected widget's `type`, so the chrome can look up its
+   * `capabilities`. Undefined for multi-selection.
+   */
+  widgetType?: string
 }
 
 /**
@@ -90,6 +97,7 @@ function useSelectionBBox(): SelectionBBox | null {
       flipY: w.layout.flipY,
       count: 1,
       allLocked,
+      widgetType: w.type,
     }
   }
 
@@ -135,10 +143,22 @@ function useSelectionBBox(): SelectionBBox | null {
  * stroke widths are counter-scaled to stay 1px on screen.
  */
 export const SelectionBounds: React.FC = () => {
+  const editor = useDashboardEditor()
   const bbox = useSelectionBBox()
   const scale = useEditorStore((s) => s.camera.scale)
   const interaction = useEditorStore((s) => s.interaction.kind)
   if (!bbox) return null
+
+  // Single-selection chrome honours the widget's capabilities: hide the
+  // rotation handle when `rotatable === false`, drop resize handles when
+  // `resizable === false`, and pass the axis constraint to ResizeHandles.
+  // Multi-selection always shows the full chrome (mixed caps don't unify).
+  const caps =
+    bbox.count === 1 && bbox.widgetType
+      ? (editor.registry.widgets.get(bbox.widgetType) as WidgetMeta | undefined)?.capabilities
+      : undefined
+  const resizable = caps?.resizable ?? true
+  const rotatable = caps?.rotatable ?? true
 
   const stroke = Math.max(1 / scale, 0.5)
   const isMarquee = interaction === 'marquee'
@@ -187,11 +207,16 @@ export const SelectionBounds: React.FC = () => {
       />
       {!isMarquee && !bbox.allLocked && (
         <>
-          <RotationHandle bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }} />
-          <ResizeHandles
-            bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }}
-            rotation={bbox.count === 1 ? bbox.rotate : 0}
-          />
+          {rotatable && (
+            <RotationHandle bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }} />
+          )}
+          {resizable !== false && (
+            <ResizeHandles
+              bbox={{ x: 0, y: 0, width: bbox.width, height: bbox.height }}
+              rotation={bbox.count === 1 ? bbox.rotate : 0}
+              resizable={resizable}
+            />
+          )}
         </>
       )}
       {bbox.allLocked && (

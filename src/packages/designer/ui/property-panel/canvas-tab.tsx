@@ -10,7 +10,9 @@ import {
 import { Button } from '~/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../../editor/editor-context'
+import { DEFAULT_COLUMN_GRID } from '../../canvas/column-grid'
 import { selectCurrentPage } from '../../stores/selectors'
+import { DataSourcesPanel } from '../data-sources-panel'
 import {
   ColorInput,
   NumInput,
@@ -33,6 +35,8 @@ export function CanvasProps() {
   const page = useDocumentState((s) => selectCurrentPage(s))
   const view = useEditorState((s) => s.view)
   if (!page) return null
+
+  const cg = page.columnGrid ?? DEFAULT_COLUMN_GRID
 
   const bg = page.canvas.background
   const bgType = bg.type
@@ -258,6 +262,47 @@ export function CanvasProps() {
         </PropRow>
       </PropSection>
 
+      <PropSection title="列栅格">
+        <PropRow label="启用">
+          <Toggle
+            on={!!page.columnGrid?.enabled}
+            onChange={(on) => editor.setColumnGrid({ enabled: on })}
+          />
+        </PropRow>
+        <PropRow label="列数">
+          <NumInput
+            value={cg.columns}
+            min={1}
+            disabled={!page.columnGrid?.enabled}
+            onChange={(n) => editor.setColumnGrid({ columns: Math.max(1, Math.round(n)) })}
+          />
+        </PropRow>
+        <PropRow label="列间距">
+          <NumInput
+            value={cg.gutter}
+            suffix="px"
+            min={0}
+            disabled={!page.columnGrid?.enabled}
+            onChange={(n) => editor.setColumnGrid({ gutter: n })}
+          />
+        </PropRow>
+        <PropRow label="外边距">
+          <NumInput
+            value={cg.margin}
+            suffix="px"
+            min={0}
+            disabled={!page.columnGrid?.enabled}
+            onChange={(n) => editor.setColumnGrid({ margin: n })}
+          />
+        </PropRow>
+        <PropRow label="颜色">
+          <ColorInput
+            value={cg.color ?? '#7c3aed'}
+            onChange={(c) => editor.setColumnGrid({ color: c })}
+          />
+        </PropRow>
+      </PropSection>
+
       <PropSection title="安全区">
         <PropRow label="显示">
           <Toggle
@@ -326,6 +371,10 @@ export function CanvasProps() {
             </div>
           </>
         )}
+      </PropSection>
+
+      <PropSection title="数据源">
+        <DataSourcesPanel />
       </PropSection>
     </>
   )

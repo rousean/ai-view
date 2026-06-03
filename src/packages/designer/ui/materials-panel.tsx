@@ -75,7 +75,7 @@ export function MaterialsPanel({
   }, [all, grouped, activeCat, isSearching, q])
 
   return (
-    <div className="border-border bg-card flex h-full w-full flex-col border-r">
+    <div className="border-border bg-card flex w-60 shrink-0 flex-col border-r">
       {/* Search */}
       <div className="relative px-2.5 pt-2.5">
         <Search
@@ -163,11 +163,32 @@ const MaterialCard: React.FC<{ meta: WidgetMeta }> = ({ meta }) => {
   })
   const Icon = meta.icon ?? ChartBar
 
-  // Double-click shortcut — drop the widget at the centre of the
-  // visible canvas viewport. Shares the exact placement logic with the
-  // command palette via `addWidgetAtViewportCenter`, which measures the
-  // canvas element rather than guessing window centre.
+  // Single vs double click on a material card:
+  //   - single → enter "place" mode for this widget type; the user then
+  //     clicks (default size) or drags-a-box (custom size) on the canvas.
+  //   - double → drop at the centre of the visible viewport (the old
+  //     shortcut), shared with the command palette.
+  // A short timer disambiguates the two so a double-click doesn't also
+  // fire the single-click placement.
+  const clickTimer = React.useRef<number | null>(null)
+  React.useEffect(
+    () => () => {
+      if (clickTimer.current) clearTimeout(clickTimer.current)
+    },
+    [],
+  )
+  const handleClick = () => {
+    if (clickTimer.current) return
+    clickTimer.current = window.setTimeout(() => {
+      clickTimer.current = null
+      editor.setTool('place', { widgetType: meta.type })
+    }, 200)
+  }
   const handleDoubleClick = () => {
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current)
+      clickTimer.current = null
+    }
     addWidgetAtViewportCenter(editor, meta)
   }
 
@@ -179,8 +200,9 @@ const MaterialCard: React.FC<{ meta: WidgetMeta }> = ({ meta }) => {
   return (
     <div
       ref={ref}
+      onClick={handleClick}
       onDoubleClick={handleDoubleClick}
-      title={`${meta.description ?? meta.title}\n双击添加到画布`}
+      title={`${meta.description ?? meta.title}\n单击后在画布拖拽放置 · 双击居中添加`}
       className="hover:bg-muted flex cursor-grab flex-col items-center gap-1 rounded-sm px-1 py-2 transition-colors select-none active:cursor-grabbing"
     >
       <div className="bg-muted border-border/60 text-muted-foreground flex aspect-[1.4/1] w-full items-center justify-center rounded-sm border p-1.5">

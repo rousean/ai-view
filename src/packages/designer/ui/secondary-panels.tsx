@@ -42,7 +42,7 @@ interface SecondaryPanelProps {
  */
 export function SecondaryPanel({ title, action, children }: SecondaryPanelProps) {
   return (
-    <div className="border-border bg-card flex h-full w-full flex-col border-r">
+    <div className="border-border bg-card flex w-60 shrink-0 flex-col border-r">
       <div className="border-border flex h-9 items-center gap-2 border-b px-3">
         <span className="text-[13px] font-medium">{title}</span>
         <div className="flex-1" />
@@ -207,7 +207,7 @@ export function LayersPanel() {
   }
 
   return (
-    <div className="border-border bg-card flex h-full w-full flex-col border-r">
+    <div className="border-border bg-card flex w-60 shrink-0 flex-col border-r">
       {/* Title bar (matches SecondaryPanel) */}
       <div className="border-border flex h-9 items-center gap-2 border-b px-3">
         <span className="text-[13px] font-medium">图层</span>

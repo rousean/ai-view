@@ -16,6 +16,7 @@ export type SnapTargetType =
   | 'page-center' // element centre to page centre
   | 'guide' // user-drawn guide
   | 'grid' // grid line
+  | 'column' // layout column-grid edge
 
 /** Per-side toggles for which sides of the moving rect can act as snap sources. */
 export interface SnapSides {
@@ -39,6 +40,8 @@ export interface SnapContext {
   guides: Guide[]
   /** Grid configuration; pass null to disable grid snapping. */
   grid: { size: number } | null
+  /** Layout column-grid edge x-positions; pass null to disable. */
+  columns: number[] | null
 }
 
 /** Toggles for each snap strategy. */

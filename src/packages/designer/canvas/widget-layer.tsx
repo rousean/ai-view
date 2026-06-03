@@ -1,8 +1,18 @@
 import * as React from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useDocumentStore } from '../stores/document-store'
+import { useEditorStore } from '../stores/editor-store'
 import { selectCurrentPage, selectWidgets } from '../stores/selectors'
+import { rotatedAABB } from './transformer/geometry'
 import { WidgetContainer } from './widget-container'
+
+// Above this widget count, cull off-screen widgets so we don't mount
+// (and, for charts, `echarts.init`) hundreds of instances at once. Small
+// boards skip culling — the per-frame visibility pass isn't worth it.
+const VIRTUALIZE_THRESHOLD = 60
+// Keep widgets within this many *screen* px of the viewport mounted, so
+// they're ready before they scroll into view (no pop-in).
+const VIEWPORT_MARGIN = 300
 
 /**
  * Iterates the current page's widget order and renders one
@@ -18,8 +28,31 @@ import { WidgetContainer } from './widget-container'
  * user something to grab to drag the widget back).
  */
 export const WidgetLayer: React.FC = () => {
-  const ids = useDocumentStore(useShallow((s) => selectWidgets(s).map((w) => w.id)))
+  const widgets = useDocumentStore(useShallow((s) => selectWidgets(s)))
   const canvas = useDocumentStore((s) => selectCurrentPage(s)?.canvas ?? null)
+  const camera = useEditorStore((s) => s.camera)
+  const viewport = useEditorStore((s) => s.viewportSize)
+
+  // Viewport culling: keep only widgets whose visual (rotated) bounds
+  // intersect the visible canvas rect (+ margin). Gated behind a count
+  // threshold so typical boards render exactly as before (and don't pay
+  // the per-frame pass while panning).
+  const visibleIds = React.useMemo(() => {
+    if (widgets.length <= VIRTUALIZE_THRESHOLD || viewport.width === 0) {
+      return widgets.map((w) => w.id)
+    }
+    const margin = VIEWPORT_MARGIN / camera.scale
+    const vx = -camera.x / camera.scale - margin
+    const vy = -camera.y / camera.scale - margin
+    const vw = viewport.width / camera.scale + margin * 2
+    const vh = viewport.height / camera.scale + margin * 2
+    return widgets
+      .filter((w) => {
+        const b = rotatedAABB(w)
+        return b.x + b.width >= vx && b.x <= vx + vw && b.y + b.height >= vy && b.y <= vy + vh
+      })
+      .map((w) => w.id)
+  }, [widgets, camera, viewport])
 
   if (!canvas) return null
 
@@ -28,7 +61,7 @@ export const WidgetLayer: React.FC = () => {
       className="absolute top-0 left-0 overflow-hidden"
       style={{ width: canvas.width, height: canvas.height }}
     >
-      {ids.map((id) => (
+      {visibleIds.map((id) => (
         <WidgetContainer key={id} id={id} />
       ))}
     </div>

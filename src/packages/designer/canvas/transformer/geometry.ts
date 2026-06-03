@@ -135,9 +135,23 @@ export function resizeBBox(
   handle: ResizeHandle,
   dx: number,
   dy: number,
-  opts: { lockAspect?: boolean; fromCenter?: boolean } = {},
+  opts: {
+    lockAspect?: boolean
+    fromCenter?: boolean
+    minWidth?: number
+    minHeight?: number
+    maxWidth?: number
+    maxHeight?: number
+  } = {},
 ): BBox {
-  const { lockAspect = false, fromCenter = false } = opts
+  const {
+    lockAspect = false,
+    fromCenter = false,
+    minWidth = 4,
+    minHeight = 4,
+    maxWidth = Infinity,
+    maxHeight = Infinity,
+  } = opts
   const m = handleSides(handle)
 
   let { x, y, width, height } = start
@@ -205,17 +219,27 @@ export function resizeBBox(
     }
   }
 
-  // ── Min-size clamp (don't allow flipping during a resize) ───────
-  const MIN = 4
-  if (width < MIN) {
-    // If left edge moved, we shifted x past the right edge; pull x back so
-    // that the right edge stays where it was.
-    if (m.movesLeft) x -= MIN - width
-    width = MIN
+  // ── Min / max clamp ──────────────────────────────────────────────
+  // Respect the widget's declared capabilities (minSize / maxSize),
+  // defaulting to a 4px floor so a resize can never flip the rect. The
+  // anchored edge stays put: when a bound is hit we pull the dimension
+  // back and shift the origin so the edge the user is NOT dragging holds
+  // its position. `fromCenter` clamps symmetrically around the centre.
+  const minW = Math.max(minWidth, 1)
+  const minH = Math.max(minHeight, 1)
+  const clampedW = Math.max(minW, Math.min(maxWidth, width))
+  if (clampedW !== width) {
+    const d = width - clampedW
+    if (fromCenter) x += d / 2
+    else if (m.movesLeft) x += d
+    width = clampedW
   }
-  if (height < MIN) {
-    if (m.movesTop) y -= MIN - height
-    height = MIN
+  const clampedH = Math.max(minH, Math.min(maxHeight, height))
+  if (clampedH !== height) {
+    const d = height - clampedH
+    if (fromCenter) y += d / 2
+    else if (m.movesTop) y += d
+    height = clampedH
   }
 
   return { x, y, width, height }
