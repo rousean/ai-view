@@ -1,6 +1,6 @@
 import type { EventBinding, WidgetNode } from '@schema/types'
 import type { DashboardEditor } from '../../editor/dashboard-editor'
-import { useInteractionStore } from '../../stores/interaction-store'
+import { useFilterStore } from '../../stores/filter-store'
 import { useRuntimeStore } from '../../stores/runtime-store'
 
 /**
@@ -106,8 +106,8 @@ function runAction(binding: EventBinding, ctx: DispatchContext): void {
 
       // Toggle off if clicking the same source/value pair the filter
       // already holds — matches DataV's "click again to clear" idiom.
-      const current = useInteractionStore.getState().filters[target]
-      const setFilter = useInteractionStore.getState().actions.setFilter
+      const current = useFilterStore.getState().filters[target]
+      const setFilter = useFilterStore.getState().actions.setFilter
       const isSame =
         current?.sourceId === ctx.source.id &&
         current.field === field &&

@@ -2,14 +2,13 @@ import * as React from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { WidgetMeta } from '@widgets/widget-meta'
 import { indexDataSources, resolveWidgetData } from '@designer/data'
+import { WidgetView } from '@renderer/widget-view'
 import { cn } from '~/lib/utils'
-import { findEnterAnimation } from '../animations'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
 import { dispatchEvent } from '../interactions'
-import { useInteractionStore } from '../stores/interaction-store'
+import { useFilterStore } from '../stores/filter-store'
 import { selectWidget } from '../stores/selectors'
 import { useRuntimeStore } from '../stores/runtime-store'
-import { WidgetErrorBoundary } from './widget-error-boundary'
 
 interface WidgetContainerProps {
   id: string
@@ -46,7 +45,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
   // Active cross-widget filter — only consulted in preview. Filters
   // are write-only at design time so editing doesn't surprise the
   // author with disappearing rows.
-  const activeFilter = useInteractionStore((s) =>
+  const activeFilter = useFilterStore((s) =>
     isPreview ? s.filters[id] : undefined,
   )
 
@@ -75,6 +74,10 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
       meta,
       indexDataSources(dataSources),
       activeFilter,
+      // Live API data lives in RuntimeStore now that the resolver no longer
+      // reads it directly. `getState` (not a subscription) preserves the
+      // previous behaviour — a fetch update doesn't itself re-resolve.
+      useRuntimeStore.getState().fetchedData,
     )
   }, [widget, meta, dataSources, activeFilter])
 
@@ -82,8 +85,6 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
   if (widget.flags.hidden) return null
 
   const layout = widget.layout
-  const enterAnim = widget.animation?.enter
-  const enterMeta = enterAnim ? findEnterAnimation(enterAnim.type) : undefined
   // Pivot all transforms (rotate, scale/flip) around the widget's visual
   // centre so that:
   //   1. rotation gestures (which use bbox-centre as pivot) match what's
@@ -150,64 +151,30 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
         isPreview ? () => dispatchEvent('hover', { source: widget, editor }) : undefined
       }
     >
-      {/*
-        Inner shell hosts the animation. Keying it on the preview token
-        guarantees the next render mounts a fresh node, which is how we
-        get the keyframe to actually replay (CSS animations don't
-        retrigger on same-node prop changes).
-       */}
-      <div
-        key={`${id}-${animationPreviewToken}`}
-        className={cn('h-full w-full', enterMeta && 'ai-view-anim')}
-        style={
-          enterMeta && enterAnim
-            ? ({
-                ['--ai-view-enter-name']: `ai-view-${enterMeta.type}`,
-                ['--ai-view-enter-duration']: `${enterAnim.duration}ms`,
-                ['--ai-view-enter-delay']: `${enterAnim.delay}ms`,
-                ['--ai-view-enter-easing']: enterAnim.easing,
-              } as React.CSSProperties)
-            : undefined
+      {/* WidgetView owns the enter-animation shell now; `replayToken`
+          (the preview token) forces a remount so the keyframe replays. */}
+      <WidgetView
+        node={widget}
+        meta={meta}
+        data={resolvedData}
+        designMode={!isPreview}
+        replayToken={`${id}-${animationPreviewToken}`}
+        onError={(err) =>
+          useRuntimeStore.getState().actions.setWidgetError(widget.id, {
+            message: err.message,
+            stack: err.stack,
+          })
         }
-      >
-        {meta ? (
-          <WidgetErrorBoundary
-            widgetId={widget.id}
-            widgetName={widget.name}
-            onError={(err) =>
-              useRuntimeStore.getState().actions.setWidgetError(widget.id, {
-                message: err.message,
-                stack: err.stack,
-              })
-            }
-          >
-            <meta.Component
-              node={widget}
-              props={widget.props as never}
-              data={resolvedData}
-              layout={layout}
-              designMode={!isPreview}
-            />
-          </WidgetErrorBoundary>
-        ) : (
-          <UnknownWidgetFallback type={widget.type} />
-        )}
-        {/* Data-source status banner — overlay, not inline, so it
-            never pushes the chart out of layout. Skip in preview to
-            keep the published view clean. */}
-        {!isPreview && fetchStatus && fetchStatus.state !== 'success' && (
-          <DataStatusBanner status={fetchStatus} />
-        )}
-      </div>
+      />
+      {/* Data-source status banner — overlay, not inline, so it never
+          pushes the chart out of layout. Skip in preview to keep the
+          published view clean. */}
+      {!isPreview && fetchStatus && fetchStatus.state !== 'success' && (
+        <DataStatusBanner status={fetchStatus} />
+      )}
     </div>
   )
 })
-
-const UnknownWidgetFallback: React.FC<{ type: string }> = ({ type }) => (
-  <div className="bg-destructive/10 border-destructive/40 text-destructive grid h-full w-full place-items-center border border-dashed text-xs">
-    未注册组件: {type}
-  </div>
-)
 
 /**
  * Overlay strip pinned to the widget's top edge that reports the bound

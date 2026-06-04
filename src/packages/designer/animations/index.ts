@@ -1,14 +1,13 @@
-// Import once so any consumer of this barrel picks up the keyframes.
-import './animations.css'
-
-export type { EnterAnimationDef, EasingDef, AnimationDefaults } from './animation-types'
+// Animations moved to @renderer (the runtime ships the same set, so preview
+// and published output match design-time). Re-exported here — including the
+// keyframe CSS side-effect via the `@renderer/animations` barrel — so the
+// existing `../animations` imports keep working unchanged.
+export type { EnterAnimationDef, EasingDef, AnimationDefaults } from '@renderer/animations'
 export {
   DEFAULT_ENTER_ANIMATION,
   DEFAULT_UPDATE_ANIMATION,
-} from './animation-types'
-export {
   BUILTIN_ENTER_ANIMATIONS,
   BUILTIN_EASINGS,
   findEnterAnimation,
   findEasing,
-} from './builtin-animations'
+} from '@renderer/animations'

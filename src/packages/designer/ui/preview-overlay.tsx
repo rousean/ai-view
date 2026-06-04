@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { Eye, Filter, X } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { useDashboardEditor, useDocumentState } from '../editor/editor-context'
-import { useInteractionStore } from '../stores/interaction-store'
+import { useFilterStore } from '../stores/filter-store'
 import { useRuntimeStore } from '../stores/runtime-store'
 import { selectCurrentPage, selectPages } from '../stores/selectors'
 import { cn } from '~/lib/utils'
@@ -28,8 +28,8 @@ export function PreviewOverlay() {
   const mode = useRuntimeStore((s) => s.mode)
   const setMode = useRuntimeStore((s) => s.actions.setMode)
   const clearHighlights = useRuntimeStore((s) => s.actions.removeHighlights)
-  const clearFilters = useInteractionStore((s) => s.actions.clearAll)
-  const filters = useInteractionStore((s) => s.filters)
+  const clearFilters = useFilterStore((s) => s.actions.clearAll)
+  const filters = useFilterStore((s) => s.filters)
   const page = useDocumentState((s) => selectCurrentPage(s))
   const pages = useDocumentState(useShallow((s) => selectPages(s)))
   const currentPageId = useDocumentState((s) => s.project?.currentPageId ?? null)

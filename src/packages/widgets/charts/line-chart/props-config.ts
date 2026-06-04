@@ -1,11 +1,5 @@
 import { Activity, Grid3x3, Hash, Palette, Tag, Type } from 'lucide-react'
-import type { PropConfig, PropGroupDef } from '../../widget-meta'
-
-/** Legacy flat config — kept for back-compat. */
-export const LINE_CHART_PROPS_CONFIG: PropConfig[] = [
-  { path: 'title', setter: 'StringSetter', label: '标题', tab: '设计' },
-  { path: 'lineWidth', setter: 'SliderSetter', label: '线宽', setterProps: { min: 1, max: 8, step: 1, unit: 'px' }, tab: '设计' },
-]
+import type { PropGroupDef } from '../../widget-meta'
 
 /**
  * Nested config. The `系列` group hands off to SeriesListSetter, which

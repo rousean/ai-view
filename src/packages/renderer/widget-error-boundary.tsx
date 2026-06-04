@@ -3,12 +3,13 @@ import { AlertTriangle } from 'lucide-react'
 
 /**
  * React error boundary scoped to a single widget. A throw inside any
- * widget component lands here, gets rendered as a compact red card,
- * and is forwarded to RuntimeStore so the layers panel / dev tools can
- * surface the same error elsewhere.
+ * widget component lands here, gets rendered as a compact red card, and is
+ * forwarded via `onError` (the designer wires this to RuntimeStore so the
+ * layers panel / dev tools can surface the same error elsewhere).
  *
- * We deliberately keep this as a class component (the only one in the
- * codebase) because `componentDidCatch` has no functional equivalent.
+ * Kept as a class component (the only one in the codebase) because
+ * `componentDidCatch` has no functional equivalent. Lives in @renderer so
+ * both the designer canvas and the standalone runtime share it.
  */
 interface Props {
   widgetId: string

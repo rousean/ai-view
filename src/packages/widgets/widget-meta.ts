@@ -274,10 +274,11 @@ export interface WidgetMeta<TProps extends object = Record<string, unknown>> {
   propsSchema?: z.ZodType<TProps>
 
   /**
-   * Flat property-panel field list — legacy layout. Still supported; if
-   * `propsGroups` is also provided it wins.
+   * Flat property-panel field list — legacy/fallback layout. Optional:
+   * widgets should declare `propsGroups` instead; this is only consulted
+   * when a widget has no `propsGroups` (design-tab's `groupsFromLegacy`).
    */
-  propsConfig: PropConfig[]
+  propsConfig?: PropConfig[]
 
   /**
    * Nested property-panel structure — the current layout. When present,

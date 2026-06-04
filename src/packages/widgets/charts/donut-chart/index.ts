@@ -4,7 +4,7 @@ import type { WidgetMeta } from '../../widget-meta'
 import { DonutChartComponent } from './component'
 import { DEFAULT_DONUT_PROPS } from './default-props'
 import { DonutChartPreview } from './preview'
-import { DONUT_CHART_PROPS_CONFIG, DONUT_CHART_PROPS_GROUPS } from './props-config'
+import { DONUT_CHART_PROPS_GROUPS } from './props-config'
 import type { DonutChartProps } from './types'
 
 const FontStyleSchema = z.object({
@@ -39,7 +39,6 @@ export const donutChartMeta: WidgetMeta<DonutChartProps> = {
   defaultName: (i) => `环形图 ${i + 1}`,
 
   propsSchema: DonutChartPropsSchema,
-  propsConfig: DONUT_CHART_PROPS_CONFIG,
   propsGroups: DONUT_CHART_PROPS_GROUPS,
 
   dataSchema: {

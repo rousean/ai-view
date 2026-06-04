@@ -1,40 +1,5 @@
 import { CircleDot, Palette, Sparkles, Type } from 'lucide-react'
-import type { PropConfig, PropGroupDef } from '../../widget-meta'
-
-/** Legacy flat config — kept for back-compat. */
-export const DONUT_CHART_PROPS_CONFIG: PropConfig[] = [
-  { path: 'title', setter: 'StringSetter', label: '标题', tab: '设计' },
-  { path: 'showLabels', setter: 'BooleanSetter', label: '显示分类名', tab: '设计' },
-  { path: 'enableHover', setter: 'BooleanSetter', label: '悬停效果', tab: '设计' },
-  {
-    path: 'innerRadiusPercent',
-    setter: 'SliderSetter',
-    label: '内圆半径',
-    setterProps: { min: 0, max: 100, step: 1, unit: '%' },
-    tab: '设计',
-  },
-  {
-    path: 'cornerRadius',
-    setter: 'SliderSetter',
-    label: '圆角',
-    setterProps: { min: 0, max: 30, step: 1, unit: 'px' },
-    tab: '设计',
-  },
-  {
-    path: 'padAngle',
-    setter: 'SliderSetter',
-    label: '扇区间距',
-    setterProps: { min: 0, max: 0.1, step: 0.005, unit: 'rad' },
-    tab: '设计',
-  },
-  {
-    path: 'padding',
-    setter: 'SliderSetter',
-    label: '内边距',
-    setterProps: { min: 0, max: 80, step: 1, unit: 'px' },
-    tab: '设计',
-  },
-]
+import type { PropGroupDef } from '../../widget-meta'
 
 export const DONUT_CHART_PROPS_GROUPS: PropGroupDef[] = [
   {

@@ -1,4 +1,5 @@
-export { SelectionBounds, HoverIndicator } from './selection-bounds'
+export { SelectionBounds } from './selection-bounds'
+export { HoverIndicator } from './hover-indicator'
 export { MarqueeOverlay } from './marquee'
 export { ResizeHandles } from './resize-handles'
 export { RotationHandle } from './rotation-handle'

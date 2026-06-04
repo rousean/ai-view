@@ -21,8 +21,8 @@ export interface ActiveFilter {
   value: unknown
 }
 
-export interface InteractionState {
-  /** Per-target filters. `null` when nothing's pinned. */
+export interface FilterState {
+  /** Per-target filters. Absent when nothing's pinned. */
   filters: Record<string, ActiveFilter | undefined>
 
   actions: {
@@ -32,11 +32,13 @@ export interface InteractionState {
 }
 
 /**
- * InteractionStore — the runtime channel for widget-to-widget signals.
- * Lives at the renderer level (not the document) because it should
- * reset on preview enter/exit and never be persisted to disk.
+ * FilterStore — the runtime channel for widget-to-widget filter links (the
+ * `filter` interaction action). Named distinctly from EditorStore's
+ * `interaction` field (the canvas *gesture* state machine) so the two
+ * "interaction" concepts don't collide. Lives at the renderer level (not
+ * the document): it resets on preview enter/exit and is never persisted.
  */
-export const useInteractionStore = create<InteractionState>()(
+export const useFilterStore = create<FilterState>()(
   devtools(
     subscribeWithSelector((set) => ({
       filters: {},
@@ -50,16 +52,16 @@ export const useInteractionStore = create<InteractionState>()(
               return { filters: next }
             },
             false,
-            'interaction/setFilter',
+            'filter/setFilter',
           ),
-        clearAll: () => set({ filters: {} }, false, 'interaction/clearAll'),
+        clearAll: () => set({ filters: {} }, false, 'filter/clearAll'),
       },
     })),
-    { name: 'InteractionStore' },
+    { name: 'FilterStore' },
   ),
 )
 
 /** Read access — selector for use with React.useMemo / zustand subscribe. */
 export function selectFilterForWidget(targetId: string) {
-  return (state: InteractionState) => state.filters[targetId]
+  return (state: FilterState) => state.filters[targetId]
 }

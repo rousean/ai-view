@@ -3,7 +3,7 @@ import type { WidgetMeta } from '../../widget-meta'
 import { BarChartComponent } from './component'
 import { DEFAULT_BAR_PROPS } from './default-props'
 import { BarChartPreview } from './preview'
-import { BAR_CHART_PROPS_CONFIG, BAR_CHART_PROPS_GROUPS } from './props-config'
+import { BAR_CHART_PROPS_GROUPS } from './props-config'
 import type { BarChartProps } from './types'
 
 const FontStyleSchema = z.object({
@@ -43,7 +43,6 @@ export const barChartMeta: WidgetMeta<BarChartProps> = {
   defaultName: (i) => `柱状图 ${i + 1}`,
 
   propsSchema: BarChartPropsSchema,
-  propsConfig: BAR_CHART_PROPS_CONFIG,
   propsGroups: BAR_CHART_PROPS_GROUPS,
 
   // Data contract: one categorical X (string OR date), one numeric Y

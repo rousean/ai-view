@@ -4,7 +4,7 @@ import type { WidgetMeta } from '../../widget-meta'
 import { LineChartComponent } from './component'
 import { DEFAULT_LINE_PROPS } from './default-props'
 import { LineChartPreview } from './preview'
-import { LINE_CHART_PROPS_CONFIG, LINE_CHART_PROPS_GROUPS } from './props-config'
+import { LINE_CHART_PROPS_GROUPS } from './props-config'
 import type { LineChartProps } from './types'
 
 const FontStyleSchema = z.object({
@@ -54,7 +54,6 @@ export const lineChartMeta: WidgetMeta<LineChartProps> = {
   defaultName: (i) => `折线图 ${i + 1}`,
 
   propsSchema: LineChartPropsSchema,
-  propsConfig: LINE_CHART_PROPS_CONFIG,
   propsGroups: LINE_CHART_PROPS_GROUPS,
 
   dataSchema: {

@@ -1,26 +1,5 @@
 import { BarChart3, Grid3x3, Hash, Palette, Tag, Type } from 'lucide-react'
-import type { PropConfig, PropGroupDef } from '../../widget-meta'
-
-/**
- * Legacy flat config — kept so anything that still inspects
- * `WidgetMeta.propsConfig` keeps working. New PropertyPanel reads
- * `propsGroups` first.
- */
-export const BAR_CHART_PROPS_CONFIG: PropConfig[] = [
-  { path: 'title', setter: 'StringSetter', label: '标题', tab: '设计' },
-  { path: 'showLegend', setter: 'BooleanSetter', label: '显示图例', tab: '设计' },
-  { path: 'showLabels', setter: 'BooleanSetter', label: '显示数值', tab: '设计' },
-  { path: 'showXAxis', setter: 'BooleanSetter', label: '显示 X 轴', tab: '设计' },
-  { path: 'showYAxis', setter: 'BooleanSetter', label: '显示 Y 轴', tab: '设计' },
-  { path: 'barColor', setter: 'ColorSetter', label: '柱体颜色', tab: '设计' },
-  {
-    path: 'barRadius',
-    setter: 'SliderSetter',
-    label: '圆角',
-    setterProps: { min: 0, max: 20, step: 1, unit: 'px' },
-    tab: '设计',
-  },
-]
+import type { PropGroupDef } from '../../widget-meta'
 
 /**
  * Nested property-panel config for BarChart.

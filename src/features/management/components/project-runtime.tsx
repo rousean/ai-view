@@ -2,7 +2,8 @@ import * as React from 'react'
 import type { DataSource, Page, Project, WidgetNode } from '@schema/types'
 import { LocalStoragePersistence } from '@schema/index'
 import { builtinWidgets, type WidgetMeta } from '@widgets/index'
-import { indexDataSources, resolveWidgetData } from '@designer/data'
+import { indexDataSources, resolveWidgetData } from '@renderer/resolve'
+import { WidgetView } from '@renderer/widget-view'
 import { cn } from '~/lib/utils'
 
 /**
@@ -145,19 +146,7 @@ function RuntimeWidget({
         opacity: layout.opacity,
       }}
     >
-      {meta ? (
-        <meta.Component
-          node={node}
-          props={node.props as never}
-          data={data}
-          layout={layout}
-          designMode={false}
-        />
-      ) : (
-        <div className="bg-destructive/10 border-destructive/40 text-destructive grid h-full w-full place-items-center border border-dashed text-xs">
-          未知组件: {node.type}
-        </div>
-      )}
+      <WidgetView node={node} meta={meta} data={data} designMode={false} />
     </div>
   )
 }
