@@ -1,11 +1,5 @@
 import * as React from 'react'
-import {
-  GripVertical,
-  Hand,
-  Maximize,
-  MousePointer2,
-  Sparkles,
-} from 'lucide-react'
+import { GripVertical, Hand, MousePointer2, Redo2, Undo2 } from 'lucide-react'
 import { Feedback } from '@dnd-kit/dom'
 import { useDragDropMonitor, useDraggable, type DragEndEvent } from '@dnd-kit/react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
@@ -37,6 +31,20 @@ import { useDashboardEditor, useEditorState } from '../editor/editor-context'
 export function FloatingTools() {
   const editor = useDashboardEditor()
   const tool = useEditorState((s) => s.tool)
+
+  // Re-render on history changes so the undo/redo buttons' enabled state
+  // (canUndo / canRedo) stays current — those live on the history manager,
+  // not in a store.
+  const [, force] = React.useReducer((x) => x + 1, 0)
+  React.useEffect(() => {
+    const off = [
+      editor.bus.on('history.applied', () => force()),
+      editor.bus.on('history.undone', () => force()),
+      editor.bus.on('history.redone', () => force()),
+      editor.bus.on('history.cleared', () => force()),
+    ]
+    return () => off.forEach((fn) => fn())
+  }, [editor])
 
   // Committed pixel offset from the default top-centre anchor.
   const dragId = React.useId()
@@ -90,6 +98,21 @@ export function FloatingTools() {
         </button>
         <Divider />
 
+        {/* ── History ─────────────────────────────────────────────── */}
+        <ToolButton
+          label="撤销 · ⌘Z"
+          icon={Undo2}
+          onClick={() => editor.undo()}
+          disabled={!editor.canUndo()}
+        />
+        <ToolButton
+          label="重做 · ⌘⇧Z"
+          icon={Redo2}
+          onClick={() => editor.redo()}
+          disabled={!editor.canRedo()}
+        />
+        <Divider />
+
         {/* ── Tools ───────────────────────────────────────────────── */}
         <ToolButton
           label="选择 · V"
@@ -103,10 +126,6 @@ export function FloatingTools() {
           onClick={() => editor.setTool('pan')}
           active={tool === 'pan'}
         />
-        <Divider />
-        <ToolButton label="AI 生成 · G" icon={Sparkles} placeholder />
-        <Divider />
-        <ToolButton label="适应屏幕" icon={Maximize} onClick={() => editor.fitToScreen()} />
       </div>
     </div>
   )
@@ -117,21 +136,24 @@ interface ToolButtonProps {
   icon: React.ComponentType<{ size?: number }>
   onClick?: () => void
   active?: boolean
+  /** Disabled (e.g. undo with nothing to undo) — greyed, no "soon" hint. */
+  disabled?: boolean
   /** When true, render as a visible-but-disabled placeholder. */
   placeholder?: boolean
 }
 
-function ToolButton({ label, icon: Icon, onClick, active, placeholder }: ToolButtonProps) {
+function ToolButton({ label, icon: Icon, onClick, active, disabled, placeholder }: ToolButtonProps) {
+  const inert = placeholder || disabled
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <button
-          onClick={placeholder ? undefined : onClick}
-          disabled={placeholder}
+          onClick={inert ? undefined : onClick}
+          disabled={inert}
           aria-label={label}
           className={cn(
             'flex h-7 w-7 shrink-0 items-center justify-center rounded-sm transition-colors',
-            placeholder
+            inert
               ? 'text-muted-foreground/40 cursor-not-allowed opacity-70'
               : active
                 ? 'bg-primary/10 text-primary cursor-pointer'

@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip
 import { cn } from '~/lib/utils'
 import { useDashboardEditor, useEditorState } from '../editor/editor-context'
 import { useEditorStore } from '../stores/editor-store'
+import { HelpSheet } from './help-sheet'
 
 /**
  * Bottom-right floating zoom control.
@@ -149,6 +150,8 @@ export function FloatingZoom() {
         </TooltipTrigger>
         <TooltipContent>小地图导航</TooltipContent>
       </Tooltip>
+      <Separator orientation="vertical" className="mx-1 h-4 self-center" />
+      <HelpSheet />
     </div>
   )
 }

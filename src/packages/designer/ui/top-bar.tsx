@@ -1,26 +1,7 @@
 import * as React from 'react'
-import {
-  Camera,
-  ChevronDown,
-  Eye,
-  History,
-  Minus,
-  MoreHorizontal,
-  PanelRight,
-  Plus,
-  Redo2,
-  Send,
-  Share2,
-  Undo2,
-} from 'lucide-react'
+import { Camera, Eye, PanelRight, Send } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '~/components/ui/popover'
-import { Separator } from '~/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { cn } from '~/lib/utils'
 import {
@@ -30,7 +11,6 @@ import {
 } from '../editor/editor-context'
 import { exportElementToPng } from '../export/screenshot'
 import { useRuntimeStore } from '../stores/runtime-store'
-import { HelpSheet } from './help-sheet'
 import { toast } from '~/components/ui/sonner'
 
 /**
@@ -40,20 +20,14 @@ import { toast } from '~/components/ui/sonner'
 export function TopBar() {
   const editor = useDashboardEditor()
   const projectName = useDocumentState((s) => s.project?.name ?? '')
-  const scale = useEditorState((s) => s.camera.scale)
   const rightCollapsed = useEditorState((s) => s.rightCollapsed)
   const setRightCollapsed = useEditorState((s) => s.actions.setRightCollapsed)
 
-  // Force re-evaluate canUndo / canRedo + dirty state on history /
-  // save events. One reducer covers all of them — the cost of an extra
-  // render is negligible next to what triggered the event in the first
-  // place (an undoable mutation).
+  // Refresh the save indicator when the document's dirty / saved state
+  // changes. (Undo/redo moved to the canvas toolbar.)
   const [, force] = React.useReducer((x) => x + 1, 0)
   React.useEffect(() => {
     const off = [
-      editor.bus.on('history.applied', () => force()),
-      editor.bus.on('history.undone', () => force()),
-      editor.bus.on('history.redone', () => force()),
       editor.bus.on('document.dirty', () => force()),
       editor.bus.on('document.saved', () => force()),
     ]
@@ -70,47 +44,9 @@ export function TopBar() {
         <SaveIndicator editor={editor} />
       </div>
 
-      {/* Center: undo / redo / zoom / history */}
-      <div className="flex flex-1 justify-center gap-0.5">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => editor.undo()}
-              disabled={!editor.canUndo()}
-            >
-              <Undo2 size={14} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>撤销 ⌘Z</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => editor.redo()}
-              disabled={!editor.canRedo()}
-            >
-              <Redo2 size={14} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>重做 ⌘⇧Z</TooltipContent>
-        </Tooltip>
-        <Separator orientation="vertical" className="mx-1 h-4 self-center" />
-        <ZoomMenu scale={scale} />
-        <Separator orientation="vertical" className="mx-1 h-4 self-center" />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" disabled>
-              <History size={14} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>历史版本 · 即将上线</TooltipContent>
-        </Tooltip>
-        <HelpSheet />
-      </div>
+      {/* Spacer pushes the two ends apart. The centre is intentionally
+          empty now — zoom lives bottom-right, history in the left rail. */}
+      <div className="flex-1" />
 
       {/* Right: collaborators + preview / share / publish + more.
            Preview / Share / More are visual-only placeholders right now —
@@ -150,14 +86,6 @@ export function TopBar() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>下载当前页 PNG</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" disabled>
-              <Share2 size={14} /> 分享
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>分享 · 即将上线</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -317,63 +245,5 @@ function ProjectNameEditor({ name }: { name: string }) {
     >
       {name || '未命名'}
     </Button>
-  )
-}
-
-// ─── Zoom menu ──────────────────────────────────────────────────────
-
-function ZoomMenu({ scale }: { scale: number }) {
-  const editor = useDashboardEditor()
-  const presets = [0.25, 0.5, 0.75, 1, 1.5, 2]
-  return (
-    <div className="flex items-center gap-0.5">
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => editor.zoomAtViewportCenter(-0.1)}
-        aria-label="缩小"
-      >
-        <Minus size={14} />
-      </Button>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="w-16 gap-1 px-1">
-            <span className="tabular-nums">{Math.round(scale * 100)}%</span>
-            <ChevronDown size={12} />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="center" sideOffset={4} className="w-40 p-1">
-          {presets.map((z) => (
-            <Button
-              key={z}
-              variant="ghost"
-              size="sm"
-              className="w-full justify-between"
-              onClick={() => editor.setCamera({ scale: z })}
-            >
-              <span>缩放至 {Math.round(z * 100)}%</span>
-            </Button>
-          ))}
-          <Separator className="my-1" />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-between"
-            onClick={() => editor.fitToScreen()}
-          >
-            <span>适应屏幕</span>
-            <span className="text-muted-foreground/60">⌘1</span>
-          </Button>
-        </PopoverContent>
-      </Popover>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => editor.zoomAtViewportCenter(0.1)}
-        aria-label="放大"
-      >
-        <Plus size={14} />
-      </Button>
-    </div>
   )
 }
