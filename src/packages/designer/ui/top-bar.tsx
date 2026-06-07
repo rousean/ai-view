@@ -81,7 +81,7 @@ export function TopBar() {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" onClick={() => captureCanvasNow(projectName)}>
+            <Button variant="ghost" size="sm" onClick={() => captureCanvasNow(editor, projectName)}>
               <Camera size={14} /> 截图
             </Button>
           </TooltipTrigger>
@@ -119,18 +119,28 @@ export function TopBar() {
  * Falls back to alerting the user if the target is missing — fail loud
  * rather than producing an empty download.
  */
-async function captureCanvasNow(projectName: string): Promise<void> {
+async function captureCanvasNow(
+  editor: ReturnType<typeof useDashboardEditor>,
+  projectName: string,
+): Promise<void> {
   if (typeof document === 'undefined') return
   const target = document.querySelector<HTMLElement>('[data-snapshot-target="canvas"]')
   if (!target) {
     toast.error('截图失败', { description: '未找到画布节点' })
     return
   }
+  // Hand the exporter the artboard's intrinsic size — the snapshot target
+  // itself has none (absolutely-positioned children) and carries the live
+  // pan/zoom, so without this the capture is empty / distorted.
+  const canvas = editor.getCurrentPage()?.canvas
   const safeName = (projectName || 'screenshot').replace(/[\\/:*?"<>|]+/g, '_')
   const stamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')
   const filename = `${safeName}-${stamp}.png`
   try {
-    await exportElementToPng(target, filename)
+    await exportElementToPng(target, filename, {
+      width: canvas?.width,
+      height: canvas?.height,
+    })
     toast.success('截图已下载', { description: filename })
   } catch (err) {
     console.error('[screenshot] failed', err)

@@ -15,4 +15,5 @@ export {
   dispatchEvent,
   findMatchingBindings,
   type DispatchContext,
+  type DispatchHost,
 } from './runtime/event-dispatcher'

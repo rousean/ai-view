@@ -17,6 +17,7 @@ import { toPng } from 'html-to-image'
 export async function exportElementToPng(
   element: HTMLElement,
   filename: string,
+  opts: { width?: number; height?: number } = {},
 ): Promise<void> {
   // Use the live --background token so a dark-mode editor produces a
   // dark-mode PNG instead of a white plate behind every widget. Falls
@@ -30,18 +31,27 @@ export async function exportElementToPng(
     pixelRatio: 2,
     cacheBust: true,
     backgroundColor: bg,
-    // Skip the editor's interactive chrome — selection bbox, resize
-    // handles etc. — by filtering them out of the SVG export.
+    // The snapshot target (camera-transform layer) has no intrinsic size —
+    // its children are absolutely positioned, so `clientWidth/Height` is 0
+    // and html-to-image would capture a 0×0 image. It also carries the live
+    // pan/zoom transform. So: take the artboard's dimensions explicitly and
+    // reset the transform on the clone — the PNG is then the page at 1:1,
+    // top-left origin, regardless of how the user is currently viewing it.
+    width: opts.width,
+    height: opts.height,
+    style: {
+      transform: 'none',
+      transformOrigin: 'top left',
+      willChange: 'auto',
+    },
+    // Skip the editor's interactive chrome — selection bbox, resize handles,
+    // grid, guides, safe-area, smart guides. They're all marked
+    // `data-skip-snapshot`; test that FIRST. (The previous order returned
+    // early for every svg/canvas/img, so overlay <svg> layers like the grid
+    // and smart guides slipped through and leaked into the export.)
     filter: (node) => {
       if (!(node instanceof Element)) return true
-      const tag = node.tagName?.toLowerCase()
-      if (tag === 'canvas' || tag === 'svg' || tag === 'img') return true
-      // Drop overlay layers we attach for the editor UI.
-      const skipMarkers = ['data-skip-snapshot']
-      for (const marker of skipMarkers) {
-        if (node.hasAttribute(marker)) return false
-      }
-      return true
+      return !node.hasAttribute('data-skip-snapshot')
     },
   })
 

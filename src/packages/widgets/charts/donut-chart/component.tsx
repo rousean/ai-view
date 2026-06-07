@@ -34,6 +34,7 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
   props: rawProps,
   data,
   layout,
+  onInteract,
 }) => {
   const props = { ...DEFAULT_DONUT_PROPS, ...rawProps }
   const svgRef = React.useRef<SVGSVGElement | null>(null)
@@ -129,6 +130,15 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
         })
     }
 
+    // Surface slice clicks (with the datum) so the host can dispatch
+    // interactions like `filter`. The native click also bubbles to the
+    // host container, which reads the stashed detail.
+    if (onInteract) {
+      groups.style('cursor', 'pointer').on('click', (_event, d) => {
+        onInteract('click', { name: d.data.name, value: d.data.value })
+      })
+    }
+
     groups
       .append('path')
       .attr('d', arcGen)
@@ -161,6 +171,7 @@ export const DonutChartComponent: React.FC<WidgetRenderProps<DonutChartProps>> =
     props.showLabels,
     rows,
     palette,
+    onInteract,
   ])
 
   return (

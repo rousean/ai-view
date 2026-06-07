@@ -687,6 +687,10 @@ export class DashboardEditor {
   }
 
   setHover(id: string | null): void {
+    // Dedupe: moving the cursor within the same widget fires pointermove
+    // every frame; bail when the hovered id is unchanged so we don't churn
+    // the store + 'hover.changed' subscribers on every move.
+    if (useEditorStore.getState().hoverId === id) return
     useEditorStore.getState().actions.setHover(id)
     this.bus.emit('hover.changed', { id })
   }

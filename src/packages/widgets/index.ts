@@ -13,6 +13,7 @@ import type { WidgetMeta } from './widget-meta'
 import barChartMeta from './charts/bar-chart'
 import donutChartMeta from './charts/donut-chart'
 import lineChartMeta from './charts/line-chart'
+import textMeta from './basic/text'
 
 /**
  * Built-in widget collection. Each P-phase that adds a widget appends
@@ -22,6 +23,7 @@ export const builtinWidgets: WidgetMeta[] = [
   barChartMeta as unknown as WidgetMeta,
   lineChartMeta as unknown as WidgetMeta,
   donutChartMeta as unknown as WidgetMeta,
+  textMeta as unknown as WidgetMeta,
 ]
 
-export { barChartMeta, donutChartMeta, lineChartMeta }
+export { barChartMeta, donutChartMeta, lineChartMeta, textMeta }

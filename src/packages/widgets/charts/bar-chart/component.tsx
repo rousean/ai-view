@@ -38,6 +38,7 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
   props: rawProps,
   data,
   layout,
+  onInteract,
 }) => {
   const props = { ...DEFAULT_BAR_PROPS, ...rawProps }
 
@@ -142,7 +143,12 @@ export const BarChartComponent: React.FC<WidgetRenderProps<BarChartProps>> = ({
     updateDuration,
   ])
 
-  const chartRef = useEcharts(option, { width: layout.width, height: layout.height })
+  const chartRef = useEcharts(
+    option,
+    { width: layout.width, height: layout.height },
+    undefined,
+    onInteract ? (detail) => onInteract('click', detail) : undefined,
+  )
 
   return (
     <div

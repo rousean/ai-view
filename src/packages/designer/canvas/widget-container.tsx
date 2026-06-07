@@ -58,10 +58,24 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
   const fetchStatus = useRuntimeStore((s) =>
     boundSourceId ? s.fetchStatus[boundSourceId] : undefined,
   )
+  // Subscribe to this widget's bound-source dataset so the chart actually
+  // re-resolves when live / polled data lands. The fetcher writes data via
+  // `setFetchedData` then flips `fetchStatus`; without this dep the memo
+  // below (keyed only on widget/meta/sources/filter) would keep returning
+  // the meta sample, so a bound widget would never show real data until its
+  // node happened to change for some other reason.
+  const boundFetchedData = useRuntimeStore((s) =>
+    boundSourceId ? s.fetchedData[boundSourceId] : undefined,
+  )
 
   const meta = widget
     ? (editor.registry.widgets.get(widget.type) as WidgetMeta | undefined)
     : undefined
+
+  // Holds the datum detail (a clicked slice's {name,value}) that a chart
+  // stashes via `onInteract` just before the DOM click bubbles up here, so
+  // the dispatched binding (e.g. `filter`) gets the value the user clicked.
+  const pendingDetailRef = React.useRef<Record<string, unknown> | undefined>(undefined)
 
   // Resolve the widget's data (slot-projected, sample-filled when no
   // user data exists) so the component reads a single consistent shape.
@@ -69,17 +83,23 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
   // identity (so reordering doesn't churn), data, and the source list.
   const resolvedData = React.useMemo(() => {
     if (!widget) return null
+    // Feed just this widget's bound-source data to the resolver (keyed by
+    // id, the shape it expects). Listing `boundFetchedData` in the deps is
+    // what makes a fetch / poll update repaint the widget — and scoping it
+    // to this source means an unrelated source's update doesn't re-resolve
+    // every widget on the page.
+    const fetched =
+      boundSourceId && boundFetchedData !== undefined
+        ? { [boundSourceId]: boundFetchedData }
+        : {}
     return resolveWidgetData(
       widget,
       meta,
       indexDataSources(dataSources),
       activeFilter,
-      // Live API data lives in RuntimeStore now that the resolver no longer
-      // reads it directly. `getState` (not a subscription) preserves the
-      // previous behaviour — a fetch update doesn't itself re-resolve.
-      useRuntimeStore.getState().fetchedData,
+      fetched,
     )
-  }, [widget, meta, dataSources, activeFilter])
+  }, [widget, meta, dataSources, activeFilter, boundSourceId, boundFetchedData])
 
   if (!widget || !resolvedData) return null
   if (widget.flags.hidden) return null
@@ -135,7 +155,12 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
         isPreview
           ? (e) => {
               e.stopPropagation()
-              dispatchEvent('click', { source: widget, editor })
+              dispatchEvent('click', {
+                source: widget,
+                editor,
+                detail: pendingDetailRef.current,
+              })
+              pendingDetailRef.current = undefined
             }
           : undefined
       }
@@ -143,7 +168,12 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
         isPreview
           ? (e) => {
               e.stopPropagation()
-              dispatchEvent('dblclick', { source: widget, editor })
+              dispatchEvent('dblclick', {
+                source: widget,
+                editor,
+                detail: pendingDetailRef.current,
+              })
+              pendingDetailRef.current = undefined
             }
           : undefined
       }
@@ -159,6 +189,16 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
         data={resolvedData}
         designMode={!isPreview}
         replayToken={`${id}-${animationPreviewToken}`}
+        // Only in preview: stash the clicked datum for the dispatch above.
+        // Gated so design mode keeps the chart's default cursor / selection
+        // behaviour (a chart wired with onInteract shows a pointer cursor).
+        onInteract={
+          isPreview
+            ? (_trigger, detail) => {
+                pendingDetailRef.current = detail
+              }
+            : undefined
+        }
         onError={(err) =>
           useRuntimeStore.getState().actions.setWidgetError(widget.id, {
             message: err.message,

@@ -14,4 +14,7 @@ export type {
 export { useRuntimeStore } from './runtime-store'
 export type { RuntimeState, FetchStatus, WidgetError } from './runtime-store'
 
+export { useFilterStore, selectFilterForWidget } from './filter-store'
+export type { FilterState, ActiveFilter } from './filter-store'
+
 export * from './selectors'

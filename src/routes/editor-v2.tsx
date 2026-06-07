@@ -17,10 +17,16 @@ import { createNewProject, notifyProjectsChanged } from '~/features/management/u
  */
 const searchSchema = z.object({
   id: z.string().optional(),
+  // TanStack Router parses `?new=1` as the NUMBER 1 (and `?new=true` as the
+  // boolean), so the union has to accept the numeric literal too — otherwise
+  // `?new=1` blows up with a ZodError and the whole route falls into the
+  // catch boundary ("Something went wrong!"). `.catch(undefined)` hardens it
+  // against any other stray value rather than crashing the editor entry.
   new: z
-    .union([z.literal('1'), z.literal('true'), z.boolean()])
+    .union([z.literal('1'), z.literal(1), z.literal('true'), z.boolean()])
     .optional()
-    .transform((v) => v === '1' || v === 'true' || v === true || undefined),
+    .catch(undefined)
+    .transform((v) => v === '1' || v === 1 || v === 'true' || v === true || undefined),
 })
 
 export const Route = createFileRoute('/editor-v2')({
@@ -64,7 +70,7 @@ function EditorV2Page() {
   const { id, new: isNew } = Route.useSearch()
   const navigate = useNavigate()
   const [creating, setCreating] = React.useState(isNew === true)
-  const adapter = React.useMemo(createNotifyingAdapter, [])
+  const adapter = React.useMemo(() => createNotifyingAdapter(), [])
 
   React.useEffect(() => {
     if (isNew !== true) return

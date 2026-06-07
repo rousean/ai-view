@@ -1,26 +1,45 @@
 import * as React from 'react'
-import type { Background, CanvasConfig } from '@schema/types'
+import { useShallow } from 'zustand/react/shallow'
+import type { Background } from '@schema/types'
 import { useDocumentState } from '../editor/editor-context'
 import { selectAsset, selectCurrentPage } from '../stores/selectors'
 
+/**
+ * Both variants subscribe only to the canvas size + background (shallow)
+ * rather than the whole page object, so they don't re-render on every
+ * drag / resize frame (immer gives the page a fresh identity per mutation).
+ */
+function useCanvasBackground() {
+  return useDocumentState(
+    useShallow((s) => {
+      const p = selectCurrentPage(s)
+      if (!p) return null
+      return {
+        width: p.canvas.width,
+        height: p.canvas.height,
+        background: p.canvas.background,
+      }
+    }),
+  )
+}
+
 /** Renders the page artboard background (color/gradient/image/transparent). */
 export const PageBackground: React.FC = () => {
-  const page = useDocumentState((s) => selectCurrentPage(s))
-  if (!page) return null
+  const canvas = useCanvasBackground()
+  if (!canvas) return null
   return (
     <div
       className="absolute top-0 left-0 shadow-[0_0_0_1px_rgba(0,0,0,0.10),0_16px_48px_rgba(0,0,0,0.18)]"
       style={{
-        width: page.canvas.width,
-        height: page.canvas.height,
-        ...backgroundStyle(page.canvas.background, page.canvas),
+        width: canvas.width,
+        height: canvas.height,
+        ...backgroundStyle(canvas.background),
       }}
     />
   )
 }
 
-function backgroundStyle(bg: Background, canvas: CanvasConfig): React.CSSProperties {
-  void canvas
+function backgroundStyle(bg: Background): React.CSSProperties {
   switch (bg.type) {
     case 'color':
       return { background: bg.color }
@@ -52,22 +71,22 @@ function backgroundStyle(bg: Background, canvas: CanvasConfig): React.CSSPropert
 
 /** Asset-aware variant. Subscribes to the asset list to resolve image URLs. */
 export const PageBackgroundWithAssets: React.FC = () => {
-  const page = useDocumentState((s) => selectCurrentPage(s))
-  const bg = page?.canvas.background
+  const canvas = useCanvasBackground()
+  const bg = canvas?.background
   const assetId = bg?.type === 'image' ? bg.assetId : ''
   const asset = useDocumentState((s) => (assetId ? selectAsset(assetId)(s) : null))
-  if (!page) return null
+  if (!canvas) return null
 
-  const style = backgroundStyle(page.canvas.background, page.canvas)
-  if (page.canvas.background.type === 'image' && asset?.url) {
+  const style = backgroundStyle(canvas.background)
+  if (canvas.background.type === 'image' && asset?.url) {
     style.backgroundImage = `url(${asset.url})`
   }
   return (
     <div
       className="absolute top-0 left-0 shadow-[0_0_0_1px_rgba(0,0,0,0.10),0_16px_48px_rgba(0,0,0,0.18)]"
       style={{
-        width: page.canvas.width,
-        height: page.canvas.height,
+        width: canvas.width,
+        height: canvas.height,
         ...style,
       }}
     />

@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useDocumentStore } from '../stores/document-store'
 import { useEditorStore } from '../stores/editor-store'
 import { selectCurrentPage } from '../stores/selectors'
@@ -8,14 +9,24 @@ import { selectCurrentPage } from '../stores/selectors'
  * edge, for keeping critical content clear of screen bezels on large
  * displays. Lives inside CameraTransformLayer (canvas space); the stroke
  * counter-scales to stay ~1px on screen at any zoom.
+ *
+ * Subscribes only to the canvas size + safeArea config (shallow) so it
+ * doesn't re-render on every drag / resize frame (the page object's
+ * identity changes on every document mutation).
  */
 export const SafeAreaOverlay: React.FC = () => {
-  const page = useDocumentStore((s) => selectCurrentPage(s))
+  const data = useDocumentStore(
+    useShallow((s) => {
+      const p = selectCurrentPage(s)
+      if (!p) return null
+      return { width: p.canvas.width, height: p.canvas.height, safeArea: p.canvas.safeArea }
+    }),
+  )
   const scale = useEditorStore((s) => s.camera.scale)
-  if (!page) return null
-  const sa = page.canvas.safeArea
+  if (!data) return null
+  const sa = data.safeArea
   if (!sa?.enabled || sa.margin <= 0) return null
-  const { width, height } = page.canvas
+  const { width, height } = data
   const m = sa.margin
   const w = width - m * 2
   const h = height - m * 2

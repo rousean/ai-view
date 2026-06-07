@@ -101,26 +101,6 @@ export function handleSides(handle: ResizeHandle): {
 }
 
 /**
- * Returns which sides are anchored (do NOT move) for a given handle.
- * Kept for convenience and external consumption; internally we use
- * `handleSides` because the inverse phrasing is easier to reason about.
- */
-export function anchorSides(handle: ResizeHandle): {
-  left: boolean
-  top: boolean
-  right: boolean
-  bottom: boolean
-} {
-  const m = handleSides(handle)
-  return {
-    left: !m.movesLeft,
-    right: !m.movesRight,
-    top: !m.movesTop,
-    bottom: !m.movesBottom,
-  }
-}
-
-/**
  * Compute the new bbox after dragging a handle by (dx, dy) in canvas space.
  *
  * Convention: dx > 0 means cursor moved right; dy > 0 means cursor moved down.

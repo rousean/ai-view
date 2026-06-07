@@ -20,6 +20,12 @@ export interface WidgetViewProps {
    * undefined (animation plays once on first mount).
    */
   replayToken?: number | string
+  /**
+   * Surface a widget interaction (with datum detail) to the host. Passed
+   * straight to the widget Component's `onInteract`; the host container
+   * uses it to enrich the dispatched event with the clicked value.
+   */
+  onInteract?: (trigger: string, detail?: Record<string, unknown>) => void
 }
 
 /**
@@ -37,6 +43,7 @@ export const WidgetView: React.FC<WidgetViewProps> = ({
   designMode,
   onError,
   replayToken,
+  onInteract,
 }) => {
   const enterAnim = node.animation?.enter
   const enterMeta = enterAnim ? findEnterAnimation(enterAnim.type) : undefined
@@ -67,6 +74,7 @@ export const WidgetView: React.FC<WidgetViewProps> = ({
             data={data}
             layout={node.layout}
             designMode={designMode}
+            onInteract={onInteract}
           />
         </WidgetErrorBoundary>
       ) : (

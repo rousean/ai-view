@@ -184,19 +184,24 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
       return
     }
 
-    // Hover detection
-    const targetEl = e.target as HTMLElement
-    let el: HTMLElement | null = targetEl
-    let hitId: string | null = null
-    while (el && el !== containerRef.current) {
-      const id = el.dataset?.widgetId
-      if (id) {
-        hitId = id
-        break
+    // Hover detection — skip while a button is held (mid drag / resize /
+    // marquee). Hover highlighting is irrelevant during a gesture, and the
+    // DOM walk + setHover + 'hover.changed' emit would otherwise fire on
+    // every frame of it.
+    if (e.buttons === 0) {
+      const targetEl = e.target as HTMLElement
+      let el: HTMLElement | null = targetEl
+      let hitId: string | null = null
+      while (el && el !== containerRef.current) {
+        const id = el.dataset?.widgetId
+        if (id) {
+          hitId = id
+          break
+        }
+        el = el.parentElement
       }
-      el = el.parentElement
+      editor.setHover(hitId)
     }
-    editor.setHover(hitId)
 
     const t = getActiveTool()
     if (!t?.onPointerMove) return
@@ -345,6 +350,11 @@ export const CanvasViewport: React.FC<{ className?: string }> = ({ className }) 
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onDoubleClick={handleDoubleClick}
+        // Clear hover when the cursor leaves the canvas, so the dashed
+        // hover outline doesn't linger when the pointer is over a panel.
+        // Pointer capture suppresses this during a drag, which is what we
+        // want (no flicker mid-gesture).
+        onPointerLeave={() => editor.setHover(null)}
       >
         <CameraTransformLayer>
           <PageBackgroundWithAssets />

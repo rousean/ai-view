@@ -20,10 +20,29 @@ export const selectPages = (s: DocumentState): Page[] => s.project?.pages ?? []
 
 export const selectWidgets = (s: DocumentState): WidgetNode[] => selectCurrentPage(s)?.widgets ?? []
 
+/**
+ * Per-widgets-array memoized id→node index, so `selectWidget` is O(1)
+ * instead of O(n). Every WidgetContainer re-runs its selector on every
+ * document mutation; with a linear `.find` that's O(mounted × widgets)
+ * per frame during a drag. The widgets array gets a fresh identity on
+ * each immer patch, so the WeakMap entry is rebuilt at most once per
+ * frame and then shared by every lookup in that notify cycle.
+ */
+const widgetIndexCache = new WeakMap<WidgetNode[], Map<string, WidgetNode>>()
+
+function widgetIndex(widgets: WidgetNode[]): Map<string, WidgetNode> {
+  let idx = widgetIndexCache.get(widgets)
+  if (!idx) {
+    idx = new Map(widgets.map((w) => [w.id, w]))
+    widgetIndexCache.set(widgets, idx)
+  }
+  return idx
+}
+
 export const selectWidget =
   (id: string) =>
   (s: DocumentState): WidgetNode | undefined =>
-    selectWidgets(s).find((w) => w.id === id)
+    widgetIndex(selectWidgets(s)).get(id)
 
 export const selectDataSource = (id: string) => (s: DocumentState) =>
   s.project?.dataSources.find((ds) => ds.id === id)

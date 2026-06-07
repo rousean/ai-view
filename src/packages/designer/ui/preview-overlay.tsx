@@ -8,7 +8,7 @@ import { useRuntimeStore } from '../stores/runtime-store'
 import { selectCurrentPage, selectPages } from '../stores/selectors'
 import { cn } from '~/lib/utils'
 import { WidgetContainer } from '../canvas/widget-container'
-import { PageBackground } from '../canvas/page-background'
+import { PageBackgroundWithAssets } from '../canvas/page-background'
 
 /**
  * Full-screen preview surface. Mounted (and centered to fit-screen) only
@@ -136,7 +136,7 @@ export function PreviewOverlay() {
             transform: `scale(${fitScale})`,
           }}
         >
-          <PageBackground />
+          <PageBackgroundWithAssets />
           {page.widgets.map((w) => (
             <WidgetContainer key={w.id} id={w.id} />
           ))}

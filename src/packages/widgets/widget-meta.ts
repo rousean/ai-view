@@ -242,6 +242,14 @@ export interface WidgetRenderProps<TProps extends object = Record<string, unknow
   layout: Layout
   /** True in the designer; false in the runtime renderer. */
   designMode: boolean
+  /**
+   * Surface a user interaction (with its datum detail) up to the host
+   * container, which maps it to the widget's configured event bindings.
+   * Charts call this on a data-point click so actions like `filter` can
+   * read the clicked `{ name, value }`. Optional — widgets without discrete
+   * data points can rely on the container's element-level pointer events.
+   */
+  onInteract?: (trigger: string, detail?: Record<string, unknown>) => void
 }
 
 /**

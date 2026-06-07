@@ -37,6 +37,7 @@ export const LineChartComponent: React.FC<WidgetRenderProps<LineChartProps>> = (
   props: rawProps,
   data,
   layout,
+  onInteract,
 }) => {
   const props = { ...DEFAULT_LINE_PROPS, ...rawProps }
   const axisColor = 'rgba(0,0,0,0.45)'
@@ -148,7 +149,12 @@ export const LineChartComponent: React.FC<WidgetRenderProps<LineChartProps>> = (
     updateDuration,
   ])
 
-  const chartRef = useEcharts(option, { width: layout.width, height: layout.height })
+  const chartRef = useEcharts(
+    option,
+    { width: layout.width, height: layout.height },
+    undefined,
+    onInteract ? (detail) => onInteract('click', detail) : undefined,
+  )
 
   return (
     <div

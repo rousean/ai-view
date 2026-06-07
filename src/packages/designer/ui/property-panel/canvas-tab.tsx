@@ -237,8 +237,9 @@ export function CanvasProps() {
         <PropRow label="栅格尺寸">
           <NumInput
             value={page.grid.size}
+            min={1}
             suffix="px"
-            onChange={(n) => editor.setGrid({ size: n })}
+            onChange={(n) => editor.setGrid({ size: Math.max(1, Math.round(n)) })}
           />
         </PropRow>
         <PropRow label="网格样式">
