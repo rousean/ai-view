@@ -11,9 +11,16 @@ export { useEcharts } from './shared/use-echarts'
 
 import type { WidgetMeta } from './widget-meta'
 import barChartMeta from './charts/bar-chart'
-import donutChartMeta from './charts/donut-chart'
 import lineChartMeta from './charts/line-chart'
+import areaChartMeta from './charts/area-chart'
+import donutChartMeta from './charts/donut-chart'
+import pieChartMeta from './charts/pie-chart'
+import gaugeChartMeta from './charts/gauge-chart'
 import textMeta from './basic/text'
+import tableMeta from './basic/table'
+import numberCardMeta from './indicator/number-card'
+import imageMeta from './media/image'
+import rectMeta from './decoration/rect'
 
 /**
  * Built-in widget collection. Each P-phase that adds a widget appends
@@ -22,8 +29,27 @@ import textMeta from './basic/text'
 export const builtinWidgets: WidgetMeta[] = [
   barChartMeta as unknown as WidgetMeta,
   lineChartMeta as unknown as WidgetMeta,
+  areaChartMeta as unknown as WidgetMeta,
   donutChartMeta as unknown as WidgetMeta,
+  pieChartMeta as unknown as WidgetMeta,
+  gaugeChartMeta as unknown as WidgetMeta,
   textMeta as unknown as WidgetMeta,
+  tableMeta as unknown as WidgetMeta,
+  numberCardMeta as unknown as WidgetMeta,
+  imageMeta as unknown as WidgetMeta,
+  rectMeta as unknown as WidgetMeta,
 ]
 
-export { barChartMeta, donutChartMeta, lineChartMeta, textMeta }
+export {
+  barChartMeta,
+  lineChartMeta,
+  areaChartMeta,
+  donutChartMeta,
+  pieChartMeta,
+  gaugeChartMeta,
+  textMeta,
+  tableMeta,
+  numberCardMeta,
+  imageMeta,
+  rectMeta,
+}
