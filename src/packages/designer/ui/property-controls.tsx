@@ -1,8 +1,6 @@
 import * as React from 'react'
 import { ChevronDown } from 'lucide-react'
-import { ColorArea, ColorPicker, ColorSlider, ColorThumb, SliderTrack } from '~/components/ui/color'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/collapsible'
-import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Separator } from '~/components/ui/separator'
 import { Switch } from '~/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
@@ -255,75 +253,6 @@ function parseNumericExpression(raw: string, fallback: number | undefined): numb
     // fall through
   }
   return fallback ?? Number.NaN
-}
-
-/** Colour swatch (shadcn ColorPicker in a Popover) + hex text input. */
-export function ColorInput({
-  value,
-  onChange,
-}: {
-  value: string
-  onChange?: (v: string) => void
-}) {
-  const v = typeof value === 'string' && value.length > 0 ? value : '#000000'
-  const [text, setText] = React.useState(hexLabel(v))
-  React.useEffect(() => setText(hexLabel(v)), [v])
-  const swatch = (
-    <span
-      className="h-3.5 w-3.5 shrink-0 rounded-[3px] ring-1 ring-black/10"
-      style={{ background: v }}
-    />
-  )
-  return (
-    <PropInput className="gap-1.5">
-      {onChange ? (
-        <Popover>
-          <PopoverTrigger asChild>
-            <button type="button" aria-label="打开取色器" className="shrink-0 cursor-pointer">
-              {swatch}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="start" sideOffset={4} className="w-64">
-            <ColorPicker
-              value={v}
-              onChange={(c) => onChange(typeof c === 'string' ? c : c.toString('hex'))}
-            >
-              <div className="space-y-3">
-                <ColorArea
-                  colorSpace="hsb"
-                  xChannel="saturation"
-                  yChannel="brightness"
-                  className="size-full"
-                >
-                  <ColorThumb />
-                </ColorArea>
-                <ColorSlider colorSpace="hsb" channel="hue">
-                  <SliderTrack className="w-full">
-                    <ColorThumb />
-                  </SliderTrack>
-                </ColorSlider>
-              </div>
-            </ColorPicker>
-          </PopoverContent>
-        </Popover>
-      ) : (
-        swatch
-      )}
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={() => {
-          if (/^[0-9a-fA-F]{3,8}$/.test(text)) onChange?.('#' + text.toUpperCase())
-          else setText(hexLabel(v))
-        }}
-        className="text-foreground flex-1 border-none bg-transparent text-[11px] outline-none"
-      />
-    </PropInput>
-  )
-}
-
-function hexLabel(c: string) {
-  return c.replace('#', '').toUpperCase()
 }
 
 function formatNumber(n: number | undefined): string {

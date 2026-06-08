@@ -1,4 +1,4 @@
-import type { ApiDataSource, DataSource, Dataset } from '@schema/types'
+import type { ApiDataSource, DataSource, Dataset, WsDataSource } from '@schema/types'
 import { useRuntimeStore } from '../stores/runtime-store'
 import { parseJson } from './json-parser'
 
@@ -176,6 +176,91 @@ export async function fetchApiSourceOnce(
 }
 
 /**
+ * Drive a WebSocket source: open the connection, parse each incoming
+ * message into a Dataset (JSON, with optional `responsePath`), publish it
+ * to RuntimeStore.fetchedData — so every bound widget re-renders the moment
+ * a frame arrives — and auto-reconnect on drop unless `reconnect === false`.
+ *
+ * Status mirrors the API fetcher: `loading` while connecting, `success`
+ * on open / each message, `error` on socket error or a malformed frame.
+ */
+export function startWsFetcher(source: WsDataSource): FetcherHandle {
+  const { actions } = useRuntimeStore.getState()
+  let cancelled = false
+  let socket: WebSocket | null = null
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+
+  const scheduleReconnect = () => {
+    if (cancelled || source.reconnect === false) return
+    if (reconnectTimer) clearTimeout(reconnectTimer)
+    reconnectTimer = setTimeout(connect, 3000)
+  }
+
+  function connect() {
+    if (cancelled) return
+    actions.setFetchStatus(source.id, { state: 'loading' })
+    try {
+      socket = new WebSocket(source.url)
+    } catch (err) {
+      actions.setFetchStatus(source.id, {
+        state: 'error',
+        error: (err as Error).message,
+        updatedAt: Date.now(),
+      })
+      scheduleReconnect()
+      return
+    }
+    socket.onopen = () => {
+      if (!cancelled) actions.setFetchStatus(source.id, { state: 'success', updatedAt: Date.now() })
+    }
+    socket.onmessage = (ev) => {
+      if (cancelled) return
+      try {
+        const text = typeof ev.data === 'string' ? ev.data : ''
+        const dataset = extractDataset(text, source.responsePath)
+        actions.setFetchedData(source.id, dataset)
+        actions.setFetchStatus(source.id, { state: 'success', updatedAt: Date.now() })
+      } catch (err) {
+        actions.setFetchStatus(source.id, {
+          state: 'error',
+          error: (err as Error).message,
+          updatedAt: Date.now(),
+        })
+      }
+    }
+    socket.onerror = () => {
+      if (!cancelled)
+        actions.setFetchStatus(source.id, {
+          state: 'error',
+          error: 'WebSocket 连接错误',
+          updatedAt: Date.now(),
+        })
+    }
+    socket.onclose = () => {
+      if (!cancelled) scheduleReconnect()
+    }
+  }
+
+  connect()
+
+  return {
+    stop: () => {
+      cancelled = true
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      if (socket) {
+        // Detach onclose first so our own close() doesn't schedule a reconnect.
+        socket.onclose = null
+        try {
+          socket.close()
+        } catch {
+          // ignore — already closing/closed
+        }
+      }
+    },
+  }
+}
+
+/**
  * Reconcile a set of running fetchers with the project's data source
  * list. Called by EditorRoot on every project state change:
  *
@@ -186,20 +271,26 @@ export async function fetchApiSourceOnce(
  *     polling interval / response path)
  *
  * Sources of type `static`, `csv`, `json` don't need a fetcher — they
- * carry their dataset in the document itself.
+ * carry their dataset in the document itself. `api` polls/fetches; `ws`
+ * holds a live connection.
  */
-const handles = new Map<string, { source: ApiDataSource; handle: FetcherHandle }>()
+type LiveSource = ApiDataSource | WsDataSource
+const handles = new Map<string, { source: LiveSource; handle: FetcherHandle }>()
 
 export function reconcileFetchers(sources: DataSource[]): void {
   const seen = new Set<string>()
   for (const s of sources) {
-    if (s.type !== 'api') continue
-    const api = s as ApiDataSource
-    seen.add(api.id)
-    const entry = handles.get(api.id)
-    if (!entry || !specEqual(entry.source, api)) {
+    if (s.type !== 'api' && s.type !== 'ws') continue
+    const live = s as LiveSource
+    seen.add(live.id)
+    const entry = handles.get(live.id)
+    if (!entry || !specEqual(entry.source, live)) {
       entry?.handle.stop()
-      handles.set(api.id, { source: api, handle: startApiFetcher(api) })
+      const handle =
+        live.type === 'ws'
+          ? startWsFetcher(live as WsDataSource)
+          : startApiFetcher(live as ApiDataSource)
+      handles.set(live.id, { source: live, handle })
     }
   }
   // Stop any handle whose source vanished or changed type.
@@ -223,13 +314,19 @@ export function stopAllFetchers(): void {
  * fetcher's behaviour. Caching settings DON'T trigger a restart because
  * the running fetcher reads them live every tick.
  */
-function specEqual(a: ApiDataSource, b: ApiDataSource): boolean {
+function specEqual(a: LiveSource, b: LiveSource): boolean {
+  if (a.type !== b.type) return false
+  if (a.type === 'ws' && b.type === 'ws') {
+    return a.url === b.url && a.responsePath === b.responsePath && a.reconnect === b.reconnect
+  }
+  const aa = a as ApiDataSource
+  const bb = b as ApiDataSource
   return (
-    a.url === b.url &&
-    a.method === b.method &&
-    a.body === b.body &&
-    a.responsePath === b.responsePath &&
-    a.pollingInterval === b.pollingInterval &&
-    JSON.stringify(a.headers ?? null) === JSON.stringify(b.headers ?? null)
+    aa.url === bb.url &&
+    aa.method === bb.method &&
+    aa.body === bb.body &&
+    aa.responsePath === bb.responsePath &&
+    aa.pollingInterval === bb.pollingInterval &&
+    JSON.stringify(aa.headers ?? null) === JSON.stringify(bb.headers ?? null)
   )
 }

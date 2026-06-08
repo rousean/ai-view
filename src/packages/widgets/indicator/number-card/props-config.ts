@@ -1,4 +1,4 @@
-import { AlignLeft, Hash, Palette, Tag } from 'lucide-react'
+import { AlignLeft, Hash, Palette, Tag, Zap } from 'lucide-react'
 import type { PropGroupDef } from '../../widget-meta'
 
 /** Property-panel config for the Number / KPI card. */
@@ -85,6 +85,14 @@ export const NUMBER_CARD_PROPS_GROUPS: PropGroupDef[] = [
         setterProps: { min: 0, max: 48, step: 1, unit: 'px' },
       },
     ],
+  },
+  {
+    key: 'rules',
+    title: '条件格式',
+    icon: Zap,
+    defaultOpen: false,
+    description: '按数值阈值给数字上色（如低于目标变红）。',
+    fields: [{ path: 'rules', setter: 'RulesSetter', label: '规则' }],
   },
   {
     key: 'theme',

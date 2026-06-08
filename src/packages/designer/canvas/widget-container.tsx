@@ -7,6 +7,7 @@ import { cn } from '~/lib/utils'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
 import { dispatchEvent } from '../interactions'
 import { useFilterStore } from '../stores/filter-store'
+import { effectiveVariableValues, useVariableDefs, useVariableStore } from '../variables'
 import { selectWidget } from '../stores/selectors'
 import { useRuntimeStore } from '../stores/runtime-store'
 
@@ -68,6 +69,16 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
     boundSourceId ? s.fetchedData[boundSourceId] : undefined,
   )
 
+  // Effective global-variable values (defaults overridden by the filter
+  // bar). In the resolve deps so a variable pick re-resolves widgets that
+  // reference `$key` in a transform.
+  const varDefs = useVariableDefs()
+  const varOverrides = useVariableStore((s) => s.values)
+  const variables = React.useMemo(
+    () => effectiveVariableValues(varDefs, varOverrides),
+    [varDefs, varOverrides],
+  )
+
   const meta = widget
     ? (editor.registry.widgets.get(widget.type) as WidgetMeta | undefined)
     : undefined
@@ -98,8 +109,9 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = React.memo(functi
       indexDataSources(dataSources),
       activeFilter,
       fetched,
+      variables,
     )
-  }, [widget, meta, dataSources, activeFilter, boundSourceId, boundFetchedData])
+  }, [widget, meta, dataSources, activeFilter, boundSourceId, boundFetchedData, variables])
 
   if (!widget || !resolvedData) return null
   if (widget.flags.hidden) return null

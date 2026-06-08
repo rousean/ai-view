@@ -10,6 +10,7 @@ import { ColorSetter } from './style/color-setter'
 import { FontSetter } from './style/font-setter'
 import { GradientSetter } from './style/gradient-setter'
 import { OpacitySetter } from './style/opacity-setter'
+import { RulesSetter } from './style/rules-setter'
 import { type SetterRegistry } from './setter-registry'
 
 export { SetterRegistry } from './setter-registry'
@@ -27,6 +28,7 @@ export type { FontStyle } from './style/font-setter'
 export { GradientSetter } from './style/gradient-setter'
 export type { LinearGradientValue, GradientFieldValue } from './style/gradient-setter'
 export { OpacitySetter } from './style/opacity-setter'
+export { RulesSetter } from './style/rules-setter'
 export { WidgetSelectorSetter } from './reference/widget-selector-setter'
 export { PageSelectorSetter } from './reference/page-selector-setter'
 export { SeriesListSetter } from './reference/series-list-setter'
@@ -46,6 +48,7 @@ export function registerBuiltinSetters(registry: SetterRegistry): void {
     { type: 'FontSetter', component: FontSetter },
     { type: 'GradientSetter', component: GradientSetter },
     { type: 'OpacitySetter', component: OpacitySetter },
+    { type: 'RulesSetter', component: RulesSetter },
     { type: 'WidgetSelectorSetter', component: WidgetSelectorSetter },
     { type: 'PageSelectorSetter', component: PageSelectorSetter },
     { type: 'SeriesListSetter', component: SeriesListSetter },

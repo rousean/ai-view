@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { parseColor } from 'react-aria-components'
 import {
   ColorArea,
   ColorPicker,
@@ -57,8 +58,20 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
   const v = typeof value === 'string' && value.length > 0 ? value : '#ffffff'
   const presets = opts.presets ?? DEFAULT_PRESETS
 
-  const [text, setText] = React.useState(hexLabel(v))
-  React.useEffect(() => setText(hexLabel(v)), [v])
+  // react-aria's ColorPicker throws on colours it can't parse (notably
+  // 'transparent'); feed it a sanitised value so opening the picker on a
+  // transparent / rgba prop doesn't crash. The swatch + text still reflect
+  // the real value.
+  const pickerColor = React.useMemo(() => {
+    try {
+      return parseColor(v)
+    } catch {
+      return parseColor('#FFFFFF')
+    }
+  }, [v])
+
+  const [text, setText] = React.useState(colorLabel(v))
+  React.useEffect(() => setText(colorLabel(v)), [v])
 
   // "Bound to a palette token" indicator. When the value matches a
   // token, swap the hex input for a compact chip ("= 主色") so the
@@ -82,10 +95,24 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
   const tokenLabel = showHexOverride ? null : tokenMatched
 
   const commit = (raw: string) => {
-    const s = raw.trim().replace(/^#/, '')
-    if (/^[0-9a-fA-F]{3,8}$/.test(s)) onChange('#' + s.toUpperCase())
-    else if (s === '') onChange('')
-    else setText(hexLabel(v)) // invalid → revert
+    const t = raw.trim()
+    const s = t.replace(/^#/, '')
+    if (/^[0-9a-fA-F]{3,8}$/.test(s)) {
+      onChange('#' + s.toUpperCase())
+    } else if (t === '') {
+      onChange('')
+    } else if (t.toLowerCase() === 'transparent') {
+      onChange('transparent')
+    } else {
+      // Accept any CSS colour react-aria can parse (rgb/rgba/hsl/hsla);
+      // otherwise revert to the last good value.
+      try {
+        parseColor(t)
+        onChange(t)
+      } catch {
+        setText(colorLabel(v))
+      }
+    }
   }
 
   return (
@@ -109,7 +136,7 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
             <PalettePicker currentColor={v} onPick={(c) => onChange(c)} />
             <Separator />
             <ColorPicker
-              value={v}
+              value={pickerColor}
               onChange={(c) => onChange(typeof c === 'string' ? c : c.toString('hex'))}
             >
               <div className="space-y-3">
@@ -183,6 +210,15 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
   )
 }
 
-function hexLabel(c: string) {
-  return c.replace('#', '').toUpperCase()
+function isHexColor(c: string) {
+  return /^#?[0-9a-fA-F]{3,8}$/.test(c.trim())
+}
+
+/**
+ * Hex → uppercase digits (editable in the field); any other CSS colour
+ * (`transparent`, `rgba(...)`, …) is shown verbatim instead of being
+ * mangled into `TRANSPARENT` / `RGBA(...)` by a blind upper-case.
+ */
+function colorLabel(c: string) {
+  return isHexColor(c) ? c.replace('#', '').toUpperCase() : c
 }

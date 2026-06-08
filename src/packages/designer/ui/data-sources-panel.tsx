@@ -9,6 +9,7 @@ import {
   Globe,
   Loader2,
   Plus,
+  Radio,
   RefreshCw,
   Trash2,
 } from 'lucide-react'
@@ -17,6 +18,7 @@ import type {
   CsvDataSource,
   DataSource,
   JsonDataSource,
+  WsDataSource,
 } from '@schema/types'
 import { fetchApiSourceOnce, parseCsv, parseJson } from '@designer/data'
 import { toast } from '~/components/ui/sonner'
@@ -63,7 +65,7 @@ type EditorHandle = ReturnType<typeof useDashboardEditor>
 export function createDataSource(
   editor: EditorHandle,
   index: number,
-  type: 'api' | 'csv' | 'json' | 'static',
+  type: 'api' | 'ws' | 'csv' | 'json' | 'static',
 ): DataSource {
   const id = `ds_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
   const name = `数据源 ${index + 1}`
@@ -80,6 +82,16 @@ export function createDataSource(
       cache: { enabled: true, ttl: 30_000 },
       extensions: {},
     } satisfies ApiDataSource
+  } else if (type === 'ws') {
+    next = {
+      id,
+      name,
+      type: 'ws',
+      url: '',
+      responsePath: '',
+      reconnect: true,
+      extensions: {},
+    } satisfies WsDataSource
   } else if (type === 'csv') {
     next = {
       id,
@@ -106,7 +118,7 @@ export function DataSourcesPanel() {
   )
   const [editorOpen, setEditorOpen] = React.useState<{ source: DataSource } | null>(null)
 
-  const createSource = (type: 'api' | 'csv' | 'json' | 'static') => {
+  const createSource = (type: 'api' | 'ws' | 'csv' | 'json' | 'static') => {
     setEditorOpen({ source: createDataSource(editor, sources.length, type) })
   }
 
@@ -124,6 +136,10 @@ export function DataSourcesPanel() {
           <DropdownMenuItem onSelect={() => createSource('api')}>
             <Globe />
             HTTP API
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => createSource('ws')}>
+            <Radio />
+            WebSocket 实时
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => createSource('csv')}>
             <FileSpreadsheet />
@@ -236,6 +252,8 @@ function iconFor(type: string) {
   switch (type) {
     case 'api':
       return Globe
+    case 'ws':
+      return Radio
     case 'csv':
       return FileSpreadsheet
     case 'json':
@@ -259,6 +277,16 @@ function describeSource(
         return `${formatAge(Date.now() - status.updatedAt)} · ${truncated}`
       }
       return `API · ${truncated}`
+    }
+    case 'ws': {
+      const url = (source as WsDataSource).url
+      const truncated = url.length > 26 ? url.slice(0, 26) + '…' : url || '未配置地址'
+      if (status?.state === 'error') return `错误：${status.error?.slice(0, 30) ?? ''}`
+      if (status?.state === 'loading') return `连接中… · ${truncated}`
+      if (status?.state === 'success' && status.updatedAt) {
+        return `实时 · ${formatAge(Date.now() - status.updatedAt)}`
+      }
+      return `WS · ${truncated}`
     }
     case 'csv': {
       const ds = (source as CsvDataSource).dataset
@@ -322,6 +350,7 @@ export function DataSourceEditor({
           </Field>
 
           {draft.type === 'api' && <ApiEditor draft={draft as ApiDataSource} commit={commit} />}
+          {draft.type === 'ws' && <WsEditor draft={draft as WsDataSource} commit={commit} />}
           {draft.type === 'csv' && <CsvEditor draft={draft as CsvDataSource} commit={commit} />}
           {draft.type === 'json' && <JsonEditor draft={draft as JsonDataSource} commit={commit} />}
         </div>
@@ -450,6 +479,68 @@ function ApiEditor({
           {!status && <span className="text-muted-foreground/60">未触发</span>}
         </div>
       </Field>
+    </>
+  )
+}
+
+// ── ws editor ──
+
+function WsEditor({
+  draft,
+  commit,
+}: {
+  draft: WsDataSource
+  commit: (next: WsDataSource) => void
+}) {
+  const status = useRuntimeStore((s) => s.fetchStatus[draft.id])
+  return (
+    <>
+      <Field label="地址">
+        <Input
+          value={draft.url}
+          placeholder="wss://example.com/stream"
+          onChange={(e) => commit({ ...draft, url: e.target.value })}
+          className="h-7 text-[12px]"
+        />
+      </Field>
+      <Field label="响应路径">
+        <Input
+          value={draft.responsePath ?? ''}
+          placeholder="data.items"
+          onChange={(e) => commit({ ...draft, responsePath: e.target.value })}
+          className="h-7 text-[12px]"
+        />
+      </Field>
+      <Field label="自动重连">
+        <Button
+          variant={draft.reconnect !== false ? 'default' : 'outline'}
+          size="xs"
+          onClick={() => commit({ ...draft, reconnect: !(draft.reconnect !== false) })}
+        >
+          {draft.reconnect !== false ? '✓ 开启' : '关闭'}
+        </Button>
+      </Field>
+      <Field label="状态">
+        <div className="text-[11px]">
+          {status?.state === 'loading' && (
+            <span className="text-muted-foreground/80 inline-flex items-center gap-1">
+              <Loader2 size={11} className="animate-spin" /> 连接中
+            </span>
+          )}
+          {status?.state === 'error' && (
+            <span className="text-destructive">错误：{status.error}</span>
+          )}
+          {status?.state === 'success' && (
+            <span className="text-emerald-600 dark:text-emerald-400">
+              ● 实时 · {new Date(status.updatedAt).toLocaleTimeString()}
+            </span>
+          )}
+          {!status && <span className="text-muted-foreground/60">未连接</span>}
+        </div>
+      </Field>
+      <div className="text-muted-foreground/60 text-[10px] leading-relaxed">
+        连接在打开设计器 / 发布后的运行时自动建立；每条消息按 JSON 解析为数据集，绑定该数据源的组件会实时刷新。
+      </div>
     </>
   )
 }

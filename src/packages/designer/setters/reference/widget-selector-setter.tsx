@@ -45,7 +45,7 @@ export const WidgetSelectorSetter: React.FC<SetterProps<string | string[]>> = ({
   const opts = (setterProps ?? {}) as WidgetSelectorSetterProps
   const multiple = opts.multiple === true
   const separator = opts.separator ?? ','
-  const currentWidgetId = context.node?.id
+  const currentWidgetId = context?.node?.id
 
   // Subscribe to the page's widgets array (shallow — only re-renders
   // when the list contents change, not on every layout tick).

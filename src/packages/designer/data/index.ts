@@ -16,6 +16,7 @@ export { parseJson } from './json-parser'
 export type { ParseJsonResult } from './json-parser'
 export {
   startApiFetcher,
+  startWsFetcher,
   reconcileFetchers,
   stopAllFetchers,
   fetchApiSourceOnce,

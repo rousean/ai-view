@@ -257,6 +257,7 @@ function TemplateConfirmDialog({
   const pending = usePendingTemplate()
   const open = explicitOpen || pending !== null
   const [paintExisting, setPaintExisting] = React.useState(true)
+  const [applyBackground, setApplyBackground] = React.useState(true)
 
   const close = () => {
     pendingTemplate = null
@@ -277,6 +278,9 @@ function TemplateConfirmDialog({
           }
         }
       }
+    }
+    if (applyBackground && pending.background) {
+      editor.setBackground(pending.background)
     }
     close()
   }
@@ -317,6 +321,17 @@ function TemplateConfirmDialog({
               />
               同时把现有组件的颜色刷成新配色
             </label>
+            {pending?.background && (
+              <label className="flex items-center gap-2 text-[12px]">
+                <input
+                  type="checkbox"
+                  checked={applyBackground}
+                  onChange={(e) => setApplyBackground(e.target.checked)}
+                  className="accent-primary"
+                />
+                同时套用主题背景（当前页）
+              </label>
+            )}
             <div className="text-muted-foreground/60 text-[10px]">
               提示：仅替换匹配到色板含义的字段，用户手动指定的特殊颜色不受影响。
             </div>

@@ -54,6 +54,21 @@ export interface ApiDataSource extends DataSourceBase {
 }
 
 /**
+ * WebSocket source — a persistent connection that pushes updates. Each
+ * message is parsed (JSON) into a Dataset and published like an API fetch,
+ * so bound widgets refresh in real time. Auto-reconnects on drop.
+ */
+export interface WsDataSource extends DataSourceBase {
+  type: 'ws'
+  /** ws:// or wss:// endpoint. */
+  url: string
+  /** Path into each message to pluck the array, e.g. 'data.items'. */
+  responsePath?: string
+  /** Auto-reconnect on close. Defaults to true. */
+  reconnect?: boolean
+}
+
+/**
  * CSV data source — the user pastes (or uploads) text, we parse it once
  * into a Dataset and snapshot it on the source. Useful for "no backend,
  * make a chart from a spreadsheet I have right now" workflows.
@@ -91,6 +106,7 @@ export interface JsonDataSource extends DataSourceBase {
 export type DataSource =
   | StaticDataSource
   | ApiDataSource
+  | WsDataSource
   | CsvDataSource
   | JsonDataSource
   | (DataSourceBase & { type: string; [key: string]: unknown })

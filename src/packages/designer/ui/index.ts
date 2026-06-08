@@ -17,7 +17,6 @@ export {
   PropSection,
   PropRow,
   NumInput,
-  ColorInput,
   Toggle,
   Segmented,
 } from './property-controls'

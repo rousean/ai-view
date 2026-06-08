@@ -1,4 +1,5 @@
 import { createDefaultPage, createPageId } from '@schema/index'
+import type { PageTransition } from '@schema/types'
 import type { Command } from '../command-registry'
 
 export interface PageAddPayload {
@@ -110,6 +111,21 @@ export const pageDuplicateCommand: Command<PageDuplicatePayload> = {
   },
 }
 
+export interface PageSetTransitionPayload {
+  pageId: string
+  transition: PageTransition | undefined
+}
+
+export const pageSetTransitionCommand: Command<PageSetTransitionPayload> = {
+  type: 'page.setTransition',
+  label: '设置页面切换',
+  undoable: true,
+  apply: (draft, _ctx, payload) => {
+    const page = draft.pages.find((p) => p.id === payload.pageId)
+    if (page) page.transition = payload.transition
+  },
+}
+
 export const pageCommands: Command<any>[] = [
   pageAddCommand,
   pageRemoveCommand,
@@ -117,4 +133,5 @@ export const pageCommands: Command<any>[] = [
   pageSwitchCommand,
   pageReorderCommand,
   pageDuplicateCommand,
+  pageSetTransitionCommand,
 ]

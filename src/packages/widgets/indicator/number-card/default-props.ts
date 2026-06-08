@@ -14,4 +14,5 @@ export const DEFAULT_NUMBER_CARD_PROPS: NumberCardProps = {
   align: 'center',
   background: 'transparent',
   padding: 12,
+  rules: [],
 }

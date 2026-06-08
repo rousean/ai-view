@@ -66,7 +66,7 @@ export const GradientSetter: React.FC<SetterProps<GradientFieldValue>> = ({
   // ColorSetter requires a context. We forward the outer one — gradient
   // is a thin composite of two ColorSetter instances and doesn't need
   // a separate one.
-  const passthrough: { node: WidgetNode; editor: DashboardEditor } = context
+  const passthrough: { node: WidgetNode; editor: DashboardEditor } | undefined = context
 
   // Live preview swatch — CSS linear-gradient mirrors the angle convention
   // we use elsewhere (180 ≡ top→bottom).

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { ChevronDown, Lock, Trash2, Unlock } from 'lucide-react'
-import type { Background } from '@schema/types'
+import type { Background, ScaleMode } from '@schema/types'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,18 +9,26 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { Button } from '~/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../../editor/editor-context'
 import { DEFAULT_COLUMN_GRID } from '../../canvas/column-grid'
 import { selectCurrentPage } from '../../stores/selectors'
 import { DataSourcesPanel } from '../data-sources-panel'
+import { VariablesEditor } from '../variables-editor'
 import {
-  ColorInput,
   NumInput,
   PropRow,
   PropSection,
   Segmented,
   Toggle,
 } from '../property-controls'
+import { ColorSetter } from '../../setters'
 
 /**
  * 画布 tab — page-level config: size, background, grid.
@@ -132,6 +140,43 @@ export function CanvasProps() {
             ]}
           />
         </PropRow>
+        <PropRow label="适配方式">
+          <Select
+            value={page.canvas.scaleMode ?? 'fit'}
+            onValueChange={(m) => editor.setScaleMode(m as ScaleMode)}
+          >
+            <SelectTrigger
+              size="sm"
+              className="bg-muted h-[26px] w-full border-transparent px-1.5 text-[11px]"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fit" className="text-[11px]">
+                等比适应（留边）
+              </SelectItem>
+              <SelectItem value="fill" className="text-[11px]">
+                等比填满（裁切）
+              </SelectItem>
+              <SelectItem value="stretch" className="text-[11px]">
+                拉伸填满
+              </SelectItem>
+              <SelectItem value="fitWidth" className="text-[11px]">
+                适应宽度
+              </SelectItem>
+              <SelectItem value="fitHeight" className="text-[11px]">
+                适应高度
+              </SelectItem>
+              <SelectItem value="none" className="text-[11px]">
+                原始尺寸
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </PropRow>
+      </PropSection>
+
+      <PropSection title="全局变量">
+        <VariablesEditor />
       </PropSection>
 
       <PropSection title="背景">
@@ -163,7 +208,7 @@ export function CanvasProps() {
         </PropRow>
         {bgType === 'color' && (
           <PropRow label="颜色">
-            <ColorInput
+            <ColorSetter
               value={startColor}
               onChange={(c) => setBackground({ type: 'color', color: c })}
             />
@@ -172,7 +217,7 @@ export function CanvasProps() {
         {bgType === 'gradient' && (
           <>
             <PropRow label="起始色">
-              <ColorInput
+              <ColorSetter
                 value={startColor}
                 onChange={(c) =>
                   setBackground({
@@ -190,7 +235,7 @@ export function CanvasProps() {
               />
             </PropRow>
             <PropRow label="终止色">
-              <ColorInput
+              <ColorSetter
                 value={endColor}
                 onChange={(c) =>
                   setBackground({
@@ -256,7 +301,7 @@ export function CanvasProps() {
           <Toggle on={view.snapToGrid} onChange={() => editor.toggleView('snapToGrid')} />
         </PropRow>
         <PropRow label="栅格颜色">
-          <ColorInput
+          <ColorSetter
             value={page.grid.color ?? '#888888'}
             onChange={(c) => editor.setGrid({ color: c })}
           />
@@ -297,7 +342,7 @@ export function CanvasProps() {
           />
         </PropRow>
         <PropRow label="颜色">
-          <ColorInput
+          <ColorSetter
             value={cg.color ?? '#7c3aed'}
             onChange={(c) => editor.setColumnGrid({ color: c })}
           />
@@ -322,6 +367,56 @@ export function CanvasProps() {
             onChange={(m) =>
               editor.setSafeArea({ enabled: page.canvas.safeArea?.enabled ?? true, margin: m })
             }
+          />
+        </PropRow>
+      </PropSection>
+
+      <PropSection title="页面轮播">
+        <PropRow label="自动轮播">
+          <Toggle
+            on={!!page.transition?.autoplay?.enabled}
+            onChange={(on) =>
+              editor.setPageTransition(page.id, {
+                type: page.transition?.type ?? 'fade',
+                duration: page.transition?.duration ?? 400,
+                autoplay: { enabled: on, interval: page.transition?.autoplay?.interval ?? 5000 },
+              })
+            }
+          />
+        </PropRow>
+        <PropRow label="间隔">
+          <NumInput
+            value={Math.round((page.transition?.autoplay?.interval ?? 5000) / 1000)}
+            suffix="秒"
+            min={1}
+            disabled={!page.transition?.autoplay?.enabled}
+            onChange={(s) =>
+              editor.setPageTransition(page.id, {
+                type: page.transition?.type ?? 'fade',
+                duration: page.transition?.duration ?? 400,
+                autoplay: {
+                  enabled: page.transition?.autoplay?.enabled ?? true,
+                  interval: Math.max(1, Math.round(s)) * 1000,
+                },
+              })
+            }
+          />
+        </PropRow>
+        <PropRow label="切换效果">
+          <Segmented
+            value={page.transition?.type ?? 'fade'}
+            onChange={(v) =>
+              editor.setPageTransition(page.id, {
+                type: v,
+                duration: page.transition?.duration ?? 400,
+                autoplay: page.transition?.autoplay,
+              })
+            }
+            options={[
+              { value: 'fade', label: '淡入' },
+              { value: 'slide', label: '滑动' },
+              { value: 'none', label: '无' },
+            ]}
           />
         </PropRow>
       </PropSection>

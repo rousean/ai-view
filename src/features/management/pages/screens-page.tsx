@@ -6,6 +6,7 @@ import {
   Columns3,
   Download,
   Filter,
+  LayoutTemplate,
   Plus,
   Search,
   Upload,
@@ -36,6 +37,7 @@ import { Tabs, TabsList, TabsTrigger } from '~/components/ui/tabs'
 import { cn } from '~/lib/utils'
 import { MiniThumb, type MiniThumbTheme } from '../components/mini-thumb'
 import { ScreenRowActions } from '../components/screen-row-actions'
+import { TemplateGallery } from '../components/template-gallery'
 import {
   createNewProject,
   exportProjectsAsJson,
@@ -197,6 +199,7 @@ export function ScreensPage() {
   const [tab, setTab] = React.useState<'all' | ProjectStatus>('all')
   const [search, setSearch] = React.useState('')
   const [creating, setCreating] = React.useState(false)
+  const [galleryOpen, setGalleryOpen] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
   const filtered = React.useMemo(() => {
@@ -283,12 +286,18 @@ export function ScreensPage() {
               }
             }}
           />
+          <Button variant="outline" size="sm" onClick={() => setGalleryOpen(true)}>
+            <LayoutTemplate />
+            模板新建
+          </Button>
           <Button size="sm" onClick={() => void onCreate()} disabled={creating}>
             <Plus />
             {creating ? '创建中…' : '新建大屏'}
           </Button>
         </div>
       </div>
+
+      <TemplateGallery open={galleryOpen} onOpenChange={setGalleryOpen} />
 
       <Card className="gap-0 py-0">
         <CardHeader className="flex flex-wrap items-center gap-3 border-b py-3">

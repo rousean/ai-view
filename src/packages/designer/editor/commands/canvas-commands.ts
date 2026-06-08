@@ -1,4 +1,4 @@
-import type { Background, ColumnGridConfig, GridConfig } from '@schema/types'
+import type { Background, ColumnGridConfig, GridConfig, ScaleMode } from '@schema/types'
 import type { Command } from '../command-registry'
 import { getCurrentPage } from './helpers'
 
@@ -109,10 +109,24 @@ export const canvasSetSafeAreaCommand: Command<CanvasSetSafeAreaPayload> = {
   mergeKey: () => 'canvas.setSafeArea',
 }
 
+export interface CanvasSetScaleModePayload {
+  scaleMode: ScaleMode
+}
+
+export const canvasSetScaleModeCommand: Command<CanvasSetScaleModePayload> = {
+  type: 'canvas.setScaleMode',
+  label: '适配方式',
+  undoable: true,
+  apply: (draft, _ctx, payload) => {
+    getCurrentPage(draft).canvas.scaleMode = payload.scaleMode
+  },
+}
+
 export const canvasCommands: Command<any>[] = [
   canvasSetSizeCommand,
   canvasSetBackgroundCommand,
   canvasToggleOrientationCommand,
+  canvasSetScaleModeCommand,
   gridSetCommand,
   columnGridSetCommand,
   canvasSetSafeAreaCommand,

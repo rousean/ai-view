@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Edit, Eye, Plus, RotateCcw } from 'lucide-react'
+import { Edit, Eye, LayoutTemplate, Plus, RotateCcw } from 'lucide-react'
 import type { ProjectStatus } from '@schema/types'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from '~/components/ui/card'
 import { ProjectRuntime } from '../components/project-runtime'
+import { TemplateGallery } from '../components/template-gallery'
 import { createNewProject, useProjects } from '../use-projects'
 
 /**
@@ -37,27 +38,12 @@ const STATUS_LABEL: Record<
 export function DashboardPage() {
   const { items, loading } = useProjects()
   const navigate = useNavigate()
-  const wrapRef = React.useRef<HTMLDivElement | null>(null)
-  const [scale, setScale] = React.useState(0.5)
   const [reloadKey, setReloadKey] = React.useState(0)
   const [now, setNow] = React.useState(() => new Date())
   const [creating, setCreating] = React.useState(false)
+  const [galleryOpen, setGalleryOpen] = React.useState(false)
 
   const current = items[0] // most recently updated
-
-  // Refit canvas on container resize.
-  React.useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      if (!entry) return
-      const { width, height } = entry.contentRect
-      const s = Math.min(width / 1920, height / 1080)
-      setScale(Number.isFinite(s) && s > 0 ? s : 0.5)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
 
   // Tick the live clock once a second.
   React.useEffect(() => {
@@ -89,12 +75,19 @@ export function DashboardPage() {
             <div className="text-muted-foreground text-sm">
               先去新建一个大屏，回来这里就会自动展示。
             </div>
-            <Button size="sm" className="mt-2" onClick={() => void onCreate()} disabled={creating}>
-              <Plus />
-              {creating ? '创建中…' : '新建大屏'}
-            </Button>
+            <div className="mt-2 flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setGalleryOpen(true)}>
+                <LayoutTemplate />
+                从模板新建
+              </Button>
+              <Button size="sm" onClick={() => void onCreate()} disabled={creating}>
+                <Plus />
+                {creating ? '创建中…' : '新建大屏'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
+        <TemplateGallery open={galleryOpen} onOpenChange={setGalleryOpen} />
       </div>
     )
   }
@@ -113,11 +106,17 @@ export function DashboardPage() {
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
               </span>
               实时数据 ·{' '}
-              {now.toLocaleTimeString('zh-CN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              })}
+              {/* The clock is initialised from `new Date()`, so the server's
+                  render and the client's first paint differ by however long
+                  hydration took — an expected, benign mismatch. Scope the
+                  suppression to just the time text. */}
+              <span suppressHydrationWarning>
+                {now.toLocaleTimeString('zh-CN', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}
+              </span>
             </Badge>
             <Button variant="outline" size="sm" onClick={() => setReloadKey((k) => k + 1)}>
               <RotateCcw />
@@ -154,7 +153,6 @@ export function DashboardPage() {
           )}
         </CardHeader>
         <div
-          ref={wrapRef}
           className="relative flex aspect-video min-h-[400px] items-center justify-center overflow-hidden p-6"
           style={{
             background: '#050d1a',
@@ -165,7 +163,7 @@ export function DashboardPage() {
             <ProjectRuntime
               key={`${current.id}-${reloadKey}`}
               projectId={current.id}
-              scale={scale}
+              className="h-full w-full"
             />
           ) : (
             <div className="text-sm text-white/40">加载中…</div>

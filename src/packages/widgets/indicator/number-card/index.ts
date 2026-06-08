@@ -36,6 +36,24 @@ const NumberCardPropsSchema = z.object({
   align: z.union([z.literal('left'), z.literal('center'), z.literal('right')]),
   background: z.string(),
   padding: z.number(),
+  rules: z
+    .array(
+      z.object({
+        id: z.string(),
+        op: z.union([
+          z.literal('gt'),
+          z.literal('gte'),
+          z.literal('lt'),
+          z.literal('lte'),
+          z.literal('eq'),
+          z.literal('between'),
+        ]),
+        value: z.number(),
+        value2: z.number().optional(),
+        color: z.string(),
+      }),
+    )
+    .optional(),
 })
 
 export const numberCardMeta: WidgetMeta<NumberCardProps> = {

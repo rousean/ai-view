@@ -20,23 +20,6 @@ export const Route = createFileRoute('/preview/$id')({
 
 function PreviewPage() {
   const { id } = Route.useParams()
-  const wrapRef = React.useRef<HTMLDivElement | null>(null)
-  const [scale, setScale] = React.useState(0.5)
-
-  // Refit on viewport resize.
-  React.useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      if (!entry) return
-      const { width, height } = entry.contentRect
-      const s = Math.min(width / 1920, height / 1080)
-      setScale(Number.isFinite(s) && s > 0 ? s : 0.5)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
   // Esc → back to editor for the same project.
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -49,8 +32,8 @@ function PreviewPage() {
   }, [id])
 
   return (
-    <div ref={wrapRef} className="relative h-screen w-screen overflow-hidden bg-black">
-      <ProjectRuntime projectId={id} scale={scale} />
+    <div className="relative h-screen w-screen overflow-hidden bg-black">
+      <ProjectRuntime projectId={id} />
 
       {/* Floating overlay — hidden until cursor enters the top-right corner.
           Keeps the preview clean while still letting the user escape. */}

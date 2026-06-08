@@ -13,6 +13,7 @@ import type {
   ResolvedWidgetData,
   WidgetMeta,
 } from '@widgets/widget-meta'
+import { applyTransforms, substituteVars } from './transforms'
 
 /**
  * Active per-widget filter — written by `filter` actions in preview mode,
@@ -42,6 +43,8 @@ export function resolveWidgetData(
   activeFilter?: ResolveFilter,
   /** dataSourceId → fetched dataset (e.g. RuntimeStore.fetchedData). */
   fetchedData: Record<string, unknown> = {},
+  /** Global variable values (key → value) for `$var` substitution. */
+  variables: Record<string, unknown> = {},
 ): ResolvedWidgetData {
   const dataSchema = meta?.dataSchema
   const slots = dataSchema?.slots ?? []
@@ -71,6 +74,15 @@ export function resolveWidgetData(
     dataset = dataSchema?.sample ?? { fields: [], rows: [] }
     mapping = autoMapToSlots(dataset.fields, slots)
     isSample = true
+  }
+
+  // ── 1.25. Author data pipeline (filter / sort / aggregate / limit) ─
+  // Declared on the widget's `data.transform` — previously modelled in the
+  // schema but never executed. Runs before the interaction filter + slot
+  // projection so charts see the shaped dataset.
+  const transforms = node.data?.transform
+  if (transforms && transforms.length > 0) {
+    dataset = applyTransforms(dataset, substituteVars(transforms, variables))
   }
 
   // ── 1.5. Apply interaction-layer filter ───────────────────────────
@@ -146,6 +158,7 @@ function extractDatasetFromSource(
     }
 
     case 'api':
+    case 'ws':
       return (fetchedData[src.id] as Dataset | undefined) ?? null
 
     default:

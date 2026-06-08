@@ -1,16 +1,15 @@
+import type { Background } from '@schema/types'
 import type { ProjectPalette } from './palette-types'
 
 /**
- * Built-in palette templates. Replaces the Sprint-2 "theme" picker —
- * applying one of these *replaces* the project palette as a one-off
- * action, but does NOT establish a "currently selected theme" state.
+ * Built-in palette templates ("配色方案"). Applying one *replaces* the
+ * project palette as a one-off action (optionally re-skinning existing
+ * widgets) and — when the template carries a `background` — also sets the
+ * page's canvas background, so a dark theme actually reads as a dark 大屏
+ * instead of dark widgets on a white plate.
  *
- * After application the project owns the palette outright; users edit
- * individual tokens, save the project, and that's it. No theme state
- * to keep in sync, no implicit "go back to the theme baseline".
- *
- * Naming follows the design-doc shorthand (商务 / 深空 / 霓虹紫 / 暖橙 /
- * 极简) so existing references in documentation still resolve.
+ * After application the project owns the palette outright; no "currently
+ * selected theme" state is kept.
  */
 export interface PaletteTemplate {
   id: string
@@ -19,6 +18,8 @@ export interface PaletteTemplate {
   swatch: [string, string, string]
   /** The full palette to apply when this template is picked. */
   palette: ProjectPalette
+  /** Optional canvas background applied alongside the palette. */
+  background?: Background
 }
 
 export const BUILTIN_PALETTE_TEMPLATES: PaletteTemplate[] = [
@@ -26,6 +27,7 @@ export const BUILTIN_PALETTE_TEMPLATES: PaletteTemplate[] = [
     id: 'business-light',
     name: '商务亮',
     swatch: ['#FFFFFF', '#0D99FF', '#1E1E1E'],
+    background: { type: 'color', color: '#F5F7FA' },
     palette: {
       primary: '#0D99FF',
       secondary: '#7C5CFF',
@@ -41,6 +43,17 @@ export const BUILTIN_PALETTE_TEMPLATES: PaletteTemplate[] = [
     id: 'deep-space',
     name: '深空',
     swatch: ['#0B1326', '#00D4FF', '#FFFFFF'],
+    background: {
+      type: 'gradient',
+      gradient: {
+        type: 'linear',
+        angle: 135,
+        stops: [
+          { offset: 0, color: '#0A1228' },
+          { offset: 1, color: '#0E2546' },
+        ],
+      },
+    },
     palette: {
       primary: '#00D4FF',
       secondary: '#7C5CFF',
@@ -56,6 +69,17 @@ export const BUILTIN_PALETTE_TEMPLATES: PaletteTemplate[] = [
     id: 'cyber-neon',
     name: '霓虹紫',
     swatch: ['#15102B', '#B388FF', '#FF5EDD'],
+    background: {
+      type: 'gradient',
+      gradient: {
+        type: 'linear',
+        angle: 135,
+        stops: [
+          { offset: 0, color: '#140C2E' },
+          { offset: 1, color: '#241248' },
+        ],
+      },
+    },
     palette: {
       primary: '#B388FF',
       secondary: '#FF5EDD',
@@ -71,6 +95,17 @@ export const BUILTIN_PALETTE_TEMPLATES: PaletteTemplate[] = [
     id: 'sunset-warm',
     name: '暖橙夕阳',
     swatch: ['#FFF6EE', '#FF7A45', '#262626'],
+    background: {
+      type: 'gradient',
+      gradient: {
+        type: 'linear',
+        angle: 135,
+        stops: [
+          { offset: 0, color: '#FFF3E8' },
+          { offset: 1, color: '#FFE3CC' },
+        ],
+      },
+    },
     palette: {
       primary: '#FF7A45',
       secondary: '#FFC53D',
@@ -86,6 +121,7 @@ export const BUILTIN_PALETTE_TEMPLATES: PaletteTemplate[] = [
     id: 'mono',
     name: '极简灰',
     swatch: ['#FAFAFA', '#374151', '#9CA3AF'],
+    background: { type: 'color', color: '#F7F8FA' },
     palette: {
       primary: '#374151',
       secondary: '#6B7280',

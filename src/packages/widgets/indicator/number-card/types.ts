@@ -1,4 +1,5 @@
 import type { FontStyle } from '@designer/setters'
+import type { ConditionalRule } from '../../shared/conditional'
 
 /** Aggregation applied to the bound measure column to get a single number. */
 export type NumberAggregate =
@@ -36,4 +37,8 @@ export interface NumberCardProps {
   align: 'left' | 'center' | 'right'
   background: string
   padding: number
+
+  // ── Conditional formatting ────────────────────────────────────
+  /** Threshold rules — the first match recolours the value. */
+  rules?: ConditionalRule[]
 }

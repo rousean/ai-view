@@ -16,10 +16,12 @@ import { DashboardEditor } from '../editor/dashboard-editor'
 import { EditorProvider, useEditorState } from '../editor/editor-context'
 import { registerBuiltinSetters } from '../setters'
 import { registerBuiltinTools } from '../tools'
+import { useVariableDefs } from '../variables'
 import { CommandPalette } from './command-palette'
 import { FloatingTools } from './floating-tools'
 import { FloatingZoom } from './floating-zoom'
 import { Minimap } from './minimap'
+import { FilterBar } from './filter-bar'
 import { IconRail, type RailKey } from './icon-rail'
 import { MaterialsPanel } from './materials-panel'
 import { PagesTabBar } from './pages-tab-bar'
@@ -62,6 +64,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
 
   // Right property panel collapse (persisted). Toggled from the top bar.
   const rightCollapsed = useEditorState((s) => s.rightCollapsed)
+  const variableDefs = useVariableDefs()
 
   React.useEffect(() => {
     let cancelled = false
@@ -230,6 +233,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
                 </SecondaryPanel>
               )}
               <main className="relative flex min-w-0 flex-1 flex-col">
+                <FilterBar defs={variableDefs} />
                 <div className="relative min-h-0 flex-1">
                   {/*
                     Only the viewport is wrapped — floating tools / zoom

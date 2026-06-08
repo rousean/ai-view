@@ -1,26 +1,49 @@
 import * as React from 'react'
 import { X } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
-import { cn } from '~/lib/utils'
+import type { Background } from '@schema/types'
 import { rotatedAABB } from '../canvas/transformer/geometry'
 import { useDashboardEditor, useDocumentState, useEditorState } from '../editor/editor-context'
 import { useEditorStore } from '../stores/editor-store'
 import { selectCurrentPage, selectWidgets } from '../stores/selectors'
 
 /**
- * Bottom-right overview navigator. Renders the whole page artboard scaled
- * to fit a small box, with one rect per widget and a highlighted rectangle
- * for the part of the canvas currently visible in the viewport.
+ * Bottom-right overview navigator (Figma / tldraw idiom). Renders the page
+ * artboard scaled to fit a small box — using the page's *actual* background
+ * so it reads as a true miniature — with one block per widget and a
+ * "spotlight" over the region currently visible in the viewport (everything
+ * outside it is dimmed, rather than drawing a plain outlined rectangle).
  *
- * Click (or drag) anywhere in the minimap to re-centre the viewport on that
- * point — the camera scale is left untouched, so it's a pure pan. Visibility
- * is driven by `EditorStore.panels.minimap` (toggled from FloatingZoom).
- *
- * Sits just above the zoom control (`bottom-16`) so the two stack without
- * overlapping.
+ * Click / drag anywhere to re-centre the viewport on that point (pure pan,
+ * scale untouched). Visibility is driven by `EditorStore.panels.minimap`
+ * (toggled from FloatingZoom). Sits just above the zoom control.
  */
-const MAX_W = 200
-const MAX_H = 140
+const MAX_W = 208
+const MAX_H = 144
+
+/** Page background → CSS for the minimap thumbnail. */
+function miniBackground(bg: Background): React.CSSProperties {
+  switch (bg.type) {
+    case 'color':
+      return { background: bg.color }
+    case 'gradient': {
+      const stops = bg.gradient.stops
+        .map((s) => `${s.color} ${(s.offset * 100).toFixed(1)}%`)
+        .join(', ')
+      return {
+        background:
+          bg.gradient.type === 'linear'
+            ? `linear-gradient(${bg.gradient.angle ?? 180}deg, ${stops})`
+            : `radial-gradient(${stops})`,
+      }
+    }
+    case 'image':
+      return { background: '#0b1220' } // dark placeholder tint
+    case 'transparent':
+    default:
+      return { background: 'var(--muted)' }
+  }
+}
 
 export function Minimap() {
   const editor = useDashboardEditor()
@@ -57,30 +80,26 @@ export function Minimap() {
   const boxW = cw * scale
   const boxH = ch * scale
 
-  // Visible canvas region (canvas-space) → minimap-space rect.
+  // Visible canvas region (canvas-space) → minimap-space, clamped to the
+  // artboard so the spotlight stays tidy when panned past the edges.
   const hasCam = camera.scale > 0
   const vx = hasCam ? -camera.x / camera.scale : 0
   const vy = hasCam ? -camera.y / camera.scale : 0
   const vw = hasCam ? viewport.width / camera.scale : cw
   const vh = hasCam ? viewport.height / camera.scale : ch
+  // Visible region in minimap space. Un-clamped — the panel clips overflow,
+  // so a viewport panned past the artboard just shows the on-board part.
+  const rectLeft = vx * scale
+  const rectTop = vy * scale
+  const rectW = vw * scale
+  const rectH = vh * scale
 
   return (
-    <div className="bg-card border-border absolute right-4 bottom-16 z-20 overflow-hidden rounded-md border shadow-md select-none">
-      <div className="border-border flex items-center justify-between border-b px-2 py-0.5">
-        <span className="text-muted-foreground/80 text-[10px] tracking-wide">导航</span>
-        <button
-          type="button"
-          aria-label="隐藏小地图"
-          onClick={() => useEditorStore.getState().actions.setPanel('minimap', false)}
-          className="text-muted-foreground/60 hover:text-foreground flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm"
-        >
-          <X size={11} />
-        </button>
-      </div>
+    <div className="group border-border/70 bg-card/80 absolute right-4 bottom-16 z-20 overflow-hidden rounded-lg border shadow-lg ring-1 ring-black/5 backdrop-blur-sm select-none">
       <div
         ref={boxRef}
-        className="bg-muted/40 relative cursor-pointer"
-        style={{ width: boxW, height: boxH }}
+        className="relative cursor-pointer"
+        style={{ width: boxW, height: boxH, ...miniBackground(canvas.background) }}
         onPointerDown={(e) => {
           draggingRef.current = true
           e.currentTarget.setPointerCapture?.(e.pointerId)
@@ -100,30 +119,46 @@ export function Minimap() {
           return (
             <div
               key={wd.id}
-              className="bg-primary/45 pointer-events-none absolute rounded-[1px]"
+              className="bg-primary/55 pointer-events-none absolute rounded-[1px]"
               style={{
                 left: r.x * scale,
                 top: r.y * scale,
-                width: Math.max(r.width * scale, 1),
-                height: Math.max(r.height * scale, 1),
+                width: Math.max(r.width * scale, 1.5),
+                height: Math.max(r.height * scale, 1.5),
               }}
             />
           )
         })}
-        {/* Viewport rectangle — what's currently on screen. */}
-        <div
-          className={cn(
-            'border-primary bg-primary/10 pointer-events-none absolute',
-          )}
-          style={{
-            left: vx * scale,
-            top: vy * scale,
-            width: vw * scale,
-            height: vh * scale,
-            borderWidth: 1,
-          }}
-        />
+
+        {/* Viewport indicator — a light, crisp frame (white border + dark
+            halo so it reads on any page background), not a heavy spotlight.
+            Stays subtle whether the visible region is small (zoomed in) or
+            covers most of the board (zoomed out). */}
+        {hasCam && rectW > 1 && rectH > 1 && (
+          <div
+            className="pointer-events-none absolute rounded-[3px]"
+            style={{
+              left: rectLeft,
+              top: rectTop,
+              width: rectW,
+              height: rectH,
+              border: '1px solid rgba(255,255,255,0.92)',
+              background: 'rgba(255,255,255,0.08)',
+              boxShadow: '0 0 0 1px rgba(0,0,0,0.30), 0 1px 3px rgba(0,0,0,0.30)',
+            }}
+          />
+        )}
       </div>
+
+      {/* Hover-revealed close — keeps the panel chrome-free until needed. */}
+      <button
+        type="button"
+        aria-label="隐藏小地图"
+        onClick={() => useEditorStore.getState().actions.setPanel('minimap', false)}
+        className="absolute top-1 right-1 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded bg-black/35 text-white/80 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-black/60 hover:text-white"
+      >
+        <X size={12} />
+      </button>
     </div>
   )
 }

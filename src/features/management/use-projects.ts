@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { Project, ProjectSummary, ProjectStatus } from '@schema/types'
 import { LocalStoragePersistence } from '@schema/index'
+import { buildProjectFromTemplate, type DashboardTemplate } from './templates/dashboard-templates'
 
 /**
  * Tiny event bus to keep the management surface in sync without pulling in
@@ -94,6 +95,20 @@ export function useProjectCount(): number | undefined {
 
 export async function createNewProject(name?: string): Promise<Project> {
   const project = await adapter.create({ name: name ?? '未命名大屏' })
+  notifyProjectsChanged()
+  return project
+}
+
+/**
+ * Instantiate a new project from a built-in template — builds a fully
+ * populated, themed project and persists it. The new project owns its
+ * content outright (fresh ids); the template is just the seed.
+ */
+export async function createProjectFromTemplate(
+  template: DashboardTemplate,
+): Promise<Project> {
+  const project = buildProjectFromTemplate(template)
+  await adapter.save(project)
   notifyProjectsChanged()
   return project
 }

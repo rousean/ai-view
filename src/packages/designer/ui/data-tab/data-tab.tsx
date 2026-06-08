@@ -10,6 +10,7 @@ import {
   Globe,
   Info,
   Pencil,
+  Radio,
   X,
 } from 'lucide-react'
 import type { DataSlotDef, WidgetMeta } from '@widgets/widget-meta'
@@ -51,6 +52,7 @@ import { useDashboardEditor, useDocumentState, useEditorState } from '../../edit
 import { selectWidget } from '../../stores/selectors'
 import { createDataSource, DataSourceEditor } from '../data-sources-panel'
 import { DatasetTableEditor } from './dataset-table-editor'
+import { TransformSection } from './transform-section'
 
 /**
  * 数据 tab — the dedicated home for everything data-related on the
@@ -195,6 +197,10 @@ export function DataTab() {
           cramped for a table) + one-click paste from Excel / CSV. */}
       {mode !== 'bound' && <InlineDataSection widget={widget} meta={meta} slots={slots} />}
 
+      {/* Author data pipeline — filter / sort / aggregate / limit, run by
+          the resolver before slot projection. */}
+      <TransformSection widget={widget} meta={meta} dataSources={dataSources} />
+
       {/* Resolved preview — what the component actually receives.
           Always shown so users can sanity-check their mapping. */}
       <PreviewPane widget={widget} meta={meta} dataSources={dataSources} />
@@ -239,7 +245,7 @@ function SourcePicker({
   const current = sources.find((s) => s.id === currentSourceId)
   const [editingSource, setEditingSource] = React.useState<DataSource | null>(null)
 
-  const handleCreate = (type: 'api' | 'csv' | 'json' | 'static') => {
+  const handleCreate = (type: 'api' | 'ws' | 'csv' | 'json' | 'static') => {
     const src = createDataSource(editor, sources.length, type)
     editor.setBoundSource(widgetId, src.id, {})
     setEditingSource(src)
@@ -299,6 +305,10 @@ function SourcePicker({
             <DropdownMenuItem onSelect={() => handleCreate('api')}>
               <Globe />
               新建 · HTTP API
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleCreate('ws')}>
+              <Radio />
+              新建 · WebSocket 实时
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => handleCreate('csv')}>
               <FileSpreadsheet />

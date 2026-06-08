@@ -1,4 +1,4 @@
-import type { FieldType, SlotMapping, WidgetData } from '@schema/types'
+import type { FieldType, SlotMapping, TransformStep, WidgetData } from '@schema/types'
 import {
   addColumn,
   addRow,
@@ -266,6 +266,27 @@ export const widgetInlineColumnTypeCommand: Command<WidgetInlineColumnTypePayloa
   },
 }
 
+export interface WidgetSetTransformPayload {
+  id: string
+  transform: TransformStep[]
+}
+
+export const widgetSetTransformCommand: Command<WidgetSetTransformPayload> = {
+  type: 'widget.setTransform',
+  label: '修改数据处理',
+  undoable: true,
+  apply: (draft, _ctx, payload) => {
+    const node = findWidget(draft, payload.id)
+    // Transforms attach to inline / bound data. Sample-mode widgets are
+    // bootstrapped to inline by the facade before this command runs.
+    if (!node?.data) return
+    node.data = {
+      ...node.data,
+      transform: payload.transform.length > 0 ? payload.transform : undefined,
+    }
+  },
+}
+
 export const widgetDataCommands: Command<any>[] = [
   widgetSetDataCommand,
   widgetUpdateSlotMappingCommand,
@@ -277,4 +298,5 @@ export const widgetDataCommands: Command<any>[] = [
   widgetInlineColumnRemoveCommand,
   widgetInlineColumnRenameCommand,
   widgetInlineColumnTypeCommand,
+  widgetSetTransformCommand,
 ]

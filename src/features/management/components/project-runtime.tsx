@@ -7,6 +7,8 @@ import { WidgetView } from '@renderer/widget-view'
 import { reconcileFetchers, stopAllFetchers } from '@designer/data'
 import { useFilterStore, useRuntimeStore } from '@designer/stores'
 import { dispatchEvent, type DispatchHost } from '@designer/interactions'
+import { FilterBar } from '@designer/ui/filter-bar'
+import { effectiveVariableValues, selectVariables, useVariableStore } from '@designer/variables'
 import { cn } from '~/lib/utils'
 
 /**
@@ -22,16 +24,11 @@ import { cn } from '~/lib/utils'
  */
 export function ProjectRuntime({
   projectId,
-  scale,
   className,
 }: {
   /** When omitted, loads the first project from localStorage. */
   projectId?: string
-  /**
-   * Scale factor for the canvas. Caller typically computes
-   * `min(container.width / canvas.width, container.height / canvas.height)`.
-   */
-  scale: number
+  /** Extra classes for the (full-size) wrapper. */
   className?: string
 }) {
   const [project, setProject] = React.useState<Project | null>(null)
@@ -49,6 +46,7 @@ export function ProjectRuntime({
   // Subscribing here repaints the runtime when a fetch / poll lands so
   // bound widgets show real data instead of the meta sample.
   const fetchedData = useRuntimeStore((s) => s.fetchedData)
+  const varOverrides = useVariableStore((s) => s.values)
 
   React.useEffect(() => {
     let cancelled = false
@@ -124,6 +122,36 @@ export function ProjectRuntime({
     }
   }, [projectId])
 
+  // Page carousel — when the active page enables `transition.autoplay`,
+  // advance to the next page on an interval (wrapping). Cleared on page
+  // change / unmount. No-op for single-page projects.
+  React.useEffect(() => {
+    if (!project || project.pages.length < 2) return
+    const activeId = currentPageId ?? project.currentPageId
+    const auto = project.pages.find((p) => p.id === activeId)?.transition?.autoplay
+    if (!auto?.enabled) return
+    const interval = Math.max(1000, auto.interval || 5000)
+    const idx = project.pages.findIndex((p) => p.id === activeId)
+    const next = project.pages[(idx + 1) % project.pages.length]
+    const timer = setTimeout(() => switchPage(next.id), interval)
+    return () => clearTimeout(timer)
+  }, [project, currentPageId, switchPage])
+
+  // Self-scaling: observe our own container and fit the artboard per the
+  // page's `scaleMode`. Replaces the old caller-computed `scale` prop — and
+  // fixes the previous hard-coded 1920×1080 assumption.
+  const wrapRef = React.useRef<HTMLDivElement | null>(null)
+  const [box, setBox] = React.useState({ w: 0, h: 0 })
+  React.useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const measure = () => setBox({ w: el.clientWidth, h: el.clientHeight })
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [project])
+
   if (error) {
     return (
       <div
@@ -157,27 +185,70 @@ export function ProjectRuntime({
   const { width, height } = page.canvas
   const bg = pageBackground(page, project.assets)
   const dataSources = indexDataSources(project.dataSources)
+  const varDefs = selectVariables({ project })
+  const variables = effectiveVariableValues(varDefs, varOverrides)
+
+  // Per-mode fit. `box` is our container; the artboard is width×height.
+  // A centring translate works for every mode (for `stretch` it's 0 since
+  // the scaled box already fills the container exactly).
+  const mode = page.canvas.scaleMode ?? 'fit'
+  let sx = 1
+  let sy = 1
+  if (box.w > 0 && box.h > 0 && width > 0 && height > 0) {
+    const fx = box.w / width
+    const fy = box.h / height
+    switch (mode) {
+      case 'fill':
+        sx = sy = Math.max(fx, fy)
+        break
+      case 'stretch':
+        sx = fx
+        sy = fy
+        break
+      case 'fitWidth':
+        sx = sy = fx
+        break
+      case 'fitHeight':
+        sx = sy = fy
+        break
+      case 'none':
+        sx = sy = 1
+        break
+      case 'fit':
+      default:
+        sx = sy = Math.min(fx, fy)
+        break
+    }
+  }
+  const tx = (box.w - width * sx) / 2
+  const ty = (box.h - height * sy) / 2
 
   return (
-    <div
-      className={cn('relative origin-top-left overflow-hidden', className)}
-      style={{
-        width,
-        height,
-        transform: `scale(${scale})`,
-        ...bg,
-      }}
-    >
-      {page.widgets.map((w) => (
-        <RuntimeWidget
-          key={w.id}
-          node={w}
-          meta={widgetMap.get(w.type)}
-          dataSources={dataSources}
-          fetchedData={fetchedData}
-          host={dispatchHost}
-        />
-      ))}
+    <div className={cn('flex h-full w-full flex-col', className)}>
+      <FilterBar defs={varDefs} />
+      <div ref={wrapRef} className="relative min-h-0 flex-1 overflow-hidden">
+        <div
+          className="absolute top-0 left-0 origin-top-left"
+          style={{
+            width,
+            height,
+            transform: `translate(${tx}px, ${ty}px) scale(${sx}, ${sy})`,
+            ...bg,
+          }}
+        >
+          {page.widgets.map((w) => (
+            <RuntimeWidget
+              key={w.id}
+              node={w}
+              meta={widgetMap.get(w.type)}
+              dataSources={dataSources}
+              fetchedData={fetchedData}
+              host={dispatchHost}
+              variables={variables}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -188,12 +259,14 @@ function RuntimeWidget({
   dataSources,
   fetchedData,
   host,
+  variables,
 }: {
   node: WidgetNode
   meta: WidgetMeta | undefined
   dataSources: Record<string, DataSource>
   fetchedData: Record<string, unknown>
   host: DispatchHost
+  variables: Record<string, unknown>
 }) {
   // Highlight ring (from a `highlight` action) and the active cross-widget
   // filter (from a `filter` action) are global runtime concerns. Subscribe
@@ -211,7 +284,7 @@ function RuntimeWidget({
 
   // Build the resolved data the component reads. Same resolver the designer
   // uses (filter applied here too), so runtime matches the designer preview.
-  const data = resolveWidgetData(node, meta, dataSources, activeFilter, fetchedData)
+  const data = resolveWidgetData(node, meta, dataSources, activeFilter, fetchedData, variables)
 
   // Pointer affordance when the widget carries an enabled click/dblclick
   // binding — matches the designer's preview cursor.

@@ -15,8 +15,14 @@ export interface SetterProps<T = unknown> {
   /** Forwarded from PropConfig.setterProps. */
   setterProps?: Record<string, unknown>
 
-  /** Surrounding context the setter may need (e.g. data setter wants editor). */
-  context: {
+  /**
+   * Surrounding context a setter may need (e.g. a data / reference setter
+   * wants the editor + node). Optional so context-agnostic setters
+   * (ColorSetter, StringSetter, …) can be rendered standalone — e.g. the
+   * 画布 tab reuses ColorSetter for page-level colours, where there is no
+   * single owning widget node.
+   */
+  context?: {
     node: WidgetNode
     editor: DashboardEditor
   }

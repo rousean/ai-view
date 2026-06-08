@@ -6,9 +6,12 @@ import type {
   FieldType,
   Layout,
   Page,
+  PageTransition,
   Point,
   Project,
+  ScaleMode,
   SlotMapping,
+  TransformStep,
   WidgetData,
   WidgetNode,
 } from '@schema/types'
@@ -934,6 +937,11 @@ export class DashboardEditor {
     this.execute('page.reorder', { orderedIds })
   }
 
+  /** Set (or clear) the page's transition / autoplay config. */
+  setPageTransition(pageId: string, transition: PageTransition | undefined): void {
+    this.execute('page.setTransition', { pageId, transition })
+  }
+
   // Canvas / grid / guides ─────────────────────────────────────────
 
   setCanvasSize(width: number, height: number): void {
@@ -942,6 +950,11 @@ export class DashboardEditor {
 
   toggleOrientation(): void {
     this.execute('canvas.toggleOrientation', {})
+  }
+
+  /** Runtime fit strategy (preview / published). See {@link ScaleMode}. */
+  setScaleMode(scaleMode: ScaleMode): void {
+    this.execute('canvas.setScaleMode', { scaleMode })
   }
 
   setBackground(background: Background): void {
@@ -1020,6 +1033,19 @@ export class DashboardEditor {
 
   setBoundSource(id: string, sourceId: string, mapping?: SlotMapping): void {
     this.execute('widget.setBoundSource', { id, sourceId, mapping })
+  }
+
+  /**
+   * Set the widget's author data pipeline (filter / sort / aggregate /
+   * limit), run by the resolver before slot projection. A sample-mode
+   * widget is bootstrapped to inline first so the steps have a dataset to
+   * attach to; inline / bound widgets keep their existing data.
+   */
+  setWidgetTransform(id: string, transform: TransformStep[]): void {
+    const node = this.getWidget(id)
+    if (!node) return
+    if (!node.data) this.ensureInlineWidgetData(id)
+    this.execute('widget.setTransform', { id, transform })
   }
 
   // Inline-write facades: auto-bootstrap from sample on first edit so the

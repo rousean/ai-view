@@ -2,6 +2,18 @@ import type { Background } from './common'
 import type { Guide } from './guide'
 import type { WidgetNode } from './widget-node'
 
+/**
+ * How the artboard fits its display container at runtime (preview /
+ * published). Design-time always renders 1:1 under the camera.
+ *   - `fit`       等比缩放，留边（默认）
+ *   - `fill`      等比缩放铺满，超出裁切
+ *   - `stretch`   拉伸铺满（可能变形）
+ *   - `fitWidth`  按宽度铺满
+ *   - `fitHeight` 按高度铺满
+ *   - `none`      原始尺寸（1:1）
+ */
+export type ScaleMode = 'fit' | 'fill' | 'stretch' | 'fitWidth' | 'fitHeight' | 'none'
+
 /** Fixed canvas (artboard) configuration. */
 export interface CanvasConfig {
   width: number
@@ -10,6 +22,8 @@ export interface CanvasConfig {
   background: Background
   /** Optional safe-area frame: a margin (px) inset from every edge. */
   safeArea?: { enabled: boolean; margin: number }
+  /** Runtime fit strategy. Absent → 'fit'. */
+  scaleMode?: ScaleMode
 }
 
 /** Grid configuration: visibility + snap behavior. */

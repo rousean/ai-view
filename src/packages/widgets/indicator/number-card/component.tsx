@@ -2,6 +2,7 @@ import * as React from 'react'
 import type { WidgetRenderProps } from '../../widget-meta'
 import type { NumberAggregate, NumberCardProps } from './types'
 import { DEFAULT_NUMBER_CARD_PROPS } from './default-props'
+import { evalRuleColor } from '../../shared/conditional'
 
 const H_ALIGN = {
   left: 'flex-start',
@@ -59,6 +60,8 @@ export const NumberCardComponent: React.FC<WidgetRenderProps<NumberCardProps>> =
   const text = formatNumber(value, props.decimals, props.thousands)
   const vf = props.valueFont ?? {}
   const lf = props.labelFont ?? {}
+  // Conditional formatting — a matching threshold rule recolours the value.
+  const valueColor = evalRuleColor(value, props.rules) ?? vf.color
 
   const labelEl = props.showLabel ? (
     <div
@@ -77,7 +80,7 @@ export const NumberCardComponent: React.FC<WidgetRenderProps<NumberCardProps>> =
   const valueEl = (
     <div
       style={{
-        color: vf.color,
+        color: valueColor,
         fontSize: vf.size,
         fontWeight: vf.weight,
         fontStyle: vf.italic ? 'italic' : undefined,
