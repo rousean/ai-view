@@ -94,11 +94,15 @@ export function MaterialsPanel({
         </kbd>
       </div>
 
-      {/* Category tabs (horizontal scroll). Tabs grey out + become inert
-          while a search is active, signalling that results span all categories. */}
+      {/* Category tabs. Labels are short (2 chars), so distribute them
+          evenly across the panel width (flex-1) — no overflow, no
+          truncation. `overflow-x-auto` stays as a safety net if a plugin
+          ever registers enough extra categories to exceed min-content.
+          Tabs grey out + become inert while a search is active,
+          signalling that results span all categories. */}
       <div
         className={cn(
-          'border-border mt-2 flex shrink-0 items-stretch gap-0.5 overflow-x-auto overflow-y-hidden border-b px-2.5 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]',
+          'border-border mt-2 flex shrink-0 items-stretch overflow-x-auto overflow-y-hidden border-b px-1.5 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]',
           isSearching && 'pointer-events-none opacity-40',
         )}
       >
@@ -109,9 +113,9 @@ export function MaterialsPanel({
               key={cat}
               onClick={() => setActiveCat(cat)}
               className={cn(
-                'relative flex-shrink-0 cursor-pointer px-2 py-2 text-xs whitespace-nowrap select-none',
+                'relative flex-1 cursor-pointer px-1 py-2 text-center text-xs whitespace-nowrap select-none',
                 isActive
-                  ? "text-foreground font-medium after:bg-primary after:absolute after:right-2 after:-bottom-px after:left-2 after:h-0.5 after:rounded-[1px] after:content-['']"
+                  ? "text-foreground font-medium after:bg-primary after:absolute after:right-1.5 after:-bottom-px after:left-1.5 after:h-0.5 after:rounded-[1px] after:content-['']"
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >

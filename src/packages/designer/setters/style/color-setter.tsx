@@ -1,18 +1,11 @@
 import * as React from 'react'
-import { parseColor } from 'react-aria-components'
-import {
-  ColorArea,
-  ColorPicker,
-  ColorSlider,
-  ColorThumb,
-  SliderTrack,
-} from '~/components/ui/color'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { Separator } from '~/components/ui/separator'
+import { ColorPickerPanel, parseColor } from '~/components/ui/color-picker'
 import { cn } from '~/lib/utils'
 import { matchPaletteToken, usePalette } from '../../palette'
 import { PalettePicker } from '../../palette/palette-picker'
@@ -42,11 +35,13 @@ const DEFAULT_PRESETS = [
  * the property panel.
  *
  *   ┌────────────────────────────────┐
- *   │ [swatch] ABCDEF       100%     │   ← whole row uses PropInput chrome
+ *   │ [swatch] ABCDEF        80%      │   ← whole row uses PropInput chrome
  *   └────────────────────────────────┘
- *      ▲ clicking the swatch opens a Popover with the full picker
+ *      ▲ clicking the swatch opens a Popover with the Figma-style picker
+ *        (saturation/value area + hue & alpha sliders + hex/alpha inputs)
  *
- * Hex text is normalised on commit; invalid values revert.
+ * Hex text is normalised on commit; invalid values revert. The trailing
+ * percentage reflects the colour's real alpha.
  */
 export const ColorSetter: React.FC<SetterProps<string>> = ({
   value,
@@ -58,20 +53,14 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
   const v = typeof value === 'string' && value.length > 0 ? value : '#ffffff'
   const presets = opts.presets ?? DEFAULT_PRESETS
 
-  // react-aria's ColorPicker throws on colours it can't parse (notably
-  // 'transparent'); feed it a sanitised value so opening the picker on a
-  // transparent / rgba prop doesn't crash. The swatch + text still reflect
-  // the real value.
-  const pickerColor = React.useMemo(() => {
-    try {
-      return parseColor(v)
-    } catch {
-      return parseColor('#FFFFFF')
-    }
-  }, [v])
-
   const [text, setText] = React.useState(colorLabel(v))
   React.useEffect(() => setText(colorLabel(v)), [v])
+
+  // Trailing alpha percentage (truthful — was a hardcoded "100%" before).
+  const alphaPct = React.useMemo(() => {
+    const c = parseColor(v)
+    return c ? Math.round(c.a * 100) : 100
+  }, [v])
 
   // "Bound to a palette token" indicator. When the value matches a
   // token, swap the hex input for a compact chip ("= 主色") so the
@@ -80,9 +69,7 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
   //
   // `showHexOverride` is a one-shot state: clicking the chip flips it
   // on, the input becomes editable, and the next prop value change
-  // (color picker or palette click) snaps back to chip mode. Without
-  // this React-side flag the previous classList-based reveal was
-  // wiped on the next render — making the chip click feel broken.
+  // (color picker or palette click) snaps back to chip mode.
   const palette = usePalette()
   const match = React.useMemo(() => matchPaletteToken(palette, v), [palette, v])
   const [showHexOverride, setShowHexOverride] = React.useState(false)
@@ -96,22 +83,25 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
 
   const commit = (raw: string) => {
     const t = raw.trim()
+    if (t === '') {
+      onChange('')
+      return
+    }
+    if (t.toLowerCase() === 'transparent') {
+      onChange('transparent')
+      return
+    }
     const s = t.replace(/^#/, '')
     if (/^[0-9a-fA-F]{3,8}$/.test(s)) {
       onChange('#' + s.toUpperCase())
-    } else if (t === '') {
-      onChange('')
-    } else if (t.toLowerCase() === 'transparent') {
-      onChange('transparent')
+      return
+    }
+    // Accept any CSS colour we can parse (rgb/rgba/hsl/hsla); otherwise
+    // revert to the last good value.
+    if (parseColor(t)) {
+      onChange(t)
     } else {
-      // Accept any CSS colour react-aria can parse (rgb/rgba/hsl/hsla);
-      // otherwise revert to the last good value.
-      try {
-        parseColor(t)
-        onChange(t)
-      } catch {
-        setText(colorLabel(v))
-      }
+      setText(colorLabel(v))
     }
   }
 
@@ -135,45 +125,7 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
             {/* Project palette — quick-pick semantic + series colours. */}
             <PalettePicker currentColor={v} onPick={(c) => onChange(c)} />
             <Separator />
-            <ColorPicker
-              value={pickerColor}
-              onChange={(c) => onChange(typeof c === 'string' ? c : c.toString('hex'))}
-            >
-              <div className="space-y-3">
-                <ColorArea
-                  colorSpace="hsb"
-                  xChannel="saturation"
-                  yChannel="brightness"
-                  className="size-full"
-                >
-                  <ColorThumb />
-                </ColorArea>
-                <ColorSlider colorSpace="hsb" channel="hue">
-                  <SliderTrack className="w-full">
-                    <ColorThumb />
-                  </SliderTrack>
-                </ColorSlider>
-                {presets.length > 0 && (
-                  <div>
-                    <div className="text-muted-foreground/70 mb-1 text-[10px] tracking-wide uppercase">
-                      内置色板
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {presets.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => onChange(c)}
-                          aria-label={c}
-                          className="border-border h-4 w-4 cursor-pointer rounded-sm border shadow-[inset_0_0_0_1px_rgba(0,0,0,.05)]"
-                          style={{ background: c }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </ColorPicker>
+            <ColorPickerPanel value={v} onChange={onChange} presets={presets} />
           </div>
         </PopoverContent>
       </Popover>
@@ -205,7 +157,7 @@ export const ColorSetter: React.FC<SetterProps<string>> = ({
           tokenLabel && 'hidden',
         )}
       />
-      <span className="text-muted-foreground/60 text-[11px]">100%</span>
+      <span className="text-muted-foreground/60 text-[11px]">{alphaPct}%</span>
     </PropInput>
   )
 }

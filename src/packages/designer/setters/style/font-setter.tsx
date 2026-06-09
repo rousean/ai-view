@@ -1,12 +1,6 @@
 import * as React from 'react'
 import { Bold, Italic, Type as TypeIcon } from 'lucide-react'
-import {
-  ColorArea,
-  ColorPicker,
-  ColorSlider,
-  ColorThumb,
-  SliderTrack,
-} from '~/components/ui/color'
+import { ColorPickerPanel } from '~/components/ui/color-picker'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Separator } from '~/components/ui/separator'
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
@@ -115,47 +109,11 @@ export const FontSetter: React.FC<SetterProps<FontStyle>> = ({
           <div className="space-y-3">
             <PalettePicker currentColor={color} onPick={(c) => patch({ color: c })} />
             <Separator />
-            <ColorPicker
+            <ColorPickerPanel
               value={color}
-              onChange={(c) =>
-                patch({ color: typeof c === 'string' ? c : c.toString('hex') })
-              }
-            >
-              <div className="space-y-3">
-                <ColorArea
-                  colorSpace="hsb"
-                  xChannel="saturation"
-                  yChannel="brightness"
-                  className="size-full"
-                >
-                  <ColorThumb />
-                </ColorArea>
-                <ColorSlider colorSpace="hsb" channel="hue">
-                  <SliderTrack className="w-full">
-                    <ColorThumb />
-                  </SliderTrack>
-                </ColorSlider>
-                {presets.length > 0 && (
-                  <div>
-                    <div className="text-muted-foreground/70 mb-1 text-[10px] tracking-wide uppercase">
-                      内置色板
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {presets.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => patch({ color: c })}
-                          aria-label={c}
-                          className="border-border h-4 w-4 cursor-pointer rounded-sm border shadow-[inset_0_0_0_1px_rgba(0,0,0,.05)]"
-                          style={{ background: c }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </ColorPicker>
+              onChange={(c) => patch({ color: c })}
+              presets={presets}
+            />
           </div>
         </PopoverContent>
       </Popover>
