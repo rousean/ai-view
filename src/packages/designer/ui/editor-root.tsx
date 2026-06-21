@@ -34,6 +34,7 @@ import {
   SecondaryPanel,
 } from './secondary-panels'
 import { TopBar } from './top-bar'
+import { cn } from '~/lib/utils'
 
 interface EditorRootProps {
   /** Persistence adapter. Defaults to LocalStoragePersistence. */
@@ -213,7 +214,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
   return (
     <EditorProvider editor={editor}>
       <div
-        className={`flex h-full w-full flex-col overflow-hidden bg-muted font-sans text-xs leading-tight text-foreground antialiased ${className ?? ''}`}
+        className={cn('flex h-full w-full flex-col overflow-hidden bg-muted font-sans text-xs leading-tight text-foreground antialiased', className)}
       >
         <TooltipProvider delayDuration={300}>
           <TopBar />
