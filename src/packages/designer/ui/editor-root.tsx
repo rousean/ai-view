@@ -213,9 +213,7 @@ export const EditorRoot: React.FC<EditorRootProps> = ({ adapter, projectId, clas
 
   return (
     <EditorProvider editor={editor}>
-      <div
-        className={cn('flex h-full w-full flex-col overflow-hidden bg-muted font-sans text-xs leading-tight text-foreground antialiased', className)}
-      >
+      <div className={cn('flex h-full w-full flex-col overflow-hidden bg-muted font-sans text-xs leading-tight text-foreground antialiased', className)}>
         <TooltipProvider delayDuration={300}>
           <TopBar />
           <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
